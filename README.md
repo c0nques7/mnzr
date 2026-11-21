@@ -84,7 +84,7 @@ music/         MP3 tracks loaded at runtime (see below)
 
 **External resources**
 - Google Fonts: Saira Condensed and IBM Plex Mono (the game falls back to system fonts if blocked).
-- `music/*.mp3`: six tracks referenced by `MATCH_LIST` (`dark-synthwave-loka`, `neon-nights`, `oblivion-echo`, `spectral`, `neon-synthwave-vibe`, `dark-synthwave-kulakovka`). One more track, "Evasion", is embedded in the file. A missing MP3 is skipped, not fatal.
+- `music/*.mp3`: eleven tracks referenced by `MATCH_LIST` (`dark-synthwave-loka`, `neon-nights`, `oblivion-echo`, `spectral`, `neon-synthwave-vibe`, `dark-synthwave-kulakovka`, `war-cyberpunk`, `cyberpunk-neon-city`, `downtown-80s-club`, `darkish-focus-80s`, `supercars-action`). One more track, "Evasion", is embedded in the file. A missing MP3 is skipped, not fatal.
 
 **Saved in the browser (`localStorage`)**
 Key bindings (`za-binds`), settings (`za-opt`, `za-gfx`, `za-sens`, `za-dev`), progress (`za-prog`), loadouts (`za-w`), name (`za-name`), last map and mode (`za-map`, `za-mode`), Zombie Rumble settings (`za-zr`, `za-zrlen`), and a few others. Clearing site data resets all of them.
@@ -107,7 +107,7 @@ Because of the file's size, enable compression on your host (Vercel compresses t
 ## Credits
 
 - three.js (MIT), https://threejs.org
-- Music credits as named in `MATCH_LIST`: loka_music, turtlebeats, echoes_of_lumen, kulakovka. Check each track's licence before publishing.
+- Music credits as named in `MATCH_LIST`: loka_music, turtlebeats, echoes_of_lumen, kulakovka, EnergySound, SlimeyFox, fassounds. Check each track's licence before publishing.
 
 ## Known gaps
 
