@@ -355,6 +355,7 @@ body.touch .stabhint{display:none}
 #endcol>.hud{position:static;transform:none;left:auto;top:auto;width:100%;box-sizing:border-box}
 #endbtns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;width:100%}
 #endbtns .btn{flex:1 1 180px;min-height:52px;font-size:20px}
+#endbtns #eagain{flex-basis:auto;white-space:nowrap}
 #endbtns .btn:focus-visible,#endbtns .btn.pad{outline:3px solid var(--accent);outline-offset:3px}
 #endnote{margin:0;color:var(--muted);font-size:15px;text-align:center;min-height:1.2em}
 body.ended #touch,body.ended #zrcap,body.ended #down,body.ended #lockhint,body.ended #prompt,body.ended #ring{visibility:hidden}
@@ -741,7 +742,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
 </div>
 <div class="hud" id="lockhint" hidden>Click to aim · <span id="lockmode"></span></div>
 
-<div class="overlay" id="endscr" hidden role="dialog" aria-label="Match over"><div id="endcol"><div id="endbtns"><button class="btn primary" type="button" id="eagain">Play again</button><button class="btn" type="button" id="emenu">Main menu</button></div><p id="endnote"></p></div></div>
+<div class="overlay" id="endscr" hidden role="dialog" aria-label="Match over"><div id="endcol"><div id="endbtns"><button class="btn primary" type="button" id="eagain">Play again</button><button class="btn" type="button" id="ereplay" hidden>Replay week</button><button class="btn" type="button" id="emenu">Main menu</button></div><p id="endnote"></p></div></div>
 <div class="overlay" id="down" hidden>
   <h2>Downed</h2>
   <p id="downtxt"></p>
@@ -827,6 +828,8 @@ body.touch #dock #dashpips i{width:22px;height:6px}
           <select id="zrlen" hidden><option value="1">Full</option><option value="0">Short</option></select>
           <div id="zrweeks" role="radiogroup" aria-label="Week" hidden></div>
           <div class="mseg" id="zrseg" data-for="zrlen" role="radiogroup" aria-label="Broadcast length" hidden><span>Length</span><button type="button" role="radio" data-v="1">Full · 25 min</button><button type="button" role="radio" data-v="0">Short · 10 min</button></div>
+          <select id="zrcarry" hidden><option value="1">Carry over</option><option value="0">Fresh start</option></select>
+          <div class="mseg" id="zrcyseg" data-for="zrcarry" role="radiogroup" aria-label="Build" hidden><span>Build</span><button type="button" role="radio" data-v="1" id="zrcy1">Carry over</button><button type="button" role="radio" data-v="0">Fresh start</button></div>
           <div class="mseg" id="teamseg" data-for="teampref" role="radiogroup" aria-label="Team"><span>Team</span><button type="button" role="radio" data-v="-1">Auto</button><button type="button" role="radio" data-v="0" class="t0">Blue</button><button type="button" role="radio" data-v="1" class="t1">Orange</button></div>
         </div>
         <div class="mpp" data-p="play">
@@ -6771,10 +6774,10 @@ function hostTick(dt){
   S.clock+=dt;if(!S.cover)S.cover=COVER.map(b=>b.max);
   if(!S.pane||S.pane.length!==MF.panes.length){S.pane=MF.panes.map(()=>PANE_HP);S.paneR=MF.panes.map(()=>0);}
   if(S.phase==='live')S.mft=(S.mft||0)+dt;else if(S.phase==='buy')S.mft=0;/* map feature clock: crane and pour start over each round */
-  if(S.phase==='buy'){S.t-=dt;if(S.t<=0){S.phase='live';S.t=0;/* Sponsor deal: starting Favor, once the humans are seated */if(S.mode==='zr')for(const p of S.players)p.fv=(p.fv|0)+30*zlv(p,'f');}}
+  if(S.phase==='buy'){if(S.mode==='zr')zrCarryTick();S.t-=dt;if(S.t<=0){S.phase='live';S.t=0;/* Sponsor deal: starting Favor, once the humans are seated */if(S.mode==='zr')for(const p of S.players)p.fv=(p.fv|0)+30*zlv(p,'f');}}
   else if(S.phase==='live'){if(S.mode==='dm'){dmTick(dt);if(S.range)rgSiteTick(dt);}else if(S.mode==='zr')zrTick(dt);else liveTick(dt);if(S.phase==='live'){regenTick(dt);mfHost(dt);}}
   else if(S.phase==='post'){S.t-=dt;if(S.t<=0){if(!SB.on&&(S.score[0]>=CFG.winScore||S.score[1]>=CFG.winScore)){S.phase='over';S.t=CFG.overT;feed(`${TEAMN[S.score[0]>S.score[1]?0:1]} wins the match`);}else{S.round++;startRound();}}}
-  else if(S.phase==='over'){if(net.mode!=='solo'||SB.on)S.t-=dt;const hum=S.players.filter(p=>!p.bot);if(S.t<=0||(hum.length&&S.again&&hum.every(p=>S.again.includes(p.s))))newMatch();}
+  else if(S.phase==='over'){if(net.mode!=='solo'||SB.on)S.t-=dt;const hum=S.players.filter(p=>!p.bot);if(S.t<=0||(hum.length&&S.again&&hum.every(p=>S.again.includes(p.s)))){if(zrCanContinue())zcAdvance();newMatch();}}
   for(const p of S.players)if(p.bot)botThink(p,dt);
   if(ZB.list.length)zTick(dt);
 }
@@ -6999,7 +7002,7 @@ function relayRooms(){
   else notes.textContent='Online play needs a browser with WebSockets. Play works anywhere.';
 })();
 
-function myPresence(){return{n:me.name,p:[+me.x.toFixed(2),+me.y.toFixed(2),+me.z.toFixed(2)],yw:+viewYaw().toFixed(3),pt:+viewPitch().toFixed(3),c:me.crouch||me.slideT>0?1:0,l:+((me.leanOff||0)/0.55).toFixed(2),wr:me.wr,u:me.use,k:me.pick,g:me.give,sh:me.sh,tm:me.teamPref,w:me.w,r:me.reloadT>0?1:0,sx:myW(me.w).supp?1:0,cg:me.chgT>0?Math.round(clamp(me.chgT/(myW(me.w).chg||1),0,1)*9):0,ls:myW(me.w).las?1:0,ds:(me.dashSeq|0)%1000,sl:me.slideT>0?1:0,lk:lkMine(),h:net.host&&net.mode==='online'?net.hostSince:0,hb:Math.floor(performance.now()/1000)%100,lb:net.inLobby?1:0};}
+function myPresence(){return{n:me.name,p:[+me.x.toFixed(2),+me.y.toFixed(2),+me.z.toFixed(2)],yw:+viewYaw().toFixed(3),pt:+viewPitch().toFixed(3),c:me.crouch||me.slideT>0?1:0,l:+((me.leanOff||0)/0.55).toFixed(2),wr:me.wr,u:me.use,k:me.pick,g:me.give,sh:me.sh,tm:me.teamPref,w:me.w,r:me.reloadT>0?1:0,sx:myW(me.w).supp?1:0,cg:me.chgT>0?Math.round(clamp(me.chgT/(myW(me.w).chg||1),0,1)*9):0,ls:myW(me.w).las?1:0,ds:(me.dashSeq|0)%1000,sl:me.slideT>0?1:0,lk:lkMine(),cy:zcCarryCode(),h:net.host&&net.mode==='online'?net.hostSince:0,hb:Math.floor(performance.now()/1000)%100,lb:net.inLobby?1:0};}
 function peerList(){
   if(net.mode==='solo')return[{peer:'local',presence:myPresence(),isMe:true}];
   if(!net.room)return[];
@@ -9420,7 +9423,7 @@ function wheelMove(dx,dy){WH.vx+=dx;WH.vy+=dy;const L=Math.hypot(WH.vx,WH.vy);if
   wheelUI.dot.setAttribute('cx',WH.vx.toFixed(1));wheelUI.dot.setAttribute('cy',WH.vy.toFixed(1));
   if(L>28)wheelHover(wheelAt(Math.atan2(WH.vy,WH.vx)*180/Math.PI));}
 function wheelTick(P){
-  if(S.phase==='buy'&&S.round===1){if(!WH.auto&&P&&P.st==='alive'&&$('pause').hidden&&$('settings').hidden){WH.auto=true;openWheel('start');}}
+  if(S.phase==='buy'&&S.round===1){if(!WH.auto&&P&&P.st==='alive'&&$('pause').hidden&&$('settings').hidden){WH.auto=true;if(!(S.mode==='zr'&&S.zr&&S.zr.carry&&P.dropW))openWheel('start');}}/* a carried weapon skips the start pick */
   else{WH.auto=false;if(WH.open&&WH.mode==='start')closeWheel(false);}
   if(WH.open&&WH.mode==='hold'&&!canHoldWheel())closeWheel(false);
   if(WH.open)wheelTitle();}
@@ -10844,8 +10847,37 @@ function zcWeek(n){return ZCAMP.w[n]||(ZCAMP.w[n]={c:0,runs:0,best:{}});}
 function zcOpen(n){return n===1||!!(ZCAMP.w[n-1]&&ZCAMP.w[n-1].c);}
 function zcPlayable(n){return zcOpen(n)&&!!(ZWEEKS[n]&&ZWEEKS[n].built);}
 function zcSel(){return zcPlayable(ZCAMP.sel)?ZCAMP.sel:1;}
+/* carrying a build between weeks: clearing a week saves your Favor cards (with their levels) and your weapon, special drop
+   included, in ZCAMP.carry {w: the week it is for, c: card ids, dw: weapon, sw: special weapon, bots: [{s,c}] (host only)}.
+   A carried run hands them back while you wait in the tunnel. A wipe keeps the save, so you can retry that week with it;
+   clearing that week replaces it with the bigger build for the week after. Favor itself still starts fresh every week. */
+function zcCarryCards(c){const out=[],n={};for(const id of Array.isArray(c)?c:[]){if(!ZCARDS[id]||(n[id]|0)>=zCap(id)||out.length>=40)continue;n[id]=(n[id]|0)+1;out.push(id);}return out;}
+function zcCarrySw(sw){return sw&&W[sw.k]&&ZSW[sw.r|0]&&(sw.r|0)>0?{k:sw.k,r:sw.r|0,s:sw.s|0}:null;}
+function zcCarrySave(Z){const s=mySlot(),P=s>=0&&S?S.players[s]:null;if(!P)return;const sw=zcCarrySw(P.sw),dw=sw?sw.k:P.dropW&&W[P.dropW]?P.dropW:W[me.w]?me.w:null;
+  const C={w:(Z.week||1)+1,from:Z.week||1,c:zcCarryCards(P.cards),dw,sw};
+  if(net.mode!=='online'||net.host)C.bots=S.players.filter(p=>p.bot).map(p=>({s:p.s,c:zcCarryCards(p.cards)}));
+  ZCAMP.carry=C;ZCY.code=null;}
+const ZCY={code:null};
+function zcCarryCode(){if(ZCY.code!=null)return ZCY.code;const C=ZCAMP.carry;ZCY.code=C&&C.w>=2?`${C.w}|${C.dw||''}|${(C.c||[]).join(',')}|${C.sw?C.sw.k+'.'+C.sw.r+'.'+C.sw.s:''}`:'';return ZCY.code;}
+function zcCarryParse(t){if(typeof t!=='string'||!t||t.length>400)return null;const a=t.split('|');if(a.length<4)return null;const sw=a[3]?a[3].split('.'):null;
+  return{w:a[0]|0,dw:W[a[1]]?a[1]:null,c:zcCarryCards(a[2]?a[2].split(','):[]),sw:sw?zcCarrySw({k:sw[0],r:+sw[1],s:+sw[2]}):null};}
+function zcMyCarried(){const s=mySlot(),P=s>=0&&S?S.players[s]:null;return !!P&&((P.cards&&P.cards.length)||!!P.dropW);}
+function zcCarryFor(n){const C=ZCAMP.carry;return C&&C.w===n?C:null;}
+/* host, during the tunnel wait of a carried run: each player gets their own saved build once (guests' come from presence) */
+function zrCarryTick(){const Z=S.zr;if(!Z||!Z.carry)return;Z.cyd=Z.cyd||{};const C=zcCarryFor(Z.week|0);
+  for(const p of S.players){const key=p.bot?'b'+p.s:'h'+(p.peer||p.s);if(Z.cyd[key])continue;let cy=null;
+    if(p.bot){const b=C&&Array.isArray(C.bots)?C.bots.find(o=>o.s===p.s):null;cy=b?{c:zcCarryCards(b.c)}:null;}
+    else if(p.s===mySlot())cy=C;
+    else{const pr=presenceOf(p.peer);if(!pr)continue;const g=zcCarryParse(pr.cy);cy=g&&g.w===(Z.week|0)?g:null;}
+    Z.cyd[key]=1;if(!cy)continue;p.cards=zcCarryCards(cy.c);
+    if(!p.bot){const sw=zcCarrySw(cy.sw);p.sw=sw;p.dropW=sw?sw.k:cy.dw&&W[cy.dw]?cy.dw:null;}
+    const nc=new Set(p.cards).size;if(nc||p.dropW)feed(`${p.name} carries ${nc} card${nc===1?'':'s'}${p.dropW?' and the '+W[p.dropW].name:''} from Week ${(Z.week|0)-1}`);}}
+/* the end screen: a cleared week whose next week is built can go straight on with the same build */
+function zrCanContinue(){const Z=S&&S.mode==='zr'&&S.zr;if(!Z||!Z.won||S.range||SB.on)return false;const n=(Z.week||1)+1;return !!(ZWEEKS[n]&&ZWEEKS[n].built);}
+function zcAdvance(){const n=((S&&S.zr&&S.zr.week)||1)+1;if(!ZWEEKS[n])return;MATCH.zrWeek=n;MATCH.zrCarry=true;ZCAMP.sel=n;zcSave();
+  $('zrcarry').value='1';try{localStorage.setItem('za-zrcarry','1');}catch(e){}segSync();zcUI();modeCap();}
 /* a run ended: every client that played it records it */
-function zcRecord(Z,secs){const w=zcWeek(Z.week||1),was=!!w.c;w.runs=(w.runs|0)+1;if(Z.won){w.c=1;const k=Z.len==='short'?'short':'full';if(!(w.best[k]>0)||secs<w.best[k])w.best[k]=Math.round(secs);}
+function zcRecord(Z,secs){const w=zcWeek(Z.week||1),was=!!w.c;w.runs=(w.runs|0)+1;if(Z.won){w.c=1;zcCarrySave(Z);const k=Z.len==='short'?'short':'full';if(!(w.best[k]>0)||secs<w.best[k])w.best[k]=Math.round(secs);}
   // Credits: 12 per wave or surge cleared, 1 per 4 Revenants you dropped, and a bonus for the week (Full 250, Short 120)
   const s=mySlot(),P=s>=0&&S?S.players[s]:null;ZW.cr=Math.round(((Z.cleared|0)*12+((P&&P.k)|0)/4+(Z.won?(Z.len==='short'?120:250):0))*((Z.week|0)>=2?1.2:1));ZCAMP.cr=(ZCAMP.cr|0)+ZW.cr;
   zcSave();zcUI();lockUI();return Z.won&&!was;}
@@ -11076,7 +11108,7 @@ function zrStart(){S.center={own:-1,cap:-1,p:0};S.armed=null;S.tickets=[0,0];S.s
   S.timer=0;S.phase='buy';S.t=Math.max(CFG.buy,CFG.buy1,0.6+vxSeqLen(ZR_PA,0.5)+3.4);S.last=null;/* room for the tunnel PA before 3-2-1 */
   const short=MATCH.zrLen==='short',home=MAP.id,others=MAP_IDS.filter(m=>m!==home);
   S.zr={len:short?'short':'full',week:MATCH.zrWeek||1,seg:0,segs:short?3:4,awaySeg:short?2:3,home,away:others[(Math.random()*others.length)|0]||home,
-    w:0,nw:0,ph:'pre',t:0,q:[],sp:0,left:0,kills:0,cleared:0,won:false,why:'',boss:null,offers:{},picked:{},ready:{},mine:{A:0,B:0},drops:[],di:0,crT:0};
+    w:0,nw:0,ph:'pre',t:0,q:[],sp:0,left:0,kills:0,cleared:0,won:false,why:'',boss:null,offers:{},picked:{},ready:{},mine:{A:0,B:0},drops:[],di:0,crT:0,carry:(MATCH.zrWeek||1)>=2&&MATCH.zrCarry?1:0,cyd:{}};
   zClear();ZB.kills=0;ZB.hunt=true;ZB.endless=false;for(const p of S.players){p.team=0;p.k=0;p.d=0;p.fv=0;p.cards=[];p.dropW=null;p.sw=null;}
   zrSeg(1);}
 /* a segment starts: its map (switching for the away broadcast), everyone up, healed and home */
@@ -11319,7 +11351,7 @@ function zrCardsLine(P){const el=$('zrheld'),cs=(P&&P.cards)||[],k=cs.join(',')+
   const max=TOUCH.on?(innerHeight<520?1:6):(innerHeight<520?3:8),kids=[...el.children];if(kids.length>max+1){const more=kids.slice(max);more.forEach(k=>k.remove());const m=document.createElement('span');m.className='zrcd more';m.textContent=`+${more.length} more`;m.title=more.map(k=>k.textContent).join(', ');el.append(m);}}
 function zrBanner(){const Z=S.zr,bn=$('banner');bn.hidden=false;
   if(S.phase==='buy'){$('bannerT').textContent='Monday Night Zombie Rumble';
-    $('bannerS').textContent=`Draftee. You are awake, in the tunnel under the ${(MAPS[Z.home]||MAPS.yard).name}. Survive the week and you will be retained. Fall and you will be reprinted. · ${Z.segs} segments, about ${Z.len==='short'?10:25} min · Weapon: ${myW(me.w).name}`;return;}
+    $('bannerS').textContent=`Draftee. You are awake, in the tunnel under the ${(MAPS[Z.home]||MAPS.yard).name}. Survive the week and you will be retained. Fall and you will be reprinted. · ${Z.segs} segments, about ${Z.len==='short'?10:25} min · Weapon: ${myW(me.w).name}${Z.carry&&zcMyCarried()?` · Build carried from Week ${(Z.week|0)-1}`:''}`;return;}
   $('bannerT').textContent=Z.won?'Week complete':'Broadcast terminated';
   $('bannerS').textContent=(Z.won?'You have been retained'+(ZW.unl&&ZWEEKS[ZW.unl]?` · Week ${ZW.unl}: ${ZWEEKS[ZW.unl].n} unlocked${ZWEEKS[ZW.unl].built?'':' (coming soon)'}`:''):`${Z.why} in segment ${Z.seg}${Z.ph==='boss'?', against the Juggernaut':Z.w?', wave '+Z.w:''}`)+` · ${Z.kills|0} Revenants dropped · ${fmt(S.timer)}`+((ZW.cr|0)+(Z.crT|0)?` · +${(ZW.cr|0)+(Z.crT|0)} Credits for the Locker`:'')+`${overIn('run')}`;}
 /* the Circuit's announcer, as captions until the lines are recorded, and the crowd (on every client, from the shared state) */
@@ -11649,9 +11681,12 @@ const MCARDS=[...document.querySelectorAll('#mcards .mcd')];
 /* mode screen: the cards and the Team / Bots buttons drive the hidden selects, so readMenu and saved settings work as before */
 function modeCap(){const v=$('modesel').value;$('modecap').textContent=capOf(v);
   for(const c of MCARDS){c.querySelector('.mccap').textContent=capOf(c.dataset.m);const on=c.dataset.m===v;c.setAttribute('aria-checked',on);c.tabIndex=on?0:-1;}
-  $('teamseg').hidden=v==='zr';$('zrseg').hidden=v!=='zr';$('zrweeks').hidden=v!=='zr';
+  $('teamseg').hidden=v==='zr';$('zrseg').hidden=v!=='zr';$('zrweeks').hidden=v!=='zr';zcCarryUI(v);
   /* the picked mode's options open in the side panel to the right of the cards */
   const cd=MCARDS.find(c=>c.dataset.m===v);if(cd){$('msideT').textContent=cd.querySelector('b').textContent;$('msideTag').textContent=cd.querySelector('.mctag').textContent;$('mside').style.setProperty('--mc',cd.style.getPropertyValue('--mc'));if(cd.nextElementSibling!==$('mside'))cd.after($('mside'))/* options open right under the picked card */;}}
+function zcCarryUI(v){const n=zcSel(),on=v==='zr'&&n>=2,C=zcCarryFor(n),el=$('zrcyseg');el.hidden=!on;if(!on)return;
+  const k=C?new Set(C.c||[]).size:0,t=C?`Carry over · ${k} card${k===1?'':'s'}`:'Carry over · none saved';if($('zrcy1').textContent!==t)$('zrcy1').textContent=t;
+  el.title=C?`Your build from Week ${C.from||n-1}: ${[...new Set(C.c||[])].map(id=>ZCARDS[id].n+(C.c.filter(x=>x===id).length>1?' '+ZROMAN[C.c.filter(x=>x===id).length]:'')).join(', ')||'no cards'}${C.dw&&W[C.dw]?' · '+(C.sw?ZSW[C.sw.r]+' ':'')+W[C.dw].name:''}`:`Clear Week ${n-1} to save a build for Week ${n}`;}
 function segSync(){document.querySelectorAll('.mseg').forEach(g=>{const v=$(g.dataset.for).value;g.querySelectorAll('button').forEach(b=>b.setAttribute('aria-checked',+b.dataset.v===+v));});}
 function modePick(v){if(!MODECAP[v])return;const sel=$('modesel');if(sel.value!==v){sel.value=v;sel.dispatchEvent(new Event('change'));blip(980,0.022,0.012,false,'ui');if(!$('mpanel').hidden)dioShow(v);}}
 MCARDS.forEach(c=>c.addEventListener('click',()=>modePick(c.dataset.m)));
@@ -11659,6 +11694,7 @@ document.querySelectorAll('.mseg').forEach(g=>g.querySelectorAll('button').forEa
 function modeStep(d){const i=MCARDS.findIndex(c=>c.dataset.m===$('modesel').value),c=MCARDS[(i+d+MCARDS.length)%MCARDS.length];modePick(c.dataset.m);c.focus({preventScroll:false});}
 try{const mv=localStorage.getItem('za-mode');if(mv&&MODECAP[mv])$('modesel').value=mv;}catch(e){}
 /* Zombie Rumble length: Short by default on touch devices, Full otherwise; remembered once picked */
+{let c=null;try{c=localStorage.getItem('za-zrcarry');}catch(e){}$('zrcarry').value=c==='0'?'0':'1';$('zrcarry').addEventListener('change',()=>{try{localStorage.setItem('za-zrcarry',$('zrcarry').value);}catch(e){}});}
 {let v=null;try{v=localStorage.getItem('za-zrlen');}catch(e){}$('zrlen').value=v==='0'||v==='1'?v:matchMedia('(pointer:coarse)').matches?'0':'1';
   $('zrlen').addEventListener('change',()=>{modeCap();try{localStorage.setItem('za-zrlen',$('zrlen').value);}catch(e){}});}
 zcUI();modeCap();segSync();
@@ -11717,7 +11753,7 @@ $('mszin').addEventListener('click',()=>isoZoom(1.5));$('mszout').addEventListen
     if(pts.size>=2){const [a,b]=[...pts.values()],d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch>0&&d>0)isoZoom(d/pinch,(a.x+b.x)/2,(a.y+b.y)/2);pinch=d;}
     else isoPan(dx,dy);});
   const up=e=>{pts.delete(e.pointerId);pinch=0;if(!pts.size)M.classList.remove('drag');};M.addEventListener('pointerup',up);M.addEventListener('pointercancel',up);}
-function readMenu(){const mv=SB.on?SB.mode:$('modesel').value;MATCH.range=SB.on&&mv==='range';if(MATCH.range){MATCH.mode='dm';MATCH.size=4;}else if(mv==='zr'){MATCH.mode='zr';MATCH.size=1;MATCH.zrWeek=zcSel();MATCH.zrLen=$('zrlen').value==='0'?'short':'full';}else if(!/^dm[124]$/.test(mv)){MATCH.mode='zone';MATCH.size=2;}else{MATCH.mode='dm';MATCH.size=+mv.slice(2);}
+function readMenu(){const mv=SB.on?SB.mode:$('modesel').value;MATCH.range=SB.on&&mv==='range';if(MATCH.range){MATCH.mode='dm';MATCH.size=4;}else if(mv==='zr'){MATCH.mode='zr';MATCH.size=1;MATCH.zrWeek=zcSel();MATCH.zrLen=$('zrlen').value==='0'?'short':'full';MATCH.zrCarry=$('zrcarry').value!=='0';}else if(!/^dm[124]$/.test(mv)){MATCH.mode='zone';MATCH.size=2;}else{MATCH.mode='dm';MATCH.size=+mv.slice(2);}
   if(W[$('wsel').value]){me.wPref=$('wsel').value;me.w=myPref();showWeapon(me.w);me.ammo=myW(me.w).mag;try{localStorage.setItem('za-w',me.wPref);}catch(e){}}me.name=($('nick').value||'Player').replace(/[^\w .'-]/g,'').slice(0,16)||'Player';me.teamPref=+$('teampref').value;diffMul=+$('diff').value;try{localStorage.setItem('za-name',me.name);}catch(e){}}
 function enterGame(){dioHide();if(MS.open){MS.open=false;isoScene(false);TOD.cur='';}$('mapscr').hidden=true;$('menu').classList.remove('mapon');$('menu').hidden=true;for(const id of ['topbar','mini','vitals','ammo','cross','netpill'])$(id).hidden=false;requestLock();blip(660,0.05,0.03,false,'ui');}
 function startSolo(){readMenu();net.mode='solo';net.myPeer='local';net.host=true;net.hostPeer='local';S=null;newMatch();S.diff=diffMul;
@@ -11929,25 +11965,26 @@ function endShow(){const el=$('endscr');if(!el.hidden)return;
 function endHide(){const el=$('endscr');if(el.hidden)return;el.hidden=true;document.body.classList.remove('ended');
   if(END.home){END.home.p.insertBefore($('banner'),END.home.n);END.home.p.insertBefore($('xpsum'),END.home.n);}
   for(const b of $('endbtns').children)b.classList.remove('pad');}
-function endBtns(){return [...$('endbtns').children].filter(b=>!b.disabled);}
-function endFocus(i,pad){const bs=[...$('endbtns').children];END.padI=(i+bs.length)%bs.length;for(const b of bs)b.classList.toggle('pad',!!pad&&b===bs[END.padI]);try{bs[END.padI].focus({preventScroll:true});}catch(e){}}
+function endBtns(){return [...$('endbtns').children].filter(b=>!b.disabled&&!b.hidden);}
+function endFocus(i,pad){const bs=[...$('endbtns').children].filter(b=>!b.hidden);END.padI=(i+bs.length)%bs.length;for(const b of bs)b.classList.toggle('pad',!!pad&&b===bs[END.padI]);try{bs[END.padI].focus({preventScroll:true});}catch(e){}}
 function endTick(P){const over=!!S&&S.phase==='over'&&inPlay();if(!over){endHide();return;}endShow();
   const s=mySlot(),hum=S.players.filter(p=>!p.bot),rd=hum.filter(p=>S.again&&S.again.includes(p.s)).length,mine=s>=0&&!!S.again&&S.again.includes(s);
-  const ag=$('eagain'),solo=net.mode==='solo';
-  const t=solo?'Play again':mine?`Ready ${rd}/${hum.length}`:'Play again';if(ag.textContent!==t)ag.textContent=t;ag.disabled=mine;
-  const note=solo?'':mine?`Waiting for the others · next ${S.mode==='zr'?'run':'match'} in ${Math.ceil(S.t)}`:hum.length>1?`${rd}/${hum.length} ready · starts early when everyone is ready`:'';
+  const ag=$('eagain'),solo=net.mode==='solo',cont=zrCanContinue(),nw=cont?(S.zr.week||1)+1:0,rp=$('ereplay'),rpOn=cont&&(solo||net.host);
+  if(rp.hidden===rpOn){rp.hidden=!rpOn;}if(rpOn){const t2=`Replay Week ${nw-1}`;if(rp.textContent!==t2)rp.textContent=t2;}
+  const t=mine?(solo?'Continue':`Ready ${rd}/${hum.length}`):cont?`Continue to Week ${nw}`:'Play again';if(ag.textContent!==t)ag.textContent=t;ag.disabled=mine;
+  const note=(cont?`Week ${nw}: ${ZWEEKS[nw].n} · your cards and weapon come with you${solo?'':' · '}`:'')+(solo?'':mine?`Waiting for the others · next ${S.mode==='zr'?'run':'match'} in ${Math.ceil(S.t)}`:hum.length>1?`${rd}/${hum.length} ready · starts early when everyone is ready`:'');
   if($('endnote').textContent!==note)$('endnote').textContent=note;}
 function endAgain(){if(!S||S.phase!=='over')return;const s=mySlot();blip(660,0.05,0.03,false,'ui');
-  if(net.mode==='solo'){endHide();restartMatch();return;}
-  if(s<0)return;if(net.host){S.again=S.again||[];if(!S.again.includes(s))S.again.push(s);}else if(net.room)net.room.emit('hit',{again:1}).catch(()=>{});
+  if(net.mode==='solo'){if(zrCanContinue())zcAdvance();endHide();restartMatch();return;}
+  if(s<0)return;if(zrCanContinue())zcAdvance();/* guests remember the week too, for their own menu */if(net.host){S.again=S.again||[];if(!S.again.includes(s))S.again.push(s);}else if(net.room)net.room.emit('hit',{again:1}).catch(()=>{});
   if(!S.again)S.again=[];if(!S.again.includes(s))S.again.push(s);/* shown at once; the next packet from the host confirms it */
-  const bs=endBtns();if(bs.length)endFocus([...$('endbtns').children].indexOf(bs[0]),false);}
+  const bs=endBtns();if(bs.length)endFocus([...$('endbtns').children].filter(b=>!b.hidden).indexOf(bs[0]),false);}
 function endMenu(){blip(520,0.05,0.03,false,'ui');leaveMatch();}
-$('eagain').addEventListener('click',endAgain);$('emenu').addEventListener('click',endMenu);
+$('eagain').addEventListener('click',endAgain);$('ereplay').addEventListener('click',()=>{if(!S||S.phase!=='over'||!canRestart())return;blip(660,0.05,0.03,false,'ui');endHide();restartMatch();});$('emenu').addEventListener('click',endMenu);
 document.addEventListener('keydown',e=>{if($('endscr').hidden)return;const c=e.code;
   if(/^(ArrowLeft|ArrowUp|KeyA|KeyW)$/.test(c)){e.preventDefault();e.stopImmediatePropagation();endFocus(END.padI-1,true);}
   else if(/^(ArrowRight|ArrowDown|KeyD|KeyS|Tab)$/.test(c)){e.preventDefault();e.stopImmediatePropagation();endFocus(END.padI+(e.shiftKey&&c==='Tab'?-1:1),true);}
-  else if(c==='Enter'||c==='Space'||c==='NumpadEnter'){e.preventDefault();e.stopImmediatePropagation();const b=$('endbtns').children[END.padI];if(b&&!b.disabled)b.click();}
+  else if(c==='Enter'||c==='Space'||c==='NumpadEnter'){e.preventDefault();e.stopImmediatePropagation();const b=[...$('endbtns').children].filter(b=>!b.hidden)[END.padI];if(b&&!b.disabled)b.click();}
   else if(c==='Escape'||c==='Backspace'){e.preventDefault();e.stopImmediatePropagation();}},true);
 function closePause(){if($('pause').hidden)return;$('pause').hidden=true;toggleSettings(false);autoLock();blip(660,0.05,0.03,false,'ui');}
 function leaveMatch(){endHide();net.inLobby=false;$('lobby').hidden=true;xpFlush();bigCountOff();closeWheel(false);WH.auto=false;$('pause').hidden=true;toggleSettings(false);toggleSB(false);
@@ -12415,9 +12452,10 @@ function localTick(dt){
   const s=mySlot();const P=s>=0?S.players[s]:null;
   if(!P){camera.position.set(0,45,34);camera.rotation.set(-0.95,0,0);vm.visible=false;return;}
   if(P.sp!==me.sp){if(me.sp>=0&&!locked)me.wantLock=true;me.sp=P.sp;me.x=P.spx;me.z=P.spz;me.y=0;me.vy=0;me.yaw=P.spyaw;me.pitch=0;me.w=S.mode==='zr'&&P.dropW&&W[P.dropW]?P.dropW:myPref();showWeapon(me.w);me.ammo=myW(me.w).mag;me.reloadT=0;me.pick=-1;me.give=false;me.vx=me.vz=0;me.rcP=me.rcY=me.bloom=0;me.slideT=0;me.wr=0;me.wrLast=null;me.kicked=false;me.mantle=null;me.dashN=myDashN();me.dashR=0;me.dashT=0;me.drawT=0.42;me.kP=me.kV=me.kUp=me.kYaw=me.kRoll=me.boltT=0;}
+  if(S.mode==='zr'){const dk=S.mid+':'+(P.dropW||'');if(dk!==me.dwk){const had=me.dwk!==undefined&&me.dwk.split(':')[0]===String(S.mid);me.dwk=dk;if(had&&P.dropW&&W[P.dropW]&&S.phase==='buy'&&me.w!==P.dropW){me.w=P.dropW;showWeapon(me.w);me.ammo=myW(me.w).mag;me.reloadT=0;if(WH.open&&WH.mode==='start')closeWheel(false);}}}
   if(S.mode==='zr'){const k=P.sw?P.sw.k+P.sw.s:'';if(k!==me.swk){const had=me.swk!==undefined;me.swk=k;if(had&&P.sw&&W[P.sw.k]&&P.st==='alive'){me.w=P.sw.k;showWeapon(me.w);me.ammo=myW(me.w).mag;me.reloadT=0;blip(980,0.05,0.03,false,'ui');}}}
   if(S.mid!==me.mid){me.mid=S.mid;newMatchLocal();}
-  if(S.round!==me.round){me.round=S.round;me.w=myPref();showWeapon(me.w);me.ammo=myW(me.w).mag;}
+  if(S.round!==me.round){me.round=S.round;me.w=S.mode==='zr'&&P.dropW&&W[P.dropW]?P.dropW:myPref();showWeapon(me.w);me.ammo=myW(me.w).mag;}
   const alive=P.st==='alive',downed=P.st==='down';
   const frozen=S.phase==='buy'||S.phase==='over'||(S.mode==='zr'&&!!S.zr&&S.zr.ph==='inter');
   if(keys.ArrowLeft)me.yaw+=2.2*dt;if(keys.ArrowRight)me.yaw-=2.2*dt;if(keys.ArrowUp)me.pitch=clamp(me.pitch+1.6*dt,-1.45,1.45);if(keys.ArrowDown)me.pitch=clamp(me.pitch-1.6*dt,-1.45,1.45);
@@ -13315,6 +13353,6 @@ mergeChildren(scene);
 refreshZoneLook('atk');
 // Compile every material's shader up front (in parallel where the browser supports it) so nothing compiles on the first shot or spawn.
 renderer.compileAsync(scene,camera).catch(()=>{}).finally(()=>requestAnimationFrame(frame));
-window.__za={localTick:dt=>localTick(dt),showWeapon:k=>showWeapon(k),trigger:v=>{mouseDown=!!v;dragMode=true;},wheelKeys:()=>wheelKeys(),GLS,BEAMP,intro:INTRO,ml:ML,sites:siteGrp,mf:{MF,MFV,MFA,ZS,ZSV,ZST,zsWant:Z=>zsWant(Z),zsOn:k=>zsOn(k),dropAt,magAt,ventAt,doorAt,ptlAt,scanAt,shutAt,zsT:()=>zsT(),zsLinks:()=>zsLinks(),rebuildGrid:()=>rebuildGrid(),craneAt:t=>craneAt(t),pourAt:t=>pourAt(t),mfT:()=>mfT(),damagePane:(i,d)=>damagePane(i,d),setMap:id=>setMap(id),tick:dt=>mfTick(dt)},dio:DIO,beat:BEAT,lx:LX,opt:OPT,zr:{ZB,ZR,ZCARDS,zrCardSend:c=>zrCardSend(c),zrCardAct:(p,c)=>zrCardAct(p,c),zrSeg:n=>zrSeg(n),zrInter:()=>zrInter(),zAoe:(...a)=>zAoe(...a),zSpawn:(t,x,z,y,e)=>zSpawn(t,x,z,y,e),zTick:dt=>zTick(dt),zRender:dt=>zRender(dt),zClear:()=>zClear(),zRay:(...a)=>zRay(...a),zHorde:()=>zHorde(),rgOn:()=>rgOn(),zBurst:(z,b)=>zBurst(z,b),zPack:()=>zPack(),zApplyT:(z,e,b)=>zApply(z,e,b),zSync:(a,b)=>zSync(a,b),zrWave:n=>zrWave(n),zKill:(z,h,b)=>zKill(z,h,b),zHitAt:(...a)=>zHitAt(...a),zDeliver:()=>zDeliver(),ZD},sim:{hostTick:dt=>hostTick(dt),coverTick:dt=>coverTick(dt),newMatch:()=>newMatch(),MATCH,dmSpawnSpot:p=>dmSpawnSpot(p),findPath:(a,b,c,d)=>findPath(a,b,c,d),freeAt:(x,z)=>freeAt(x,z),losPts:(...a)=>losPts(...a),DM_PTS,BOXES},BL,fire:()=>{const s=mySlot();if(s>=0)fire(s);},damage:(t,d,a,h)=>damage(t,d,a,h),prog:{PROG,PARTS,myW,modW,progSave,progLoad,rebuildVW,lvlOf,XPR},LX,MU,MM,WM,VB,OPT,AU,dev:{DEV,TUNE,GUN,W,COVER0,TWIN,STEP_MODE,devCollect,devApply},damageCover,COVER,coverVis,WH,openWheel:m=>openWheel(m),closeWheel:c=>closeWheel(c),wheelMove:(x,y)=>wheelMove(x,y),gfx:{renderer,scene,camera,applyGfx,DR,render:()=>renderScene(),FREF,BEAMS,MB,me,get gtao(){return gtaoPass;}},openPause:()=>openPause(),closePause:()=>closePause(),leaveMatch:()=>leaveMatch(),get S(){return S;},me,net,DMGDIR,rg:{RG,rgAdd,rgRemove,rgClear,BOXES},maps:{MAPS,MAP,MATCH,setMap,SITES,DM_PTS,findPath,freeAt,simTick:dt=>netTick(dt),SHOW,showCut:i=>showCut(i),TOD,ISO},botMem,CFG,SB,OPT,AU,get actx(){return actx;},mySlot:()=>mySlot(),sfx:{hitCue,HITX,footstep,slideSound,shotSound,stepSound,voicePlay,vxStretch,announce,vxGraph,vxOpt,VOICE_G,get VB(){return VB;},voiceInit,get stepBufs(){return stepBufs;},get slideBuf(){return slideBuf;},get gunBufs(){return gunBufs;}}};
+window.__za={localTick:dt=>localTick(dt),showWeapon:k=>showWeapon(k),trigger:v=>{mouseDown=!!v;dragMode=true;},wheelKeys:()=>wheelKeys(),GLS,BEAMP,intro:INTRO,ml:ML,sites:siteGrp,mf:{MF,MFV,MFA,ZS,ZSV,ZST,zsWant:Z=>zsWant(Z),zsOn:k=>zsOn(k),dropAt,magAt,ventAt,doorAt,ptlAt,scanAt,shutAt,zsT:()=>zsT(),zsLinks:()=>zsLinks(),rebuildGrid:()=>rebuildGrid(),craneAt:t=>craneAt(t),pourAt:t=>pourAt(t),mfT:()=>mfT(),damagePane:(i,d)=>damagePane(i,d),setMap:id=>setMap(id),tick:dt=>mfTick(dt)},dio:DIO,beat:BEAT,lx:LX,opt:OPT,zr:{ZB,ZR,ZCARDS,ZCAMP,zrEnd:(w,y)=>zrEnd(w,y),zcCarryCode:()=>zcCarryCode(),zrCardSend:c=>zrCardSend(c),zrCardAct:(p,c)=>zrCardAct(p,c),zrSeg:n=>zrSeg(n),zrInter:()=>zrInter(),zAoe:(...a)=>zAoe(...a),zSpawn:(t,x,z,y,e)=>zSpawn(t,x,z,y,e),zTick:dt=>zTick(dt),zRender:dt=>zRender(dt),zClear:()=>zClear(),zRay:(...a)=>zRay(...a),zHorde:()=>zHorde(),rgOn:()=>rgOn(),zBurst:(z,b)=>zBurst(z,b),zPack:()=>zPack(),zApplyT:(z,e,b)=>zApply(z,e,b),zSync:(a,b)=>zSync(a,b),zrWave:n=>zrWave(n),zKill:(z,h,b)=>zKill(z,h,b),zHitAt:(...a)=>zHitAt(...a),zDeliver:()=>zDeliver(),ZD},sim:{hostTick:dt=>hostTick(dt),coverTick:dt=>coverTick(dt),newMatch:()=>newMatch(),MATCH,dmSpawnSpot:p=>dmSpawnSpot(p),findPath:(a,b,c,d)=>findPath(a,b,c,d),freeAt:(x,z)=>freeAt(x,z),losPts:(...a)=>losPts(...a),DM_PTS,BOXES},BL,fire:()=>{const s=mySlot();if(s>=0)fire(s);},damage:(t,d,a,h)=>damage(t,d,a,h),prog:{PROG,PARTS,myW,modW,progSave,progLoad,rebuildVW,lvlOf,XPR},LX,MU,MM,WM,VB,OPT,AU,dev:{DEV,TUNE,GUN,W,COVER0,TWIN,STEP_MODE,devCollect,devApply},damageCover,COVER,coverVis,WH,openWheel:m=>openWheel(m),closeWheel:c=>closeWheel(c),wheelMove:(x,y)=>wheelMove(x,y),gfx:{renderer,scene,camera,applyGfx,DR,render:()=>renderScene(),FREF,BEAMS,MB,me,get gtao(){return gtaoPass;}},openPause:()=>openPause(),closePause:()=>closePause(),leaveMatch:()=>leaveMatch(),get S(){return S;},me,net,DMGDIR,rg:{RG,rgAdd,rgRemove,rgClear,BOXES},maps:{MAPS,MAP,MATCH,setMap,SITES,DM_PTS,findPath,freeAt,simTick:dt=>netTick(dt),SHOW,showCut:i=>showCut(i),TOD,ISO},botMem,CFG,SB,OPT,AU,get actx(){return actx;},mySlot:()=>mySlot(),sfx:{hitCue,HITX,footstep,slideSound,shotSound,stepSound,voicePlay,vxStretch,announce,vxGraph,vxOpt,VOICE_G,get VB(){return VB;},voiceInit,get stepBufs(){return stepBufs;},get slideBuf(){return slideBuf;},get gunBufs(){return gunBufs;}}};
 })();
 </script>
