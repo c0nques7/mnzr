@@ -160,6 +160,10 @@ body:not(.zrmode) #zrsb{display:none}
 #feed div{background:var(--panel);padding:2px 8px;border-radius:4px}
 #vitals{left:max(16px,env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:6px;min-width:220px}
 #hpnum{font-size:44px;font-weight:700;line-height:.9}
+#radm{display:flex;align-items:center;gap:6px;font:700 11px/1 'Saira Condensed','Arial Narrow',sans-serif;letter-spacing:.08em;color:#ffcf6a;text-shadow:0 1px 2px rgba(0,0,0,.7)}#radm[hidden]{display:none}
+#radbar{position:relative;flex:1 1 60px;min-width:50px;height:6px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden}#radbar::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.6)}
+#radfill{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffe066,#ff9a1a)}#radtx{font-weight:600;letter-spacing:.03em;white-space:nowrap}#radm.boost #radtx{color:#ffe27a}
+#radm.sick{color:#ff6a4a;animation:radp .5s infinite alternate}#radm.sick #radfill{background:#ff3a20}@keyframes radp{from{opacity:1}to{opacity:.55}}
 #hpbar{height:8px;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden}
 #hpfill{height:100%;width:100%;background:var(--good);transition:width .12s}
 #dashpips{display:flex;align-items:center;gap:5px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
@@ -697,6 +701,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
 <div class="hud" id="dock"><div class="hud" id="vitals" hidden>
   <div id="hpnum" class="num">100</div>
   <div id="hpbar"><div id="hpfill"></div></div>
+  <div id="radm" hidden><span>RAD</span><div id="radbar"><i id="radfill"></i></div><b id="radtx"></b></div>
   <div id="dashpips" title="Dash charges"><span>Dash</span></div>
   <div id="zoneline"></div>
 </div>
@@ -6333,6 +6338,7 @@ const BOTN=['Bot Ash','Bot Rook','Bot Vex','Bot Juno','Bot Kade','Bot Nyx','Bot 
 const CFG={roundTime:75,buy:3,post:6,overT:10,multiT:5,fuse:25,arm:5,defuse:7,revive:2.5,bleed:8,respawn:4,tickets:4,downHP:30,winScore:4,killHeal:25,block:15,dmg:25,head:50,fireCd:0.12,mag:24,reload:1.8,buy1:8,speed:6,sprint:9.5,crawl:1.8,jump:5,grav:19,wallRun:1.3,wallGrav:0.22,wallKick:7,grab:2.3,dash:22,dashT:0.16,dashN:2,dashCd:3.5,regenMin:5,regenMax:10,spawnProt:3,dmTime:600,dmRespawn:3,dmKills1:15,dmKills2:30,dmKills4:50};
 /* Revenant stats (Zombie Rumble): health, walking speed (m/s) and damage per swing for each type, and how close they swing from */
 Object.assign(CFG,{zShHp:60,zShSpd:1.6,zShDmg:20,zSpHp:40,zSpSpd:6.2,zSpDmg:12,zReach:1.25,zCrHp:35,zCrSpd:1.5,zCrDmg:10,zBlHp:150,zBlSpd:1.25,zBlDmg:45,zBlR:3.6,zrBreak:10,zJgHp:2400,zJgSpd:1.5,zJgDmg:40,zJgChg:11,zJgChgDmg:50,zSpiHp:80,zSpiSpd:1.9,zSpiDmg:12,zSpiGlob:15,zSpiCd:3.4,zShieldHp:100,zMaHp:2600,zMaSpd:1.7,zMaDmg:30,zMaRegrow:12,zSpiWind:0.75,zAcidDps:12,zAcidT:4,zAcidR:1.5,zrRevHP:50,zrBleed:15});
+Object.assign(CFG,{radIn:12,radOut:5,radDecon:45,radHurt:5,radBoost:1.25,radMut:8});/* Fallout radiation: meter fill per s in a hot zone, drain outside / in a decon shower, burn per s when full, damage boost over half, Revenant mutation time */
 const SITES={A:{x:22,z:-9},B:{x:22,z:9}};
 /* weapons: the rifle reads CFG so the sandbox sliders tune it. near/far = full damage up to near m, down to fall x at far m */
 const W={
@@ -6365,7 +6371,8 @@ const PVPK=WKEYS.filter(k=>!W[k].zr),ZRX=WKEYS.filter(k=>W[k].zr),WHEEL0=['rifle
 const wOf=k=>W[k]||W.rifle;
 function wDmg(k,head,d,w0){const w=w0||wOf(k);const base=head?w.head:w.dmg;const t=clamp((d-w.near)/Math.max(1,w.far-w.near),0,1);return Math.round(base*(1-t*(1-w.fall)));}
 /* your own shot's damage: wDmg, but a Reach Lance shot lands between its tap damage and a full charge (me.lanceF 0..1) */
-function shotDmg(k,head,d,w){const v=wDmg(k,head,d,w);if(!w||!w.chg)return v;const full=head?w.head:w.dmg,tap=(w.tap||full)*(head?1.5:1);return Math.max(1,Math.round(v*(tap+(full-tap)*(me.lanceF||0))/full));}
+function shotDmg(k,head,d,w){const v=shotDmg0(k,head,d,w),m=typeof radMul==='function'&&S?radMul(S.players[mySlot()]):1;return m===1?v:Math.round(v*m);}
+function shotDmg0(k,head,d,w){const v=wDmg(k,head,d,w);if(!w||!w.chg)return v;const full=head?w.head:w.dmg,tap=(w.tap||full)*(head?1.5:1);return Math.max(1,Math.round(v*(tap+(full-tap)*(me.lanceF||0))/full));}
 const CENTER_T=5,CENTER_HP=10;
 function centerOwn(team){return !!(S&&S.center&&S.center.own===team);}
 function retHP(team,role,zi){return Math.min(100,returnHP(role,zi)+(zi===2&&centerOwn(team)?CENTER_HP:0));}
@@ -6417,7 +6424,16 @@ const MAPS={
     cover:[[4,4,2,2,2.5],[4,-4,2,2,2.5],[13,1,2,2,2.5],[15,-9,2,2,2.5],[7,-11,2,3,2.5],[3,-16,3,1.2,1],[12,17,2,2,2.5],[17,4.5,3,1.2,2.5],
       [24,-3,2,2,2.5],[26,-9.5,1.2,2.5,2.5],[26,10.5,1.2,2.5,2.5],[22,-15.5,3,1.2,1],[16,13,1.5,1.5,1],[29.5,3.5,2,2,1],[20,-5.5,2,1.2,1]],
     single:[[0,0,2,2,2.5]],
-    zs:{shut:[[4,0,0.3,6,3.2,0],[13,-2.2,0.3,4.4,3.2,0],[10,14.25,0.3,3.5,3.2,1],[25,-6.1,0.3,4.3,3.2,1]],hatch:[[8,1],[19,-12.5],[16,8],[1,-12]]}}};/* zs: the Zombie Rumble stage-change pieces (see zsBuild) */
+    zs:{shut:[[4,0,0.3,6,3.2,0],[13,-2.2,0.3,4.4,3.2,0],[10,14.25,0.3,3.5,3.2,1],[25,-6.1,0.3,4.3,3.2,1]],hatch:[[8,1],[19,-12.5],[16,8],[1,-12]]}},
+  /* Week 2 (Containment Week): a cracked fusion reactor in the middle bleeds radiation into glowing hot zones (see foHost) */
+  fallout:{name:'Fallout',week:2,cap:'A cracked reactor leaks into the middle. Hot zones make your shots hit harder, then burn.',sites:[22,9],
+    theme:{title:'Fallout Reactor',tag:'Hazard amber and Cherenkov blue',low:0xffb020,high:0x3fa8ff,wall:0x2f9bff,a:0xffb020,b:0x3fa8ff,floor:0xfff0d0,bg:0x120f08,hor:0x4a3008,mid:0x1a1408,hemi:0xd8c8a0},
+    reactor:{w:3.6,h:6},solids:[[10,10,6,1.2,3.2],[20,-3,1.2,6,3.2]],
+    cover:[[6,5,2,1.2,1],[6.5,-5.5,1.2,2.5,2.5],[14,1,2,2,2.5],[16,15,3,1.2,1],[24,4.5,2,2,2.5],[25,-14.5,2,2,2.5],[28.5,-1,1.2,2.5,1],[16.5,-16,2.5,1.2,1],
+      [29.5,7.5,2,2,1],[4,15,1.2,3,1],[11,-14,2,1.2,1],[17,12.5,1.2,2.5,2.5]],
+    single:[[0,9,2,1.2,1],[0,-9,2,1.2,1]],
+    rad:[[0,0,5.5],[15,8,3]],decon:[[13,19.3],[13,-19.3]],/* hot zones [x,z,r] and decon showers on the long walls, point-mirrored */
+    zs:{core:[[22,-5],[8,-13]],rain:1}}};/* zs: the Zombie Rumble stage-change pieces (see zsBuild) */
 const MAP_IDS=Object.keys(MAPS);
 const MAP={id:''};
 /* map features: what makes each map play differently. Everything timed runs off S.mft (seconds of live play this round, sent with
@@ -6425,7 +6441,8 @@ const MAP={id:''};
    - crane (Yard): one container (dyn box, never cover) sits in one of three lane slots, then is lifted, carried and lowered into another
    - pour (Foundry): the center channel |x|<x, |z|<z warns, then floods; standing on the floor in it burns (host), bots path around it
    - panes (Atrium): tall glass (wall boxes with .pane) that stops bullets but not sight; S.pane hp, S.paneR rebuild timers */
-const MF={crane:null,pour:null,panes:[],block:false,zs:null};
+const MF={crane:null,pour:null,panes:[],block:false,zs:null,rad:null};
+const FO_RAIN_R=2.4;/* Fallout Rain circle radius (ZS.RAIN_R; zsBuild needs it before ZS exists) */
 const PANE_H=2.6,PANE_HP=150,PANE_REGEN=9,POUR_DPS=45;
 const CRANE_P=30,CRANE_HOLD=23,CRANE_LIFT=2,CRANE_MOVE=2.5,CRANE_UP=7;/* the drop takes the rest of the period (2.5 s) */
 function craneSlot(n){let s=1;for(let i=0;i<n;i++)s=(s+1+((Math.imul(i^0x5bd1,0x27d4eb2d)>>>15)&1))%3;return s;}
@@ -6446,6 +6463,9 @@ function buildBoxes(id){const M=MAPS[id]||MAPS.yard;MAP.id=MAPS[id]?id:'yard';BO
     addSolid(sx*34.5,sz*9,1.2,5.5,SOLID_H);addSolid(sx*34.5,sz*17.6,1.2,4.8,SOLID_H);      // staggered outer row
     if(sz>0)addSolid(sx*34.5,0,1.2,5.5,SOLID_H);}
   for(const s of M.solids)for(const k of [1,-1]){const b=addSolid(k*s[0],k*s[1],s[2],s[3],s[4]||SOLID_H);b.mid=true;b.h0=b.y1;}
+  if(M.reactor){const b=addSolid(0,0,M.reactor.w,M.reactor.w,M.reactor.h);b.mid=true;b.h0=b.y1;b.reactor=true;}/* drawn by foVis, not as a wall */
+  MF.rad=null;if(M.rad){const zones=[],decon=[];for(const q of M.rad)for(const k of (q[0]||q[1]?[1,-1]:[1]))zones.push({x:k*q[0],z:k*q[1],r:q[2]});
+    for(const q of M.decon||[])for(const k of [1,-1])decon.push({x:k*q[0],z:k*q[1]});MF.rad={zones,decon};}
   M.cover.forEach(b=>{addBox(b[0],b[1],b[2],b[3],b[4]);addBox(-b[0],-b[1],b[2],b[3],b[4]);});
   (M.single||[]).forEach(b=>addBox(b[0],b[1],b[2],b[3],b[4]));
   MF.crane=null;MF.panes.length=0;MF.pour=M.pour||null;MF.block=false;
@@ -6583,7 +6603,7 @@ function envHurt(p,d,why){if(!S||S.phase!=='live'||!p)return;if(SB.on&&SB.god&&!
   else if(p.st==='down'&&S.mode==='zone'){p.dhp-=d;if(p.dhp<=0)die(p,null,why);}}
 function damagePane(i,d){if(!S||S.phase!=='live'||!S.pane||!(S.pane[i]>0)||(MF.panes[i]&&MF.panes[i].ptl))return;S.pane[i]=Math.max(0,S.pane[i]-d);
   if(S.pane[i]<=0){if(!S.paneR)S.paneR=S.pane.map(()=>0);S.paneR[i]=PANE_REGEN;}}
-function mfHost(dt){if(S.range)return;const t=S.mft||0;if(S.mode==='zr')zsHost(dt);
+function mfHost(dt){if(S.mode==='zr'||S.range)zsHost(dt);foHost(dt);if(S.range)return;const t=S.mft||0;
   if(MF.pour&&pourAt(t)>0){const P=MF.pour;/* bots on the channel floor head for the nearest bank (escape overrides fighting moves) */
     for(const p of S.players){if(!p.bot||p.st!=='alive'||Math.abs(p.x)>P.x+0.4||Math.abs(p.z)>P.z+0.4||(p.y||0)>0.3)continue;const m=botMem[p.s];if(!m||m.esc)continue;
       const sz=p.z>=0?1:-1,opts=[{x:p.x,z:sz*(P.z+1.4)},{x:p.x,z:-sz*(P.z+1.4)},{x:Math.sign(p.x||1)*(P.x+1.4),z:p.z}];
@@ -6600,12 +6620,14 @@ function mfHost(dt){if(S.range)return;const t=S.mft||0;if(S.mode==='zr')zsHost(d
 const ZST={yard:[{k:'drop',n:'Container Drop',d:'the crane drops containers into new lanes. Stay off the red shadows'},{k:'magnet',n:'Magnet Sweep',d:'the electromagnet lifts and slams whatever passes under it'}],
   foundry:[{k:'vent',n:'Steam Vents',d:'vents launch whoever stands on them and scald Revenants'},{k:'door',n:'Blast Doors',d:'doors seal the lanes in turn'}],
   atrium:[{k:'portal',n:'Portal Panes',d:'the glass opens onto its twin across the floor. Walk or shoot through'},{k:'scan',n:'Security Scan',d:'anyone the scan line catches in the open is marked for the horde'}],
-  warren:[{k:'shut',n:'Shutter Maze',d:'shutters drop and lift, rerouting the maze'},{k:'hatch',n:'Hatches',d:'Revenants climb out of floor hatches. Hold Use on one to weld it shut'}]};
+  warren:[{k:'shut',n:'Shutter Maze',d:'shutters drop and lift, rerouting the maze'},{k:'hatch',n:'Hatches',d:'Revenants climb out of floor hatches. Hold Use on one to weld it shut'}],
+  fallout:[{k:'core',n:'Core Vent',d:'the reactor vents into a new quarter of the floor. Watch for the flashing ring'},{k:'rain',n:'Fallout Rain',d:'debris falls through the roof onto the marked circles'}]};
 const ZS={DROP_P:24,DROP_HURT:40,MAG_P:15,MAG_LAP:30,MAG_R:4.5,MAG_Y:2.2,MAG_DMG:120,VENT_P:8,VENT_V:12.3,VENT_DMG:60,DOOR_P:20,PTL_P:12,SCAN_P:20,SCAN_V:16,
-  SHUT_P:40,HATCH_P:12,HATCH_R:1.6,HATCH_WELD:2,HATCH_FV:10,MARK_T:5,link:null};
+  SHUT_P:40,HATCH_P:12,HATCH_R:1.6,HATCH_WELD:2,HATCH_FV:10,MARK_T:5,CORE_P:22,CORE_W:3,CORE_R:4,CORE_K:1.6,RAIN_P:16,RAIN_W:3,RAIN_ON:6,RAIN_R:FO_RAIN_R,RAIN_K:2,RAIN_DPS:14,RAIN_ZDPS:30,link:null};
 function zsWant(Z){if(!Z||!ZST[MAP.id])return'';const ph=Z.ph;if(ph==='surge'||ph==='boss')return'ab';if(ph!=='wave'&&ph!=='break')return'';
   const n=ph==='break'?Z.w+1:Z.w;if(n<2)return'';const first=Z.seg%2?'a':'b';if(Z.nw<=2)return first;return n===2?first:first==='a'?'b':'a';}
-function zsOn(k){if(!S||S.mode!=='zr'||!S.zr||S.range)return false;const L=ZST[MAP.id],st=S.zr.stg||'';if(!L||!st)return false;return(L[0].k===k&&st.indexOf('a')>=0)||(L[1].k===k&&st.indexOf('b')>=0);}
+function zsZ(){if(!S)return null;if(S.range)return S.rgz||null;return S.mode==='zr'?S.zr||null:null;}
+function zsOn(k){const Z=zsZ();if(!Z)return false;const L=ZST[MAP.id],st=Z.stg||'';if(!L||!st)return false;return(L[0].k===k&&st.indexOf('a')>=0)||(L[1].k===k&&st.indexOf('b')>=0);}
 function zsName(k){for(const id in ZST)for(const e of ZST[id])if(e.k===k)return e;return null;}
 const zsHash=n=>Math.imul((n+7)^0x5bd1e995,0x27d4eb2d)>>>15;
 /* the timelines; u = seconds into the cycle */
@@ -6618,9 +6640,19 @@ function slabAt(u,a,b,inT){if(u>=a&&u<b)return 1;if(u>=a-inT&&u<a)return(u-(a-in
 function doorAt(t){const u=t%ZS.DOOR_P;return[slabAt(u,1.5,9.5,1.5),slabAt(u,11.5,19.5,1.5)];}/* group 0: the centre doors, group 1: the end doors */
 function ptlAt(t){const n=Math.floor(t/ZS.PTL_P),u=t-n*ZS.PTL_P;return{n,u,ph:u<5?0:u<6?1:2};}/* 1: flicker, 2: open */
 function scanAt(t){const n=Math.floor(t/ZS.SCAN_P),u=t-n*ZS.SCAN_P,dir=n%2?-1:1;return{n,u,dir,ph:u<12?0:u<14?1:2,x:dir*(-48+Math.max(0,u-14)*ZS.SCAN_V)};}
+/* Core Vent: every CORE_P s the vent moves to another spot (warns CORE_W s first); i = which MF.zs.core spot */
+function coreAt(t){const N=MF.zs.core.length;if(N<2)return null;const n=Math.floor(t/ZS.CORE_P),u=t-n*ZS.CORE_P;let i=0;for(let k=1;k<=n;k++)i=(i+1+zsHash(k*3+1)%(N-1))%N;return{n,u,i,ph:u<ZS.CORE_W?0:1};}
+/* Fallout Rain: three marked circle pairs (c and -c) warn, then take debris for RAIN_ON s */
+function rainAt(t){const C=MF.zs.rainC,N=C.length;if(N<4)return null;const n=Math.floor(t/ZS.RAIN_P),u=t-n*ZS.RAIN_P,pick=[];for(let j=0;pick.length<3&&j<16;j++){const k=zsHash(n*13+j)%N;if(!pick.includes(k))pick.push(k);}
+  return{n,u,pick,ph:u<ZS.RAIN_W?0:u<ZS.RAIN_W+ZS.RAIN_ON?1:2};}
+function rainIn(r,x,z){const C=MF.zs.rainC;for(const i of r.pick){const c=C[i];if(hyp(x,z,c[0],c[1])<ZS.RAIN_R||hyp(x,z,-c[0],-c[1])<ZS.RAIN_R)return true;}return false;}
 function shutAt(t){const u=t%ZS.SHUT_P,h=ZS.SHUT_P/2;return[u<h?1:u<h+0.8?1-(u-h)/0.8:u>=ZS.SHUT_P-0.8?(u-(ZS.SHUT_P-0.8))/0.8:0,slabAt(u,h,ZS.SHUT_P,0.8)];}
 /* the layout pieces, made by buildBoxes (MAPS[id].zs) */
-function zsBuild(M){const Z=MF.zs={drop:[],dropC:[],doors:[],shut:[],vents:[],hatch:[]},D=M.zs;if(!D)return;
+function zsBuild(M){const Z=MF.zs={drop:[],dropC:[],doors:[],shut:[],vents:[],hatch:[],core:[],rainC:[]},D=M.zs;if(!D)return;
+  for(const q of D.core||[])for(const k of [1,-1])Z.core.push({x:k*q[0],z:k*q[1]});
+  if(D.rain){/* rain spots: open floor (nothing within the circle), away from the bases and the reactor, 5 m apart; one pair (x,z)/(-x,-z) each */
+    const R=FO_RAIN_R,hit=(x,z)=>BOXES.some(o=>!o.dyn&&o.y1>0.2&&!o.outer&&o.x1>x-R&&o.x0<x+R&&o.z1>z-R&&o.z0<z+R);
+    for(let x=4;x<=30;x+=2)for(let z=-16;z<=16;z+=2){if(hyp(x,z,0,0)<7||hit(x,z))continue;if(Z.rainC.some(q=>hyp(q[0],q[1],x,z)<5||hyp(-q[0],-q[1],x,z)<5))continue;Z.rainC.push([x,z]);}}
   const dyn=(x,z,w,d,h,g,kind)=>{addBox(x,z,w,d,0,1);const b=BOXES[BOXES.length-1];b.dyn=true;b.h0=h;b.zg=g;b.zk=kind;b.wall=true;return b;};
   if(D.drop&&M.crane){const C=M.crane;for(let i=0;i<2;i++){const b=dyn(0,0,C.w,C.d,C.h,i,'drop');b.wall=false;Z.drop.push(b);}
     /* landing spots: open floor with 1.6 m clear round a container, out of the crane's lane and the bases; one pair (x,z)/(-x,-z) per drop */
@@ -6630,7 +6662,7 @@ function zsBuild(M){const Z=MF.zs={drop:[],dropC:[],doors:[],shut:[],vents:[],ha
   for(const q of D.shut||[])for(const k of [1,-1])Z.shut.push(dyn(k*q[0],k*q[1],q[2],q[3],q[4]||SOLID_H,q[5]|0,'shut'));
   for(const q of D.vents||[])for(const k of [1,-1])Z.vents.push({x:k*q[0],z:k*q[1]});
   for(const q of D.hatch||[])for(const k of [1,-1])Z.hatch.push({x:k*q[0],z:k*q[1]});}
-function zsT(){const Z=S&&S.zr;if(!Z)return 0;let t=Z.stt||0;if(net.mode==='online'&&!net.host&&S.phase==='live')t+=Math.min(0.3,(performance.now()-net.lastState)/1000);return t;}
+function zsT(){const Z=zsZ();if(!Z)return 0;let t=Z.stt||0;if(net.mode==='online'&&!net.host&&S.phase==='live')t+=Math.min(0.3,(performance.now()-net.lastState)/1000);return t;}
 /* open portal panes: pane i pairs with its mirror, i^1 (buildBoxes adds each pane then its mirror) */
 function zsPtlOpen(i){const b=MF.panes[i],o=MF.panes[i^1];return!!(b&&o&&b.ptl&&o.ptl);}
 function zsPaneIn(b,x,z,pad){const cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,xs=b.x1-b.x0<b.z1-b.z0;return xs?Math.abs(x-cx)<(b.x1-b.x0)/2+pad&&Math.abs(z-cz)<(b.z1-b.z0)/2+0.05:Math.abs(z-cz)<(b.z1-b.z0)/2+pad&&Math.abs(x-cx)<(b.x1-b.x0)/2+0.05;}
@@ -6647,14 +6679,42 @@ function zsLinks(){const L=new Map();for(let i=0;i<MF.panes.length;i++){if(!zsPt
     const a=cells(i),c=cells(i^1);for(const k of a)L.set(k,c);}ZS.link=L.size?L:null;}
 function zsHurt(o,dm){if(!o||o.st==='dead')return;const boss=!!ZTYPES[o.t].boss;o.reg.torso.hp-=boss?dm*0.3:dm;o.flash=1;o.flinch=1;if(!boss)o.slow=1;
   if(o.reg.torso.hp<=0)zKill(o,false,null);else o.hp=Math.max(1,Math.round(o.reg.torso.hp));}
-function zsFocus(T){const Z=S&&S.zr;if(!Z||!Z.mk)return T;const M=T.filter(p=>Z.mk[p.s]>0);return M.length?M:T;}
-function zsHatchNear(p){const Z=S.zr;if(!zsOn('hatch')||!Z.hat)return-1;const H=MF.zs.hatch;for(let i=0;i<H.length;i++)if(Z.hat[i]===1&&hyp(p.x,p.z,H[i].x,H[i].z)<ZS.HATCH_R)return i;return-1;}
-function zsWeld(p,i){const Z=S.zr;if(!Z.hat||Z.hat[i]!==1)return;Z.hat[i]=2;zrFavor(p,ZS.HATCH_FV);feed(`${p.name} welded a hatch shut`);}
+function zsFocus(T){const Z=zsZ();if(!Z||!Z.mk)return T;const M=T.filter(p=>Z.mk[p.s]>0);return M.length?M:T;}
+function zsHatchNear(p){const Z=zsZ();if(!zsOn('hatch')||!Z.hat)return-1;const H=MF.zs.hatch;for(let i=0;i<H.length;i++)if(Z.hat[i]===1&&hyp(p.x,p.z,H[i].x,H[i].z)<ZS.HATCH_R)return i;return-1;}
+function zsWeld(p,i){const Z=zsZ();if(!Z||!Z.hat||Z.hat[i]!==1)return;Z.hat[i]=2;if(S.zr)zrFavor(p,ZS.HATCH_FV);feed(`${p.name} welded a hatch shut`);}
 /* a Revenant rising from an open hatch (zrRise asks first) */
 function zsHatchSpot(){const Z=S.zr;if(!zsOn('hatch')||!Z.hat||Math.random()<0.4)return null;const H=MF.zs.hatch,open=[];for(let i=0;i<H.length;i++)if(Z.hat[i]===1)open.push(H[i]);
   if(!open.length)return null;const h=open[(Math.random()*open.length)|0],a=Math.random()*Math.PI*2;return{x:h.x+Math.cos(a)*0.3,z:h.z+Math.sin(a)*0.3};}
 const ZSH={};/* host edge memory: which cycle each hazard last fired in */
-function zsHost(dt){const Z=S.zr;if(!Z)return;const want=zsWant(Z);
+/* ---------- Fallout radiation (host). Hot zones fill a player's rad meter (p.rad 0-100, sent with the state); over half, their shots
+   hit CFG.radBoost harder; full, they burn CFG.radHurt/s (p.rsk, radiation sickness) until the meter drains below 60. A decon shower
+   on the long walls drains it fast. Revenants that stand in a hot zone for CFG.radMut s mutate into elites. The Core Vent and Fallout
+   Rain stage changes add more hot floor (radAt). ---------- */
+function radAt(x,z){const R=MF.rad;if(!R)return 0;let k=0;for(const q of R.zones)if(hyp(x,z,q.x,q.z)<q.r)k+=1;
+  if(zsOn('core')){const c=coreAt(zsT());if(c&&c.ph===1){const q=MF.zs.core[c.i];if(hyp(x,z,q.x,q.z)<ZS.CORE_R)k+=ZS.CORE_K;}}
+  if(zsOn('rain')){const r=rainAt(zsT());if(r&&r.ph===1&&rainIn(r,x,z))k+=ZS.RAIN_K;}return k;}
+function deconAt(x,z){const R=MF.rad;if(!R)return false;for(const q of R.decon)if(Math.abs(x-q.x)<0.95&&Math.abs(z-q.z)<1.1)return true;return false;}
+const radMul=p=>MF.rad&&p&&(p.rad|0)>=50?CFG.radBoost:1;
+function zMutate(o,remote){if(o.elite||o.st==='dead')return;o.elite=true;o.radT=0;
+  if(!remote){const T=ZTYPES[o.t];o.max=Math.round(CFG[T.hp]*2.2*(S&&S.mode==='zr'&&zrAny('rg')?1.25:1));o.hp=o.max;}
+  const s=o.seed;zBody(o);o.seed=s;if(ZTYPES[o.t].legless)for(const r of ['legL','legR']){o.reg[r].gone=true;o.reg[r].hp=0;for(const q of ZR.regParts[r]){o.cnt[q]=0;o.vox[q].fill(0);o.vd[q]=1;}}
+  o.flash=1;for(let i=0;i<16;i++)zPix(o.x,0.4+Math.random()*1.4,o.z,(Math.random()-.5)*2,1+Math.random()*2,(Math.random()-.5)*2,0.05,1,0.75,0.15,true,0.6);
+  if(!remote&&mySlot()>=0&&S.players[mySlot()]&&hyp(o.x,o.z,S.players[mySlot()].x,S.players[mySlot()].z)<30)feed('A Revenant mutated in the hot zone');}
+function foHost(dt){const R=MF.rad;if(!R||!S||S.phase!=='live')return;
+  for(const p of S.players){if(p.st==='dead'||(S.range&&p.bot&&!p.rgId)){p.rad=0;p.rsk=0;continue;}
+    const up=p.st==='alive',k=up&&(p.y||0)<1.5?radAt(p.x,p.z):0,dc=up&&(p.y||0)<1.5&&deconAt(p.x,p.z);let r=p.rad||0;
+    r=dc?r-CFG.radDecon*dt:k>0?r+CFG.radIn*k*dt:r-CFG.radOut*dt;p.rad=r=clamp(r,0,100);
+    if(r>=100)p.rsk=1;else if(p.rsk&&r<60)p.rsk=0;
+    if(p.rsk&&up)envHurt(p,CFG.radHurt*dt,'died of radiation');
+    /* bots step out of a hot zone when the meter runs high, and go for a decon shower when they are sick and one is close */
+    if(p.bot&&up&&(p.rsk||(r>70&&k>0))){const m=botMem[p.s];if(m&&!m.esc){let tg=null;
+      if(p.rsk){let bd=12;for(const q of R.decon){const d=hyp(p.x,p.z,q.x,q.z);if(d<bd){bd=d;tg={x:q.x,z:q.z-Math.sign(q.z)*0.5,t:5};}}}
+      if(!tg){const q=R.zones.find(q=>hyp(p.x,p.z,q.x,q.z)<q.r);if(q){const a=Math.atan2(p.z-q.z,p.x-q.x)||0;tg={x:q.x+Math.cos(a)*(q.r+1.5),z:q.z+Math.sin(a)*(q.r+1.5),t:3};}}
+      if(tg&&freeAt(tg.x,tg.z))m.esc={x:tg.x,z:tg.z,t:tg.t};}}}
+  if(zsOn('rain')){const r=rainAt(zsT());if(r&&r.ph===1){for(const p of S.players)if(p.st==='alive'&&(p.y||0)<2.4&&rainIn(r,p.x,p.z))envHurt(p,ZS.RAIN_DPS*dt,'was buried by fallout');
+      for(const o of ZB.list)if(o.st!=='dead'&&o.st!=='rise'&&rainIn(r,o.x,o.z))zsHurt(o,ZS.RAIN_ZDPS*dt);}}
+  for(const o of ZB.list){if(o.st==='dead'||o.elite||ZTYPES[o.t].boss)continue;const k=radAt(o.x,o.z);o.radT=Math.max(0,(o.radT||0)+(k>0?dt:-dt*0.5));if(o.radT>=CFG.radMut)zMutate(o);}}
+function zsHost(dt){const Z=zsZ();if(!Z)return;const want=S.range?(ZST[MAP.id]?RG.stg||'':''):zsWant(Z);
   if(want!==(Z.stg||'')||Z.stm!==MAP.id){Z.stg=want;Z.stm=MAP.id;Z.stt=0;Z.hat=MF.zs.hatch.length?MF.zs.hatch.map(()=>0):null;Z.mk={};Z.mkn={};for(const k in ZSH)delete ZSH[k];}
   else Z.stt=(Z.stt||0)+dt;
   if(Z.mk)for(const k in Z.mk){Z.mk[k]=Math.max(0,Z.mk[k]-dt);if(Z.mk[k]<=0)delete Z.mk[k];}
@@ -6931,7 +6991,7 @@ function botThink(b,dt){
     m.burst++;const bw=wOf(b.w);m.fireCd=m.burst%5===0?0.7:0.2*(bw.cd+(bw.chg||0))/0.12;b.sh++;
     const d=dist(b,tgt);let ph=clamp(0.34-d*0.005,0.08,0.34)*(S.diff||1);if(tgt.st==='down')ph=0.65;if(tgt.zr)ph=Math.min(0.85,ph*1.8);
     if(air)ph*=0.6;const gp=paneBetween(b.x,b.y+1.5,b.z,tgt.x,tgt.y+(tgt.st==='down'?0.3:1.2),tgt.z);
-    if(gp>=0)damagePane(gp,wDmg(b.w,false,d));else if(Math.random()<ph){const hd=Math.random()<0.12,pl=(bw.pel?Math.max(1,Math.round(bw.pel*clamp(1.15-d/26,0.15,1))):1)*(bw.burst||1);if(tgt.zr)zBotShot(b,tgt.zr,hd,d,pl);else damage(tgt,wDmg(b.w,hd,d)*pl,b,hd);}
+    if(gp>=0)damagePane(gp,wDmg(b.w,false,d));else if(Math.random()<ph){const hd=Math.random()<0.12,pl=(bw.pel?Math.max(1,Math.round(bw.pel*clamp(1.15-d/26,0.15,1))):1)*(bw.burst||1);if(tgt.zr)zBotShot(b,tgt.zr,hd,d,pl);else damage(tgt,wDmg(b.w,hd,d)*pl*radMul(b),b,hd);}
     else{const tx=tgt.x+(Math.random()-.5)*1.8,ty=tgt.y+0.2+Math.random()*1.3,tz=tgt.z+(Math.random()-.5)*1.8,ey=b.y+1.5,ddx=tx-b.x,ddy=ty-ey,ddz=tz-b.z,LL=Math.hypot(ddx,ddy,ddz);rayWorld(b.x,ey,b.z,ddx/LL,ddy/LL,ddz/LL,LL+4);if(rayHitBox&&rayHitBox.ci!=null)damageCover(rayHitBox.ci,CFG.dmg);else if(rayHitBox&&rayHitBox.pane!=null)damagePane(rayHitBox.pane,CFG.dmg);}
   }
 }
@@ -7069,7 +7129,7 @@ function packState(){
   const xsPack=x=>{if(!x)return null;const o={w:{}};for(const f in x)if(f!=='w'&&x[f])o[f]=x[f];for(const k in x.w||{})if(x.w[k])o.w[k]=x.w[k];return o;};
   const pl=(p,xs)=>{const o={s:p.s,team:p.team,bot:p.bot?1:0,name:p.name,hp:r(p.hp),st:p.st,x:r(p.x),y:r(p.y),z:r(p.z),yaw:r(p.yaw),pitch:r(p.pitch),w:p.w,sp:p.sp,spx:p.spx,spz:p.spz,spyaw:r(p.spyaw),sh:p.sh};
     if(!p.bot)o.peer=p.peer;if(!dm)o.lastZ=p.lastZ;if(p.st==='down'){o.dhp=r(p.dhp);o.downT=r(p.downT);}if(p.st==='dead')o.deadT=r(p.deadT);
-    if(p.ak){o.ak=p.ak;o.at=p.at;o.ap=r(p.ap);}if(p.wr)o.wr=p.wr|0;if(p.prot>0)o.prot=r(p.prot);if(dm){o.k=p.k|0;o.d=p.d|0;}if(p.sx)o.sx=1;if(p.ds)o.ds=p.ds|0;if(zr){o.fv=p.fv|0;if(p.dropW)o.dropW=p.dropW;if(p.sw)o.sw=p.sw;if(p.cards&&p.cards.length)o.cards=p.cards;if(p.shT>S.clock){o.shT=r(p.shT);o.shV=p.shV;}}{const hf=dmgFrom(p);if(hf.length)o.hf=hf;}
+    if(p.ak){o.ak=p.ak;o.at=p.at;o.ap=r(p.ap);}if(p.wr)o.wr=p.wr|0;if(p.prot>0)o.prot=r(p.prot);if(dm){o.k=p.k|0;o.d=p.d|0;}if(p.sx)o.sx=1;if(p.ds)o.ds=p.ds|0;if(p.rad>0.5)o.rad=Math.round(p.rad);if(p.rsk)o.rsk=1;if(zr){o.fv=p.fv|0;if(p.dropW)o.dropW=p.dropW;if(p.sw)o.sw=p.sw;if(p.cards&&p.cards.length)o.cards=p.cards;if(p.shT>S.clock){o.shT=r(p.shT);o.shV=p.shV;}}{const hf=dmgFrom(p);if(hf.length)o.hf=hf;}
     if(xs(p)&&!p.bot)o.xs=xsPack(p.xs);return o;};
   const mk=(tn,xs)=>{const o={...S,t:r(S.t),timer:r(S.timer),clock:r(S.clock),mft:r(S.mft||0),paneR:S.paneR?S.paneR.map(v=>v>0?r(v):0):undefined,armed:S.armed?{site:S.armed.site,t:r(S.armed.t)}:null,regen:(S.regen||[]).map(v=>v>0?r(v):0),
     players:S.players.map(p=>pl(p,xs))};delete o.tn;if(tn)o.tn=tunePack();
@@ -7274,7 +7334,7 @@ const SOLID_G=new THREE.Group(),solidEdgeM=new THREE.LineBasicMaterial({color:li
 /* (re)build the solid meshes for the current BOXES; returns the old materials so setMap can drop them from the day/night lists */
 function buildSolids(){const old=[];
   for(const o of [...SOLID_G.children]){SOLID_G.remove(o);if(o.isGroup){for(const c of o.children)c.geometry.dispose();continue;}o.geometry.dispose();if(o.material!==solidEdgeM){old.push(o.material);const k=wallMats.indexOf(o.material);if(k>=0)wallMats.splice(k,1);o.material.dispose();}}
-  for(const b of BOXES){if(!b.solid)continue;const h=b.h0||b.y1,mesh=wallMesh(b,h,SOLID_G);mesh.userData.noMerge=true;
+  for(const b of BOXES){if(!b.solid)continue;if(b.reactor){b.vis=[];b.h0=b.h0||b.y1;continue;}const h=b.h0||b.y1,mesh=wallMesh(b,h,SOLID_G);mesh.userData.noMerge=true;
     const e=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(b.x1-b.x0,h,b.z1-b.z0)),solidEdgeM);e.position.set((b.x0+b.x1)/2,h/2,(b.z0+b.z1)/2);SOLID_G.add(e);
     // structure dressing: plinth, top cap, corner guards and ribs every ~2 m on the long faces
     const w=b.x1-b.x0,d=b.z1-b.z0,L=[],D=[];band(D,w,d,0.15,0.3,0.05);band(L,w,d,h-0.06,0.12,0.04);cornerGuards(L,w,d,0.3,h-0.12,0.14,0.03,0.03);
@@ -8043,10 +8103,10 @@ const hexCss=h=>'#'+h.toString(16).padStart(6,'0');
    (y>=4.3, at most 0.6 m out) or flush with them, under the roof (bottom >=11.3; the flyover tops out at 10.5) or flat on the floor.
    Each map's dressing is built the first time it is shown, merged per material, and then only shown or hidden. */
 const ML={cv:{},grp:{},cur:'',pts:null,pv:null,flick:[],spin:[],halo:[],t:0};
-const ML_FLOOR={yard:[0.86,0.05],foundry:[0.42,0.6],atrium:[0.22,0.2],warren:[0.7,0.12]};/* roughness, metalness */
+const ML_FLOOR={yard:[0.86,0.05],foundry:[0.42,0.6],atrium:[0.22,0.2],warren:[0.7,0.12],fallout:[0.72,0.25]};/* roughness, metalness */
 const ML_AIR={/* drifting particles: colour, count, size, rise speed (m/s), wander */
   yard:{c:0xc8d4ff,n:90,s:0.05,v:-0.05,w:0.25,op:0.35},foundry:{c:0xff8a2a,n:260,s:0.07,v:0.9,w:0.5,op:0.9},
-  atrium:{c:0xd8f0ff,n:140,s:0.04,v:0.04,w:0.12,op:0.55},warren:{c:0x9dff2e,n:200,s:0.06,v:0.12,w:0.3,op:0.6}};
+  atrium:{c:0xd8f0ff,n:140,s:0.04,v:0.04,w:0.12,op:0.55},warren:{c:0x9dff2e,n:200,s:0.06,v:0.12,w:0.3,op:0.6},fallout:{c:0xffd890,n:170,s:0.05,v:0.06,w:0.18,op:0.5}};
 function mlRnd(seed){let s=seed;return()=>{s=(s*16807)%2147483647;return s/2147483647;};}
 function mlCrack(g,r,x,y,a,len,w){g.lineWidth=w;g.beginPath();g.moveTo(x,y);for(let i=0;i<len;i+=6){a+=(r()-.5)*0.8;x+=Math.cos(a)*6;y+=Math.sin(a)*6;g.lineTo(x,y);}g.stroke();}
 /* floor (512 px = 4 m square) and wall (512 px = 8 m along, 4 m up) canvases per map: [floor colour, floor glow, wall colour, wall glow] */
@@ -8118,6 +8178,22 @@ const ML_DRAW={
       for(let i=0;i<20;i++){const x=r()*s,L=60+r()*240,gr2=g.createLinearGradient(0,0,0,L);gr2.addColorStop(0,'rgba(8,12,6,.55)');gr2.addColorStop(1,'rgba(8,12,6,0)');g.fillStyle=gr2;g.fillRect(x,0,3+r()*10,L);}
       g.fillStyle='rgba(0,0,0,.6)';g.fillRect(0,s*0.62,s,8);});
     const we=lineCanvas(512,(g,s)=>{g.fillStyle='#fff';for(let x=0;x<s;){const L=30+r()*110;if(r()<0.75)g.fillRect(x,s*0.62+1,L,5);x+=L+6+r()*30;}});
+    return[fc,fe,wc,we];},
+  fallout(){const r=mlRnd(71);
+    const chev=(g,y,hh,step)=>{for(let x=-hh;x<512;x+=step){g.beginPath();g.moveTo(x,y+hh);g.lineTo(x+10,y+hh);g.lineTo(x+10+hh,y);g.lineTo(x+hh,y);g.fill();}};
+    const fc=grainCanvas(512,'#3a3832',20,(g,s)=>{// sealed containment floor: 2 m plates, sealant scuffs, a hazard-striped seam, a drain grate, hairline cracks
+      g.fillStyle='rgba(0,0,0,.45)';for(const p of [0,256]){g.fillRect(p,0,3,s);g.fillRect(0,p,s,3);}
+      for(let i=0;i<10;i++){const x=r()*s,y=r()*s,R=20+r()*60,gr=g.createRadialGradient(x,y,0,x,y,R);gr.addColorStop(0,'rgba(70,56,20,.35)');gr.addColorStop(1,'rgba(70,56,20,0)');g.fillStyle=gr;g.fillRect(x-R,y-R,2*R,2*R);}
+      g.fillStyle='rgba(210,160,30,.5)';g.fillRect(0,236,s,18);g.fillStyle='rgba(20,16,8,.75)';chev(g,236,18,26);
+      g.fillStyle='rgba(10,10,8,.85)';g.fillRect(380,380,64,64);g.strokeStyle='rgba(90,86,70,.9)';g.lineWidth=3;for(let x=386;x<444;x+=8){g.beginPath();g.moveTo(x,382);g.lineTo(x,442);g.stroke();}
+      g.strokeStyle='rgba(8,8,6,.7)';g.lineCap='round';for(let i=0;i<4;i++)mlCrack(g,r,r()*s,r()*s,r()*7,60+r()*120,1.2);});
+    const fe=lineCanvas(512,(g,s)=>{g.fillStyle='#fff';g.globalAlpha=0.3;g.fillRect(0,0,s,2);g.fillRect(0,0,2,s);g.globalAlpha=0.55;chev(g,236,18,52);g.globalAlpha=1;});
+    const wc=grainCanvas(512,'#2e3134',14,(g,s)=>{// lead-lined containment panels, bolted, a yellow band, stains running down
+      for(let y=0;y<s;y+=128)for(let x=0;x<s;x+=128){g.fillStyle=`rgba(${r()<.5?'255,255,255':'0,0,0'},${r()*0.06})`;g.fillRect(x+3,y+3,122,122);g.strokeStyle='rgba(0,0,0,.6)';g.lineWidth=3;g.strokeRect(x+2,y+2,124,124);
+        g.fillStyle='rgba(180,180,170,.35)';for(const [bx,by] of [[10,10],[118,10],[10,118],[118,118]]){g.beginPath();g.arc(x+bx,y+by,3,0,7);g.fill();}}
+      g.fillStyle='rgba(200,150,30,.5)';g.fillRect(0,s*0.7,s,18);g.fillStyle='rgba(20,16,8,.7)';chev(g,s*0.7,18,30);
+      for(let i=0;i<14;i++){const x=r()*s,L=60+r()*200,gr=g.createLinearGradient(0,0,0,L);gr.addColorStop(0,'rgba(50,40,16,.5)');gr.addColorStop(1,'rgba(50,40,16,0)');g.fillStyle=gr;g.fillRect(x,0,3+r()*8,L);}});
+    const we=lineCanvas(512,(g,s)=>{g.fillStyle='#fff';g.fillRect(0,s*0.7-6,s,3);g.globalAlpha=0.5;for(let x=40;x<s;x+=128)g.fillRect(x,s*0.7+24,48,3);g.globalAlpha=1;});
     return[fc,fe,wc,we];}};
 /* repaint the shared floor and wall canvases with one map's set (each set is drawn once, then copied) */
 function mlSurfaces(id){const D=ML_DRAW[id]||ML_DRAW.yard;const set=ML.cv[id]||(ML.cv[id]=D());
@@ -8232,6 +8308,17 @@ const ML_BUILD={
         g.lineWidth=14;g.strokeStyle='rgba(0,0,0,.6)';g.strokeText(t,0,0);g.fillStyle=cols[i];g.shadowColor=cols[i];g.shadowBlur=22;g.fillText(t,0,0);
         g.shadowBlur=0;for(let k=0;k<14;k++){g.fillRect(-w*0.4+Math.random()*w*0.8,40+Math.random()*20,4,30+Math.random()*60);}},0.5);
       const f=[WF_S,WF_N][i&1];mlWallDecal(grp,m,f,[-26,6,26,-6][i],4.9,4.2,1.4,0.09);});
+    mlFinish(grp,K,M);},
+  /* Fallout Reactor: twin coolant lines with glowing sight glasses along the long walls, amber warning beacons, radiation boards */
+  fallout(grp){const K={pipe:[],steel:[],flick:[],cool:[]},M={pipe:smat(0x6c7178,0.45,0.7),steel:smat(0x3b3f44,0.6,0.6),flick:mlGlowM(0xffb020),cool:mlGlowM(0x5fc0ff)};
+    for(const f of [WF_S,WF_N]){mlPipe(K.pipe,f,-46,46,4.75,0.17,0.05,12);mlPipe(K.pipe,f,-46,46,5.3,0.12,0.05,10);
+      for(let u=-44;u<=44;u+=4){const g=new THREE.CylinderGeometry(0.2,0.2,0.2,12);const [x,z]=mlAt(f,u,0.05+0.17);(f.ax==='z'?g.rotateZ(Math.PI/2):g.rotateX(Math.PI/2)).translate(x,4.75,z);K.cool.push(g);
+        if(u%8===0){mlWall(K.steel,f,u,5.0,0.12,0.9,0.42);}}
+      for(const u of [-34,-14,14,34]){mlWall(K.steel,f,u,6.9,0.36,0.36,0.22);const b=new THREE.SphereGeometry(0.14,10,8);const [x,z]=mlAt(f,u,0.34);b.translate(x,7.12,z);K.flick.push(b);}}
+    const board=(w,h)=>mlBoard(w,h,(g,W,H)=>{g.fillStyle='#e2a81c';g.fillRect(0,0,W,H);g.strokeStyle='#151515';g.lineWidth=10;g.strokeRect(8,8,W-16,H-16);foTrefoil(g,W/2,H*0.42,H*0.27,'#151515');
+      g.font=`700 ${Math.round(H*0.12)}px "Saira Condensed","Arial Narrow",sans-serif`;g.fillStyle='#151515';g.textAlign='center';g.fillText('RADIATION AREA',W/2,H*0.86);},0.35);
+    for(const f of [WF_S,WF_N])for(const u of [-24,24])mlWallDecal(grp,board(1.6,1.6),f,u,6.3,1.6,1.6,0.09);
+    for(const f of [WF_W,WF_E])for(const u of [-10,10])mlWallDecal(grp,board(1.4,1.4),f,u,5.6,1.4,1.4,0.09);
     mlFinish(grp,K,M);}};
 /* show one map's look: surfaces, its dressing group (built on first use) and the air particles */
 function mlApply(id){if(!ML_BUILD[id])id='yard';
@@ -9599,7 +9686,7 @@ const MFG=new THREE.Group();scene.add(MFG);
 const MFV={crane:null,pour:null,panes:[],acid:[],flares:[],slot:-2,cph:-1,cn:-1,pph:-1,block:false,cap:'',capT:0,pane:[]};
 const mfEase=k=>k<0.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
 function mfClear(){for(const o of [...MFG.children]){MFG.remove(o);o.traverse(n=>{if(n.geometry)n.geometry.dispose();const ms=n.material?(Array.isArray(n.material)?n.material:[n.material]):[];for(const m of ms){if(m.map)m.map.dispose();m.dispose();}});}
-  MFV.crane=MFV.pour=null;MFV.panes.length=0;MFV.acid.length=0;MFV.slot=-2;MFV.cph=-1;MFV.cn=-1;MFV.pph=-1;MFV.pane.length=0;MFV.capT=0;}
+  MFV.crane=MFV.pour=null;MFV.fo=null;MFV.panes.length=0;MFV.acid.length=0;MFV.slot=-2;MFV.cph=-1;MFV.cn=-1;MFV.pph=-1;MFV.pane.length=0;MFV.capT=0;}
 function mfCanvas(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t;}
 function mfGlow(){return mfCanvas(64,64,(g,w,h)=>{const r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(0.35,'rgba(255,255,255,.45)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,w,h);});}
 function mfBuild(){mfClear();
@@ -9607,6 +9694,7 @@ function mfBuild(){mfClear();
   if(MF.pour)mfPourVis();
   if(MF.panes.length)mfPaneVis();
   if(MAP.id==='warren')mfAcidVis();
+  if(MF.rad)foVis();
   zsVis();
   {const tex=mfGlow();for(let i=0;i<4;i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color:0xffc070,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));s.visible=false;s.scale.setScalar(5);MFG.add(s);MFV.flares[i]={s,t:0};}MFV.flares.length=4;}}
 /* Yard: a bridge crane over the middle with a trolley, cables and one shipping container */
@@ -9676,6 +9764,71 @@ function mfPaneVis(){const gm=()=>new THREE.MeshStandardMaterial({color:lin(0xcb
 function mfAcidVis(){const tex=mfGlow();const L=[[8,1,2.6,1.6],[19,-13.5,2.2,1.4],[27.5,6.5,1.8,1.2],[1.5,-12,2,1.3],[13,-4.5,1.4,1]];
   for(const q of L)for(const k of [1,-1]){const m=new THREE.Mesh(new THREE.PlaneGeometry(q[2]*2,q[3]*2),new THREE.MeshBasicMaterial({map:tex,color:lin(THEME.low),transparent:true,opacity:0.5,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
     m.rotation.x=-Math.PI/2;m.rotation.z=Math.random()*3;m.position.set(k*q[0],0.02,k*q[1]);m.renderOrder=1;MFG.add(m);MFV.acid.push({m,ph:Math.random()*6});}}
+/* Fallout: the reactor, the hot zones on the floor and the decon showers (the rules are in foHost) */
+const RAD_FS=`varying vec2 vUv;uniform float uT,uA,uW;uniform vec3 uC;
+float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
+void main(){vec2 p=vUv*2.-1.;float r=length(p);if(r>1.)discard;float a=atan(p.y,p.x);
+  float m=n(p*3.+vec2(uT*.31,-uT*.22))*.6+n(p*7.-uT*.5)*.4;
+  float core=(1.-smoothstep(.15,1.,r))*(.3+.7*m)+smoothstep(.55,.95,m)*.5*(1.-r);
+  float ring=smoothstep(.86,.92,r)*(1.-smoothstep(.96,1.,r));float dash=step(.45,fract(a*28./6.2832+uT*.12));
+  float al=uA*(core*.55+ring*(.45+.55*dash)*uW);if(al<.01)discard;gl_FragColor=vec4(uC*(1.1+m*.9),al);
+  #include <colorspace_fragment>
+}`;
+function radDiscM(r,col,a){const U={uT:{value:0},uA:{value:a==null?1:a},uW:{value:1},uC:{value:lin(col)}};
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(r*2,r*2),new THREE.ShaderMaterial({uniforms:U,vertexShader:MOLTEN_VS,fragmentShader:RAD_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));
+  m.rotation.x=-Math.PI/2;m.position.y=0.03;m.renderOrder=1;m.userData.U=U;return m;}
+function foHazTex(){const t=mfCanvas(128,32,(q,w,h)=>{q.fillStyle='#f2b400';q.fillRect(0,0,w,h);q.fillStyle='#111';for(let x=-h;x<w;x+=24){q.beginPath();q.moveTo(x,h);q.lineTo(x+12,h);q.lineTo(x+12+h,0);q.lineTo(x+h,0);q.fill();}});t.wrapS=THREE.RepeatWrapping;return t;}
+function foTrefoil(q,cx,cy,R,col){q.fillStyle=col;for(let k=0;k<3;k++){const a=-Math.PI/6+k*2*Math.PI/3;q.beginPath();q.arc(cx,cy,R,a-Math.PI/6,a+Math.PI/6);q.arc(cx,cy,R*0.22,a+Math.PI/6,a-Math.PI/6,true);q.closePath();q.fill();}
+  q.beginPath();q.arc(cx,cy,R*0.13,0,7);q.fill();}
+function foVis(){const R=MF.rad,V=MFV.fo={zones:[],decon:[],rx:null,told:false};
+  for(const q of R.zones){const m=radDiscM(q.r,0xffb020,0.85);m.position.x=q.x;m.position.z=q.z;MFG.add(m);V.zones.push(m);}
+  const rb=BOXES.find(b=>b.reactor);
+  if(rb){const w=rb.x1-rb.x0,h=rb.h0,g=new THREE.Group();MFG.add(g);const r=mlRnd(5);
+    const shell=mfCanvas(256,512,(q,W,H)=>{q.fillStyle='#3b3e42';q.fillRect(0,0,W,H);for(let y=0;y<H;y+=86){q.fillStyle='rgba(0,0,0,.45)';q.fillRect(0,y,W,4);q.fillStyle='rgba(255,255,255,.06)';q.fillRect(0,y+4,W,2);
+        q.fillStyle='rgba(200,200,190,.35)';for(let x=12;x<W;x+=30){q.beginPath();q.arc(x,y+12,2.5,0,7);q.fill();}}
+      for(let i=0;i<16;i++){const x=r()*W,L=40+r()*200,gr=q.createLinearGradient(0,0,0,L);gr.addColorStop(0,'rgba(20,24,20,.55)');gr.addColorStop(1,'rgba(20,24,20,0)');q.fillStyle=gr;q.fillRect(x,r()*H,3+r()*6,L);}
+      q.fillStyle='rgba(230,170,30,.85)';q.fillRect(40,170,176,80);foTrefoil(q,128,210,34,'#151515');q.font='700 20px "Saira Condensed","Arial Narrow",sans-serif';q.fillStyle='#f2b400';q.textAlign='center';q.fillText('CORE 2 · BREACHED',128,282);});
+    const crack=mfCanvas(256,512,(q,W,H)=>{q.fillStyle='#000';q.fillRect(0,0,W,H);q.strokeStyle='#fff';q.lineCap='round';q.shadowColor='#fff';q.shadowBlur=6;
+      for(let i=0;i<7;i++)mlCrack(q,r,30+r()*196,300+r()*200,-Math.PI/2+(r()-.5)*1.2,80+r()*220,1.5+r()*2.5);
+      q.shadowBlur=0;q.fillStyle='rgba(255,255,255,.9)';q.fillRect(0,H-10,W,10);});
+    const mat=new THREE.MeshStandardMaterial({map:shell,roughness:0.7,metalness:0.4,emissive:lin(0x3fa8ff),emissiveMap:crack,emissiveIntensity:1.5});
+    const body=new THREE.Mesh(new THREE.BoxGeometry(w,h,w),mat);body.position.y=h/2;body.castShadow=true;body.receiveShadow=true;g.add(body);
+    const steel=smat(0x4a5058,0.45,0.7);
+    for(const sx of [-1,1])for(const sz of [-1,1]){const c=new THREE.Mesh(new THREE.BoxGeometry(0.42,h+0.3,0.42),steel);c.position.set(sx*w/2,(h+0.3)/2,sz*w/2);c.castShadow=true;g.add(c);}
+    for(const y of [2.1,4.1]){const b=new THREE.Mesh(new THREE.BoxGeometry(w+0.14,0.2,w+0.14),steel);b.position.y=y;g.add(b);}
+    const hz=foHazTex();hz.repeat.set(4,1);const base=new THREE.Mesh(new THREE.BoxGeometry(w+0.3,0.45,w+0.3),new THREE.MeshStandardMaterial({map:hz,roughness:0.7,metalness:0.2}));base.position.y=0.225;g.add(base);
+    const cap=new THREE.Mesh(new THREE.BoxGeometry(w+0.3,0.3,w+0.3),steel);cap.position.y=h+0.15;g.add(cap);
+    const coreM=new THREE.MeshBasicMaterial({color:lin(0x5fc0ff),toneMapped:false});const core=new THREE.Mesh(new THREE.CylinderGeometry(1.15,1.15,0.12,28),coreM);core.position.y=h+0.33;g.add(core);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(1.3,0.09,8,36),steel);ring.rotation.x=Math.PI/2;ring.position.y=h+0.36;g.add(ring);
+    const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:mfGlow(),color:lin(0x3fa8ff),transparent:true,opacity:0.4,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));glow.position.y=h+0.9;glow.scale.set(5,3.2,1);g.add(glow);
+    const foot=new THREE.Sprite(new THREE.SpriteMaterial({map:mfGlow(),color:lin(0x3fa8ff),transparent:true,opacity:0.3,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));foot.position.y=0.6;foot.scale.set(7,2.2,1);g.add(foot);
+    V.rx={g,mat,coreM,glow,foot};}
+  const grate=mfCanvas(64,64,(q,w,h)=>{q.fillStyle='#0c1218';q.fillRect(0,0,w,h);q.strokeStyle='#2f4a60';q.lineWidth=4;for(let i=4;i<w;i+=10){q.beginPath();q.moveTo(i,0);q.lineTo(i,h);q.stroke();}});grate.wrapS=grate.wrapT=THREE.RepeatWrapping;grate.repeat.set(2,2);
+  const sign=mfCanvas(256,64,(q,w,h)=>{q.fillStyle='#0c2a44';q.fillRect(0,0,w,h);q.strokeStyle='#5fc0ff';q.lineWidth=4;q.strokeRect(3,3,w-6,h-6);q.font='700 40px "Saira Condensed","Arial Narrow",sans-serif';q.fillStyle='#bfe6ff';q.textAlign='center';q.textBaseline='middle';q.fillText('DECON',w/2,h/2+2);});
+  const steel=smat(0x59606a,0.4,0.7),blue=new THREE.MeshBasicMaterial({color:lin(0x5fc0ff),toneMapped:false}),glowT=mfGlow();
+  for(const q of R.decon){const g=new THREE.Group();g.position.set(q.x,0,q.z);g.rotation.y=q.z>0?Math.PI:0;MFG.add(g);/* local -z is the wall */
+    for(const sx of [-0.98,0.98]){const p=new THREE.Mesh(new THREE.BoxGeometry(0.12,2.8,0.12),steel);p.position.set(sx,1.4,-0.15);p.castShadow=true;g.add(p);}
+    const top=new THREE.Mesh(new THREE.BoxGeometry(2.1,0.16,0.95),steel);top.position.set(0,2.8,-0.3);g.add(top);
+    for(const nx of [-0.6,0,0.6]){const n=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.1,0.14,8),steel);n.position.set(nx,2.66,-0.1);g.add(n);}
+    const strip=new THREE.Mesh(new THREE.BoxGeometry(2.1,0.05,0.05),blue);strip.position.set(0,2.71,0.18);g.add(strip);
+    const fl=new THREE.Mesh(new THREE.PlaneGeometry(1.9,2.1),new THREE.MeshStandardMaterial({map:grate,roughness:0.8,metalness:0.6,emissive:lin(0x3fa8ff),emissiveIntensity:0.25}));fl.rotation.x=-Math.PI/2;fl.position.set(0,0.018,0.05);fl.receiveShadow=true;g.add(fl);
+    const sg=new THREE.Mesh(new THREE.PlaneGeometry(1.8,0.45),new THREE.MeshBasicMaterial({map:sign,toneMapped:false}));sg.position.set(0,3.25,-0.42);g.add(sg);
+    const mist=[];for(let i=0;i<9;i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowT,color:lin(0xa8dcff),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+      sp.userData={o:i/9,x:((i%3)-1)*0.6+(Math.random()-.5)*0.2,z:-0.1+(Math.random()-.5)*0.3};g.add(sp);mist.push(sp);}
+    V.decon.push({g,mist,fl,x:q.x,z:q.z});}}
+function foTick(dt){const V=MFV.fo;if(!V)return;const now=performance.now()/1000,off=RG.stowed;
+  for(const m of V.zones)m.userData.U.uT.value=now+m.position.x;
+  if(V.rx){V.rx.g.visible=!off;const surge=Math.sin(now*0.7)>0.75?0.35*Math.sin(now*23):0,f=1.35+0.3*Math.sin(now*2.3)+surge;V.rx.mat.emissiveIntensity=f;
+    V.rx.glow.material.opacity=0.32+0.1*Math.sin(now*1.7)+surge*0.2;V.rx.foot.material.opacity=0.22+0.08*Math.sin(now*2.1);V.rx.coreM.color.copy(lin(0x5fc0ff)).multiplyScalar(1.2+0.5*Math.sin(now*3.1)+surge);}
+  const P=S&&mySlot()>=0?S.players[mySlot()]:null;
+  for(const d of V.decon){const on=!!P&&P.st==='alive'&&Math.abs(P.x-d.x)<0.95&&Math.abs(P.z-d.z)<1.1;d.fl.material.emissiveIntensity=on?0.9:0.25;
+    for(const sp of d.mist){const k=(sp.userData.o+now*(on?1.6:0.7))%1;sp.position.set(sp.userData.x,2.55-k*2.4,sp.userData.z+k*0.25);sp.material.opacity=(1-k)*(on?0.45:0.22);sp.scale.setScalar(0.4+k*0.9);}}
+  if(P&&!V.told&&(P.rad|0)>2&&S.phase==='live'){V.told=true;mfCap(`Radiation. Over half the meter your shots hit ${Math.round((CFG.radBoost-1)*100)}% harder. A full meter burns you until a blue decon shower on the side walls clears it`,6);}}
+/* the rad meter under your health */
+function radHud(P){const el=$('radm');if(!el)return;const r=MF.rad&&P&&P.st!=='dead'?P.rad||0:0,show=!!MF.rad&&!!P&&(r>0.5||(P.st==='alive'&&radAt(P.x,P.z)>0));el.hidden=!show;if(!show)return;
+  $('radfill').style.width=Math.round(r)+'%';const sick=!!P.rsk,b=r>=50;el.classList.toggle('sick',sick);el.classList.toggle('boost',b&&!sick);
+  const tx=sick?'Sick: find a decon shower':b?`+${Math.round((CFG.radBoost-1)*100)}% damage`:'';if($('radtx').textContent!==tx)$('radtx').textContent=tx;}
 /* a big soft flare where a shot was fired: Warren is dark enough that every shot gives the shooter away */
 function mfFlare(x,y,z){if(MAP.id!=='warren')return;const f=MFV.flares.find(q=>q.t<=0)||MFV.flares[0];if(!f)return;f.t=0.09;f.s.position.set(x,y,z);f.s.visible=true;f.s.scale.setScalar(4.5+Math.random()*1.5);}
 /* the game clock for map features; guests run it on between host packets */
@@ -9723,6 +9876,7 @@ function mfTick(dt){mlTick(dt);const live=!!S,off=!!(S&&S.range)||RG.stowed,t=mf
   for(const a of MFV.acid)a.m.material.opacity=0.36+0.14*Math.sin(now*1.3+a.ph);
   for(const f of MFV.flares){if(f.t>0){f.t-=dt;f.s.material.opacity=clamp(f.t/0.09,0,1)*0.55;if(f.t<=0)f.s.visible=false;}}
   if(nav)mfNav();
+  foTick(dt);
   zsTick(dt);
   // caption
   if(MFV.capT>0){MFV.capT-=dt;}const el=$('mfcap');if(el){const show=MFV.capT>0&&!!S&&$('menu').hidden;el.hidden=!show;if(show&&el.textContent!==MFV.cap)el.textContent=MFV.cap;}
@@ -9734,7 +9888,7 @@ void main(){vec2 p=vUv*2.-1.;float r=length(p*vec2(1.,0.8)),a=atan(p.y,p.x);floa
   vec3 c=mix(uC,uD,s)*(.5+1.1*s2*(1.-r*.7));float e=smoothstep(1.,.82,max(abs(p.x),abs(p.y)));float al=uA*e*(.6+.4*s);if(al<.01)discard;gl_FragColor=vec4(c*1.5,al);
   #include <colorspace_fragment>
 }`;
-function zsVis(){ZS.link=null;ZSV.drops.length=0;ZSV.mag=null;ZSV.vents.length=0;ZSV.slabs.length=0;ZSV.ptl.length=0;ZSV.scan=null;ZSV.hatch.length=0;ZSV.marks.length=0;ZSV.k={};
+function zsVis(){ZS.link=null;ZSV.drops.length=0;ZSV.mag=null;ZSV.vents.length=0;ZSV.slabs.length=0;ZSV.ptl.length=0;ZSV.scan=null;ZSV.hatch.length=0;ZSV.marks.length=0;ZSV.k={};ZSV.core=null;ZSV.rain=null;
   const Z=MF.zs;if(!Z)return;const glow=mfGlow(),add=o=>{MFG.add(o);return o;},L=ZST[MAP.id];if(!L)return;
   const hazard=mfCanvas(128,32,(q,w,h)=>{q.fillStyle='#f2b400';q.fillRect(0,0,w,h);q.fillStyle='#111';for(let x=-h;x<w;x+=24){q.beginPath();q.moveTo(x,h);q.lineTo(x+12,h);q.lineTo(x+12+h,0);q.lineTo(x+h,0);q.fill();}});hazard.wrapS=THREE.RepeatWrapping;
   // Yard: the two drop containers and their red landing shadows
@@ -9792,11 +9946,22 @@ function zsVis(){ZS.link=null;ZSV.drops.length=0;ZSV.mag=null;ZSV.vents.length=0
       const hole=new THREE.Mesh(new THREE.PlaneGeometry(1.2,1.2),new THREE.MeshBasicMaterial({map:glow,color:lin(THEME.low),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));hole.rotation.x=-Math.PI/2;hole.position.y=0.06;hole.renderOrder=1;g.add(hole);
       const piv=new THREE.Group();piv.position.set(-0.62,0.06,0);g.add(piv);const lid=new THREE.Mesh(new THREE.BoxGeometry(1.24,0.07,1.24),lidM);lid.position.x=0.62;lid.castShadow=true;piv.add(lid);
       const weld=new THREE.Group();for(const a of [0.785,-0.785]){const s=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.03,0.06),weldM);s.rotation.y=a;weld.add(s);}weld.position.set(0.62,0.04,0);piv.add(weld);weld.visible=false;
-      g.visible=false;ZSV.hatch.push({g,hole,piv,weld,st:0,x:h.x,z:h.z});}}}
+      g.visible=false;ZSV.hatch.push({g,hole,piv,weld,st:0,x:h.x,z:h.z});}}
+  // Fallout: the Core Vent's grates, its hot disc and warning ring; Fallout Rain's marked circles and falling debris
+  if(Z.core.length){const grate=mfCanvas(64,64,(q,w,h)=>{q.fillStyle='#140f0a';q.fillRect(0,0,w,h);q.strokeStyle='#5a4426';q.lineWidth=4;for(let i=4;i<w;i+=10){q.beginPath();q.moveTo(i,0);q.lineTo(i,h);q.stroke();q.beginPath();q.moveTo(0,i);q.lineTo(w,i);q.stroke();}});
+    const vents=[];for(const q of Z.core){const g=add(new THREE.Group());g.position.set(q.x,0,q.z);const pl=new THREE.Mesh(new THREE.PlaneGeometry(2.2,2.2),new THREE.MeshStandardMaterial({map:grate,roughness:0.8,metalness:0.6,emissive:lin(0xff8a20),emissiveIntensity:0.08}));pl.rotation.x=-Math.PI/2;pl.position.y=0.017;pl.receiveShadow=true;g.add(pl);
+      const rim=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(2.24,0.05,2.24)),new THREE.LineBasicMaterial({color:lin(0xffb020),toneMapped:false}));rim.position.y=0.03;g.add(rim);g.visible=false;vents.push({g,pl});}
+    const disc=add(radDiscM(ZS.CORE_R,0xff7a1a,0));disc.visible=false;
+    const ring=add(new THREE.Mesh(new THREE.RingGeometry(ZS.CORE_R-0.22,ZS.CORE_R,56),new THREE.MeshBasicMaterial({color:lin(0xffb020),transparent:true,opacity:0,depthWrite:false,toneMapped:false})));ring.rotation.x=-Math.PI/2;ring.renderOrder=2;ring.visible=false;
+    ZSV.core={vents,disc,ring};}
+  if(Z.rainC.length){const marks=[];for(let j=0;j<6;j++){const disc=add(radDiscM(ZS.RAIN_R,0xffe060,0));disc.visible=false;
+      const ring=add(new THREE.Mesh(new THREE.RingGeometry(ZS.RAIN_R-0.16,ZS.RAIN_R,44),new THREE.MeshBasicMaterial({color:lin(0xffe060),transparent:true,opacity:0,depthWrite:false,toneMapped:false})));ring.rotation.x=-Math.PI/2;ring.renderOrder=2;ring.visible=false;marks.push({disc,ring});}
+    const deb=add(new THREE.InstancedMesh(new THREE.BoxGeometry(0.28,0.22,0.3),new THREE.MeshStandardMaterial({color:0x6b6256,roughness:0.85,metalness:0.2,emissive:lin(0xffb020),emissiveIntensity:0.25}),60));deb.count=0;deb.frustumCulled=false;deb.visible=false;
+    ZSV.rain={marks,deb};}}
 function zsPlace(b,x,z){const w=b.x1-b.x0,d=b.z1-b.z0;b.x0=x-w/2;b.x1=x+w/2;b.z0=z-d/2;b.z1=z+d/2;}
 /* every frame, from mfTick. Returns nothing: it rebuilds the grids itself when a piece turns solid or open */
-function zsTick(dt){const Z=MF.zs;if(!Z)return;const live=!!S&&S.phase==='live'&&S.mode==='zr'&&!!S.zr&&!S.range,t=live?zsT():0,now=performance.now()/1000,host=!!S&&(net.mode!=='online'||net.host);let nav=false,links=false;
-  const stg=live?(S.zr.stg||''):'',K=ZSV.k,edge=(k,v)=>{const was=K[k];K[k]=v;return was!==undefined&&was!==v;};
+function zsTick(dt){const Z=MF.zs;if(!Z)return;const ZZ=zsZ(),live=!!S&&S.phase==='live'&&!!ZZ,t=live?zsT():0,now=performance.now()/1000,host=!!S&&(net.mode!=='online'||net.host);let nav=false,links=false;
+  const stg=live?(ZZ.stg||''):'',K=ZSV.k,edge=(k,v)=>{const was=K[k];K[k]=v;return was!==undefined&&was!==v;};
   if(stg!==ZSV.stg){const L=ZST[MAP.id];if(L){const add=[...stg].filter(c=>ZSV.stg.indexOf(c)<0).map(c=>L[c==='a'?0:1]);
       if(add.length){mfCap('Stage change: '+add.map(e=>`${e.n}, ${e.d}`).join(' · '),6);mfSfx('horn',0,0,0.45);}}ZSV.stg=stg;}
   // Container Drop
@@ -9840,19 +10005,32 @@ function zsTick(dt){const Z=MF.zs;if(!Z)return;const live=!!S&&S.phase==='live'&
   if(ZSV.scan){const on=zsOn('scan'),s=on?scanAt(t):null,V=ZSV.scan,vis=!!s&&s.ph>0;V.m.visible=V.core.visible=vis;
     if(vis){const x=s.ph===2?s.x:-s.dir*48;V.m.position.x=V.core.position.x=x;V.mat.opacity=s.ph===2?0.6:(Math.sin(now*16)>0?0.4:0.05);}
     if(on&&edge('scan',s.n*4+s.ph)&&s.ph===1)mfSfx('alarm',-s.dir*45,0,0.45,{rate:1.2});
-    const mk=live&&S.zr.mk||{},ms=mySlot();for(let i=0;i<ZSV.marks.length;i++){const M=ZSV.marks[i],av=avatars[i],P=S&&S.players[i];M.visible=live&&mk[i]>0&&i!==ms&&!!av&&!!P&&P.st!=='dead';
+    const mk=live&&ZZ.mk||{},ms=mySlot();for(let i=0;i<ZSV.marks.length;i++){const M=ZSV.marks[i],av=avatars[i],P=S&&S.players[i];M.visible=live&&mk[i]>0&&i!==ms&&!!av&&!!P&&P.st!=='dead';
       if(M.visible){M.position.set(av.rx,3.5,av.rz);M.material.opacity=0.28+0.18*Math.sin(now*10);}}
     const mine=live&&ms>=0&&mk[ms]>0;if(mine&&!ZSV.myMk)zrCap('Marked','The scan caught you. Every Revenant is coming for you');ZSV.myMk=mine;}
   // Hatches
-  if(ZSV.hatch.length){const on=zsOn('hatch'),H=live&&S.zr.hat;
+  if(ZSV.hatch.length){const on=zsOn('hatch'),H=live&&ZZ.hat;
     for(let i=0;i<ZSV.hatch.length;i++){const V=ZSV.hatch[i],st=on&&H?H[i]|0:0;V.g.visible=on;if(!on){V.st=0;continue;}
       V.piv.rotation.z+=((st===1?1.95:0)-V.piv.rotation.z)*Math.min(1,dt*6);V.hole.material.opacity=st===1?0.65+0.25*Math.sin(now*6+i):0;V.weld.visible=st===2;
       if(V.st!==st){if(st===1)mfSfx('clank',V.x,V.z,0.55,{rate:0.8});else if(st===2){mfSfx('clank',V.x,V.z,0.45,{rate:1.4});spawnSparks(V.x,0.2,V.z,0xff8a20,12,0,1,0);}V.st=st;}}}
+  // Core Vent
+  if(ZSV.core){const on=zsOn('core'),c=on?coreAt(t):null,V=ZSV.core;for(const v of V.vents){v.g.visible=on;v.pl.material.emissiveIntensity=0.08;}V.disc.visible=V.ring.visible=!!c;
+    if(c){const q=Z.core[c.i],U=V.disc.userData.U;V.disc.position.set(q.x,0.035,q.z);V.ring.position.set(q.x,0.04,q.z);U.uT.value=now;V.vents[c.i].pl.material.emissiveIntensity=c.ph?1:0.5;
+      if(c.ph===0){U.uA.value=0.2*c.u/ZS.CORE_W;V.ring.material.opacity=Math.sin(now*16)>0?0.9:0.12;}else{U.uA.value=Math.min(1.15,0.3+(c.u-ZS.CORE_W)*1.5);V.ring.material.opacity=0.3;}
+      if(edge('core',c.n*2+c.ph)){if(c.ph===0){mfSfx('alarm',q.x,q.z,0.4,{rate:0.9});mfCap('Core Vent shifting: get clear of the flashing ring',3);}else{mfSfx('roll',q.x,q.z,0.4,{rate:0.6});spawnSparks(q.x,0.3,q.z,0xffb020,14,0,1,0);}}}}
+  // Fallout Rain
+  if(ZSV.rain){const on=zsOn('rain'),r=on?rainAt(t):null,V=ZSV.rain,M4=ZSV.m4||(ZSV.m4=new THREE.Matrix4()),E=ZSV.eu||(ZSV.eu=new THREE.Euler());let n=0;
+    for(let j=0;j<6;j++){const M=V.marks[j],c=r&&r.ph<2?Z.rainC[r.pick[j>>1]]:null;M.disc.visible=M.ring.visible=!!c;if(!c)continue;const sg=j&1?-1:1,x=sg*c[0],z=sg*c[1],U=M.disc.userData.U;
+      M.disc.position.set(x,0.035,z);M.ring.position.set(x,0.04,z);U.uT.value=now+j;U.uA.value=r.ph===1?1:0.12;M.ring.material.opacity=r.ph===0?(Math.sin(now*14)>0?0.85:0.2):0.55;
+      if(r.ph===1)for(let i=0;i<10&&n<60;i++){const o=(i*0.137+j*0.311)%1,k=(now*0.85+o)%1,a=i*2.4+j*1.3,rr=ZS.RAIN_R*0.85*Math.sqrt((i+0.5)/10);
+        E.set(now*3+i,now*2+j,0);M4.makeRotationFromEuler(E);M4.setPosition(x+Math.cos(a)*rr,0.12+11.5*(1-k),z+Math.sin(a)*rr);V.deb.setMatrixAt(n++,M4);}}
+    V.deb.count=n;V.deb.instanceMatrix.needsUpdate=true;V.deb.visible=n>0;
+    if(r&&edge('rain',r.n*3+r.ph)){if(r.ph===0){mfSfx('alarm',0,0,0.4,{rate:0.75});mfCap('Fallout Rain: get out of the marked circles',3);}else if(r.ph===1)mfSfx('roll',0,0,0.45,{rate:0.5});}}
   if(links)zsLinks();
   if(nav){mfNav();ZB.grid=(ZB.grid|0)+1;/* anything a piece closed on steps to the nearest open cell */
     if(host)for(const o of ZB.list)if(o.st!=='dead'&&!freeAt(o.x,o.z)){const c=nearestFree(...cellOf(o.x,o.z));o.x=c[0]-50+0.5;o.z=c[1]-20+0.5;o.wp=null;}}}
 /* the local player: vents launch you, the magnet lifts you, an open pane takes you to its twin */
-function zsLocal(dt,P){me.ptT=Math.max(0,(me.ptT||0)-dt);if(!S||S.mode!=='zr'||!P||P.st!=='alive'||S.phase!=='live'||!S.zr||!S.zr.stg)return;const t=zsT();
+function zsLocal(dt,P){me.ptT=Math.max(0,(me.ptT||0)-dt);if(!S||!P||P.st!=='alive'||S.phase!=='live'||!zsZ()||!zsZ().stg)return;const t=zsT();
   if(zsOn('vent')){const v=ventAt(t);if(v.ph===2&&me.ventN!==v.n&&me.y<0.35)for(const q of MF.zs.vents)if(Math.abs(me.x-q.x)<0.9&&Math.abs(me.z-q.z)<0.9){me.ventN=v.n;me.vy=ZS.VENT_V;me.ground=false;me.airT=1;me.slideT=0;me.mantle=null;break;}}
   if(zsOn('magnet')){const m=magAt(t);if(m.ph===2&&hyp(me.x,me.z,m.x,m.z)<ZS.MAG_R){const g=groundAt(me.x,me.z,me.y);me.vy=clamp((g+ZS.MAG_Y-me.y)*4,-3,6);me.ground=false;me.airT=1;me.mantle=null;}}
   if(zsOn('portal')&&me.ptT<=0&&me.y<2.2)for(let i=0;i<MF.panes.length;i++){if(!zsPtlOpen(i)||!zsPaneIn(MF.panes[i],me.x,me.z,0.3))continue;
@@ -9864,7 +10042,7 @@ function paneHitFx(b,x,y,z,dx,dy,dz){spawnSparks(x,y,z,0xe2f6ff,5,-dx,-dy,-dz);m
 /* ---------- map ambience and reverb: each map has its own recorded bed (Map ambience slider) and room size ---------- */
 const MFA={buf:{},loading:false,src:null,g:null,cur:'',rev:'',lava:null,lavaG:null,lavaK:0};
 const MF_BED={yard:['yardBed',0.55],foundry:['foundryBed',0.5],atrium:['atriumBed',0.42]};/* Warren has no bed: Joe removed the dripping water loop (2026-11-21) */
-const MF_REV={yard:[1.8,2.6,0.75],foundry:[2.5,2.3,0.55],atrium:[3.4,2.0,0.9],warren:[0.85,3.4,0.6]};/* seconds, decay power, brightness */
+const MF_REV={yard:[1.8,2.6,0.75],foundry:[2.5,2.3,0.55],atrium:[3.4,2.0,0.9],warren:[0.85,3.4,0.6],fallout:[2.1,2.5,0.62]};/* seconds, decay power, brightness */
 function mfIR(k){const R=MF_REV[k]||MF_REV.yard,sr=actx.sampleRate,n=Math.floor(sr*R[0]),ir=actx.createBuffer(2,n,sr);
   for(let c=0;c<2;c++){const b=ir.getChannelData(c);let lp=0;for(let i=0;i<n;i++){const w=Math.random()*2-1;lp+=(w-lp)*(R[2]-0.5*R[2]*i/n);b[i]=lp*Math.pow(1-i/n,R[1])*(i<400?i/400:1)*1.6;}}return ir;}
 function mfAudio(dt){if(!actx||!AU.master)return;
@@ -10089,7 +10267,7 @@ function rgDefault(){const X=RG_START.x;
   rgAdd('dummy',{x:X+15,z:5,move:'still'});rgAdd('dummy',{x:X+30,z:12,move:'strafe'});
   rgAdd('cover',{x:X+4,z:-14,w:3,d:1.2});rgAdd('cover',{x:X+4,z:14,w:3,d:1.2,high:true});}
 /* called from newMatch: the range is live at once and only spawned bots come in */
-function rgStart(){S.phase='live';S.t=0;S.timer=CFG.dmTime;
+function rgStart(){S.phase='live';S.t=0;S.timer=CFG.dmTime;S.rgz={};
   for(const p of S.players){if(!p.bot){rgHome(p);continue;}p.st='dead';p.hp=0;p.deadT=0;p.rgId=0;}
   for(const it of RG.list){if(it.kind==='bot')rgBotPlace(it);else{it.hp=it.max;it.downT=0;if(it.bar)rgBar(it);}}
   if(!RG.init){RG.init=true;if(!RG.list.length)setTimeout(()=>{if(rgOn()&&!RG.list.length)rgDefault();},0);}}
@@ -10168,6 +10346,15 @@ function rgSiteTick(dt){for(const p of S.players){if(p.bot||p.st!=='alive')conti
   if(S.armed){S.armed.t-=dt;if(S.armed.t<=0){const k=S.armed.site;S.armed=null;feed(`Charge detonated at ${k}`);blastGo(k);}}}
 function rgArm(k){if(!rgOn()||S.armed)return;S.armed={site:k,t:CFG.fuse};feed(`Charge armed at ${k} (sandbox)`);}
 function rgGoSite(k){const P=sbMe();if(!P||P.st!=='alive')return;const st=SITES[k];me.x=st.x-2;me.z=st.z;me.y=0;me.vy=me.vx=me.vz=0;P.x=me.x;P.z=me.z;me.yaw=-Math.PI/2;me.pitch=-0.25;}
+function rgMapUI(el,mk){el.append(mk('h3','','Map and its hazards'));
+  const ml=mk('label','');ml.append(document.createTextNode('Map'));const ms=document.createElement('select');for(const id of MAP_IDS){const o=document.createElement('option');o.value=id;o.textContent=MAPS[id].name;ms.append(o);}ms.value=MAP.id;
+  ms.addEventListener('change',()=>{mapPick(ms.value,true);if(S&&net.mode==='solo'){readMenu();restartMatch();toggleSB(true);}buildSB();});ml.append(ms);el.append(ml);
+  if(MF.rad)el.append(mk('div','note',`Hot zones glow amber on the floor (the big one rings the reactor, 32 m ahead). Stand in one to fill your rad meter: over half, your shots hit ${Math.round((CFG.radBoost-1)*100)}% harder; full, it burns you until you get out and it drains, or a blue decon shower on a side wall clears it. Revenants that stand in a hot zone for ${CFG.radMut} s mutate into elites. Arena cover and the reactor are put away here, the floor hazards stay.`));
+  const L=ZST[MAP.id];if(L){el.append(mk('div','note','This map’s Zombie Rumble stage changes can run here too. Pick one to preview it.'));const sl=mk('label','');sl.append(document.createTextNode('Stage changes'));const ss=document.createElement('select');
+    [['','Off'],['a',L[0].n],['b',L[1].n],['ab','Both']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;ss.append(o);});ss.value=RG.stg||'';ss.addEventListener('change',()=>{RG.stg=ss.value;});sl.append(ss);el.append(sl);}
+  if(MF.rad){const b=mk('div','btns'),x=mk('button','btn','Go to the hot zone');x.type='button';x.addEventListener('click',()=>{const q=MF.rad.zones.find(q=>q.x<0)||MF.rad.zones[0];me.x=q.x;me.z=q.z+(q.r>4?-q.r+1:0);me.y=0;me.vy=0;const P=S&&S.players[mySlot()];if(P){P.x=me.x;P.z=me.z;}});b.append(x);
+    const y=mk('button','btn','Go to a decon shower');y.type='button';y.addEventListener('click',()=>{const q=MF.rad.decon.find(q=>q.x<0)||MF.rad.decon[0];me.x=q.x;me.z=q.z-Math.sign(q.z)*0.4;me.y=0;me.vy=0;const P=S&&S.players[mySlot()];if(P){P.x=me.x;P.z=me.z;}});b.append(y);el.append(b);
+    for(const [k,t,lo,hi,st] of [['radIn','Rad meter fill per second in a hot zone',0,50,1],['radHurt','Radiation burn when full (HP per second)',0,50,1],['radMut','Seconds in a hot zone before a Revenant mutates',1,30,1]])devKnob(el,t,lo,hi,st,()=>CFG[k],v=>{CFG[k]=v;sbSave();},CFG0[k]);}}
 function rgSiteUI(el,mk){el.append(mk('h3','','Bomb sites'));
   el.append(mk('div','note',`Sites A and B are the arena’s own, 54 m downrange. Hold ${kbN('use')} at a site to arm the charge and hold it again to defuse, or let the fuse run out to see and hear the detonation. The site is ready again right after.`));
   const b=mk('div','btns');const ab=(t,f)=>{const x=mk('button','btn',t);x.type='button';x.addEventListener('click',()=>{f();buildSB();});b.append(x);};
@@ -10198,7 +10385,7 @@ function buildRange(el,mk){
   devKnob(el,'Dummy HP (next spawn)',1,500,1,()=>RG.dhp,v=>{RG.dhp=v;},100);
   devKnob(el,'Dummy back up after (s)',0.5,10,0.5,()=>RG.respawn,v=>{RG.respawn=v;},2);
   zRangeUI(el,mk,ab);
-  rgSiteUI(el,mk);
+  rgMapUI(el,mk);rgSiteUI(el,mk);
   el.append(mk('h3','',`On the range (${RG.list.length})`));
   if(RG.list.length){const ul=mk('div','rglist');for(const it of RG.list){const row=mk('div','rgrow');const d=Math.hypot(it.x-me.x,it.z-me.z);
       const desc=it.kind==='bot'?(it.pass?'Bot, standing still':'Bot, fights back'):it.kind==='cover'?(it.h>=1.5?'High cover':'Low cover'):`${RG_KN[it.kind]}, ${RG_MOVES.find(m=>m[0]===it.move)[1].toLowerCase()}`;
@@ -11110,7 +11297,7 @@ function zrHome(p){const h=DM_HOME[p.s?2:0];let x=-h[0],z=-h[1];if(!freeAt(x,z))
   dmPlace(p,x,z,Math.atan2(-(Math.sign(x)*48.5-x),-(Math.sign(z)*9-z)));}
 function zrStart(){S.center={own:-1,cap:-1,p:0};S.armed=null;S.tickets=[0,0];S.sudden=false;
   S.timer=0;S.phase='buy';S.t=Math.max(CFG.buy,CFG.buy1,0.6+vxSeqLen(ZR_PA,ZR_PA_GAP)+3.4);S.last=null;/* room for the tunnel PA before 3-2-1 */
-  const short=MATCH.zrLen==='short',home=MAP.id,others=MAP_IDS.filter(m=>m!==home);
+  const short=MATCH.zrLen==='short',home=MAP.id,others=MAP_IDS.filter(m=>m!==home&&!((MAPS[m].week|0)>(MATCH.zrWeek||1)));/* a later week's maps never show up as an earlier week's away broadcast */
   S.zr={len:short?'short':'full',week:MATCH.zrWeek||1,seg:0,segs:short?3:4,awaySeg:short?2:3,home,away:others[(Math.random()*others.length)|0]||home,
     w:0,nw:0,ph:'pre',t:0,q:[],sp:0,left:0,kills:0,cleared:0,won:false,why:'',boss:null,offers:{},picked:{},ready:{},mine:{A:0,B:0},drops:[],di:0,crT:0,carry:(MATCH.zrWeek||1)>=2&&MATCH.zrCarry?1:0,cyd:{}};
   zClear();ZB.kills=0;ZB.hunt=true;ZB.endless=false;for(const p of S.players){p.team=0;p.k=0;p.d=0;p.fv=0;p.cards=[];p.dropW=null;p.sw=null;}
@@ -11272,7 +11459,7 @@ function zBotShot(b,z,hd,d,pl){if(!z.posed||z.st==='dead')return;const ps=[];
   for(let p=0;p<ZR.parts.length;p++){if(!z.cnt[p]||ZR.parts[p].glow)continue;const reg=ZR.parts[p].reg;if(hd?reg==='head':reg!=='head')ps.push(p);}
   if(!ps.length)return;const p=ps[(Math.random()*ps.length)|0],v=z.vox[p],n=ZR.parts[p].n;let i=(Math.random()*n)|0;for(let k=0;k<n&&!v[i];k++)i=(i+1)%n;
   const W=zVoxW(z,p,i,ZR.v2),ey=b.y+1.5;let dx=W.x-b.x,dy=W.y-ey,dz=W.z-b.z;const L=Math.hypot(dx,dy,dz)||1;dx/=L;dy/=L;dz/=L;
-  const h=zRay(b.x,ey,b.z,dx,dy,dz,L+1);if(!h)return;const head=ZR.parts[h.p].reg==='head',dmg=wDmg(b.w,head,d)*(pl||1);
+  const h=zRay(b.x,ey,b.z,dx,dy,dz,L+1);if(!h)return;const head=ZR.parts[h.p].reg==='head',dmg=wDmg(b.w,head,d)*(pl||1)*radMul(b);
   const hx=b.x+dx*h.t,hy=ey+dy*h.t,hz=b.z+dz*h.t;spawnSparks(hx,hy,hz,ZTYPES[h.z.t].eye,head?3:1,dx,dy,dz);
   zApply(h.z,{dmg,head,x:hx,y:hy,z:hz,dist:d,dx,dz,hits:[{p:h.p,lx:h.lx,ly:h.ly,lz:h.lz,dmg,dx,dy,dz}]},b);}
 
@@ -11296,6 +11483,7 @@ function zSync(zv,zh){ZB.zacAt=performance.now();if(!Array.isArray(zv))return;co
   for(const e of zv){if(!Array.isArray(e)||e.length<6)continue;const [id,ti,xi,zi,yi,b]=e,t=ZTK[ti];if(!t)continue;seen.add(id);let z=byId.get(id);
     const x=xi/10,zz=zi/10,yaw=yi/100,st=b&3;
     if(!z){if(st===2)continue;/* never saw it alive: nothing to show */z=zSpawn(t,x,zz,yaw,!!(b&1024),b&32768?'sp':b&65536?'sh':null);if(!z)continue;if(!(b&16384))z.shield=0;if(t==='matri'){z.gen=(b>>17)&3;z.gs=ZMGS[z.gen];}z.id=id;z.x=x;z.z=zz;byId.set(id,z);if(st===1){z.st='walk';z.riseT=0;}}
+    if((b&1024)&&!z.elite&&z.st!=='dead')zMutate(z,true);
     z.tx=x;z.tz=zz;z.tyaw=yaw;z.netT=0;z.chg=b&2048?1:0;z.chW=b&4096?1:0;z.sw=b&8192?1:0;if(!(b&16384)&&z.shield>0){z.shield=0;zShieldBreak(z);}
     if(st===1&&z.st==='rise'){z.st='walk';z.riseT=0;}
     if(z.st!=='dead'){const w=!!(b&4);if(w&&!(z.wind>0))z.wind=ZTYPES[z.t].wind;if(!w&&z.wind>0){z.wind=0;z.atkK=1;}}
@@ -11357,7 +11545,7 @@ function zrBanner(){const Z=S.zr,bn=$('banner');bn.hidden=false;
   if(S.phase==='buy'){$('bannerT').textContent='Monday Night Zombie Rumble';
     $('bannerS').textContent=`Draftee. You are awake, in the tunnel under the ${(MAPS[Z.home]||MAPS.yard).name}. Survive the week and you will be retained. Fall and you will be reprinted. · ${Z.segs} segments, about ${Z.len==='short'?10:25} min · Weapon: ${myW(me.w).name}${Z.carry&&zcMyCarried()?` · Build carried from Week ${(Z.week|0)-1}`:''}`;return;}
   $('bannerT').textContent=Z.won?'Week complete':'Broadcast terminated';
-  $('bannerS').textContent=(Z.won?'You have been retained'+(ZW.unl&&ZWEEKS[ZW.unl]?` · Week ${ZW.unl}: ${ZWEEKS[ZW.unl].n} unlocked${ZWEEKS[ZW.unl].built?'':' (coming soon)'}`:''):`${Z.why} in segment ${Z.seg}${Z.ph==='boss'?', against the Juggernaut':Z.w?', wave '+Z.w:''}`)+` · ${Z.kills|0} Revenants dropped · ${fmt(S.timer)}`+((ZW.cr|0)+(Z.crT|0)?` · +${(ZW.cr|0)+(Z.crT|0)} Credits for the Locker`:'')+`${overIn('run')}`;}
+  $('bannerS').textContent=(Z.won?'You have been retained'+(ZW.unl&&ZWEEKS[ZW.unl]?` · Week ${ZW.unl}: ${ZWEEKS[ZW.unl].n} unlocked${ZWEEKS[ZW.unl].built?'':' (coming soon)'}`:''):`${Z.why} in segment ${Z.seg}${Z.ph==='boss'?', against '+((ZWEEKS[Z.week||1]||{}).boss||'the headliner'):Z.w?', wave '+Z.w:''}`)+` · ${Z.kills|0} Revenants dropped · ${fmt(S.timer)}`+((ZW.cr|0)+(Z.crT|0)?` · +${(ZW.cr|0)+(Z.crT|0)} Credits for the Locker`:'')+`${overIn('run')}`;}
 /* the Circuit's announcer, as captions until the lines are recorded, and the crowd (on every client, from the shared state) */
 const ZW={k:'',st:{},fv:0,fvK:-1};
 function zrCap(t,sub,v){if(v)announce(v);const el=$('zrcap'),d=document.createElement('div');d.textContent=t;if(sub){const s=document.createElement('small');s.textContent=sub;d.append(s);}
@@ -11706,11 +11894,12 @@ $('lockbtn').addEventListener('click',()=>lockOpen(true));$('zrlockx').addEventL
 window.addEventListener('keydown',e=>{if($('zrlocker').hidden)return;if(e.code==='Escape'||e.code==='Backspace'){e.preventDefault();e.stopImmediatePropagation();lockOpen(false);$('lockbtn').focus();}},true);
 lockUI();$('modesel').addEventListener('change',()=>{modeCap();try{localStorage.setItem('za-mode',$('modesel').value);}catch(e){}});
 /* map picker: a tile per map with a top-down thumbnail. In the menu the arena behind it switches too, so the flyover shows the map. */
-function mapPreview(id){const kb=BOXES.slice(),kc=COVER.slice(),km=MAP.id,ka={...SITES.A},kbb={...SITES.B},kt={...THEME},kf={crane:MF.crane,pour:MF.pour,panes:MF.panes.slice(),block:MF.block,zs:MF.zs};buildBoxes(id);Object.assign(THEME,kt);for(const k in THEME)if(!(k in kt))delete THEME[k];
-  const out={boxes:BOXES.map(b=>({...b})),sites:[{...SITES.A},{...SITES.B}]};BOXES.length=0;BOXES.push(...kb);COVER.length=0;COVER.push(...kc);MAP.id=km;Object.assign(SITES.A,ka);Object.assign(SITES.B,kbb);MF.crane=kf.crane;MF.pour=kf.pour;MF.panes.length=0;MF.panes.push(...kf.panes);MF.block=kf.block;MF.zs=kf.zs;return out;}
+function mapPreview(id){const kb=BOXES.slice(),kc=COVER.slice(),km=MAP.id,ka={...SITES.A},kbb={...SITES.B},kt={...THEME},kf={crane:MF.crane,pour:MF.pour,panes:MF.panes.slice(),block:MF.block,zs:MF.zs,rad:MF.rad};buildBoxes(id);Object.assign(THEME,kt);for(const k in THEME)if(!(k in kt))delete THEME[k];
+  const out={boxes:BOXES.map(b=>({...b})),sites:[{...SITES.A},{...SITES.B}],rad:MF.rad};BOXES.length=0;BOXES.push(...kb);COVER.length=0;COVER.push(...kc);MAP.id=km;Object.assign(SITES.A,ka);Object.assign(SITES.B,kbb);MF.crane=kf.crane;MF.pour=kf.pour;MF.panes.length=0;MF.panes.push(...kf.panes);MF.block=kf.block;MF.zs=kf.zs;MF.rad=kf.rad;return out;}
 function mapThumb(cv,id){const g=cv.getContext('2d'),W=cv.width,H=cv.height,sc=Math.min(W/104,H/44),L=mapPreview(id);g.fillStyle='#171b2a';g.fillRect(0,0,W,H);
   g.save();g.translate(W/2,H/2);g.scale(sc,sc);g.fillStyle='rgba(255,255,255,.05)';for(const x of [-30,-10,10,30])g.fillRect(x-0.15,-20,0.3,40);
   const T=MAPS[id].theme;g.fillStyle=hexCss(T.bg);g.fillRect(-52,-22,104,44);for(const b of L.boxes){if(b.zk)continue;/* stage-change pieces only exist in Zombie Rumble */g.fillStyle=b.outer?'#4a4f63':b.solid?hexCss(T.wall):hexCss(b.y1<1.5?T.low:T.high);g.globalAlpha=b.solid&&!b.mid?0.7:1;g.fillRect(b.x0,b.z0,b.x1-b.x0,b.z1-b.z0);}
+  if(L.rad){g.fillStyle='rgba(255,176,32,.35)';for(const q of L.rad.zones){g.beginPath();g.arc(q.x,q.z,q.r,0,7);g.fill();}}
   g.globalAlpha=1;g.strokeStyle='#ffc44d';g.lineWidth=0.7;for(const s of L.sites){g.beginPath();g.arc(s.x,s.z,3,0,7);g.stroke();}g.restore();}
 const MAPEL=$('maps');
 /* map screen: Play / Play online -> mode panel -> "Choose map" opens this screen. The arena behind it switches to the map and the
@@ -12917,7 +13106,7 @@ function hud(dt){
   if(fd.dataset.k!==fk){fd.dataset.k=fk;fd.replaceChildren(...items.map(f=>{const d=document.createElement('div');d.textContent=f.m;return d;}));}
   // vitals
   if(P){
-    const hp=P.st==='alive'?Math.max(0,Math.round(P.hp)):0;$('hpnum').textContent=hp;$('hpfill').style.width=hp+'%';dashHud();$('hpfill').style.background=hpColor(hp);
+    const hp=P.st==='alive'?Math.max(0,Math.round(P.hp)):0;$('hpnum').textContent=hp;$('hpfill').style.width=hp+'%';dashHud();radHud(P);$('hpfill').style.background=hpColor(hp);
     const zi=zoneOf(me.x);const rh=dm?100:returnHP(role,zi);
     $('zoneline').innerHTML='';if(!dm){const b=document.createElement('b');b.textContent=zoneName(role,zi);const sp=document.createElement('span');sp.textContent=' · come back here at ';const h=document.createElement('b');h.textContent=rh+' HP';h.style.color=hpColor(rh);
     $('zoneline').append(b,sp,h);}if(P.st==='alive'&&P.prot>0&&S.phase==='live'){const sh=document.createElement('b');sh.textContent=' · Spawn shield '+P.prot.toFixed(1)+'s';sh.style.color='var(--accent)';$('zoneline').append(sh);}
@@ -13357,6 +13546,6 @@ mergeChildren(scene);
 refreshZoneLook('atk');
 // Compile every material's shader up front (in parallel where the browser supports it) so nothing compiles on the first shot or spawn.
 renderer.compileAsync(scene,camera).catch(()=>{}).finally(()=>requestAnimationFrame(frame));
-window.__za={localTick:dt=>localTick(dt),showWeapon:k=>showWeapon(k),trigger:v=>{mouseDown=!!v;dragMode=true;},wheelKeys:()=>wheelKeys(),GLS,BEAMP,intro:INTRO,ml:ML,sites:siteGrp,mf:{MF,MFV,MFA,ZS,ZSV,ZST,zsWant:Z=>zsWant(Z),zsOn:k=>zsOn(k),dropAt,magAt,ventAt,doorAt,ptlAt,scanAt,shutAt,zsT:()=>zsT(),zsLinks:()=>zsLinks(),rebuildGrid:()=>rebuildGrid(),craneAt:t=>craneAt(t),pourAt:t=>pourAt(t),mfT:()=>mfT(),damagePane:(i,d)=>damagePane(i,d),setMap:id=>setMap(id),tick:dt=>mfTick(dt)},dio:DIO,beat:BEAT,lx:LX,opt:OPT,zr:{ZB,ZR,ZCARDS,ZCAMP,zrEnd:(w,y)=>zrEnd(w,y),zcCarryCode:()=>zcCarryCode(),zrCardSend:c=>zrCardSend(c),zrCardAct:(p,c)=>zrCardAct(p,c),zrSeg:n=>zrSeg(n),zrInter:()=>zrInter(),zAoe:(...a)=>zAoe(...a),zSpawn:(t,x,z,y,e)=>zSpawn(t,x,z,y,e),zTick:dt=>zTick(dt),zRender:dt=>zRender(dt),zClear:()=>zClear(),zRay:(...a)=>zRay(...a),zHorde:()=>zHorde(),rgOn:()=>rgOn(),zBurst:(z,b)=>zBurst(z,b),zPack:()=>zPack(),zApplyT:(z,e,b)=>zApply(z,e,b),zSync:(a,b)=>zSync(a,b),zrWave:n=>zrWave(n),zKill:(z,h,b)=>zKill(z,h,b),zHitAt:(...a)=>zHitAt(...a),zDeliver:()=>zDeliver(),ZD},sim:{hostTick:dt=>hostTick(dt),coverTick:dt=>coverTick(dt),newMatch:()=>newMatch(),MATCH,dmSpawnSpot:p=>dmSpawnSpot(p),findPath:(a,b,c,d)=>findPath(a,b,c,d),freeAt:(x,z)=>freeAt(x,z),losPts:(...a)=>losPts(...a),DM_PTS,BOXES},BL,fire:()=>{const s=mySlot();if(s>=0)fire(s);},damage:(t,d,a,h)=>damage(t,d,a,h),prog:{PROG,PARTS,myW,modW,progSave,progLoad,rebuildVW,lvlOf,XPR},LX,MU,MM,WM,VB,OPT,AU,dev:{DEV,TUNE,GUN,W,COVER0,TWIN,STEP_MODE,devCollect,devApply},damageCover,COVER,coverVis,WH,openWheel:m=>openWheel(m),closeWheel:c=>closeWheel(c),wheelMove:(x,y)=>wheelMove(x,y),gfx:{renderer,scene,camera,applyGfx,DR,render:()=>renderScene(),FREF,BEAMS,MB,me,get gtao(){return gtaoPass;}},openPause:()=>openPause(),closePause:()=>closePause(),leaveMatch:()=>leaveMatch(),get S(){return S;},me,net,DMGDIR,rg:{RG,rgAdd,rgRemove,rgClear,BOXES},maps:{MAPS,MAP,MATCH,setMap,SITES,DM_PTS,findPath,freeAt,simTick:dt=>netTick(dt),SHOW,showCut:i=>showCut(i),TOD,ISO},botMem,CFG,SB,OPT,AU,get actx(){return actx;},mySlot:()=>mySlot(),sfx:{hitCue,HITX,footstep,slideSound,shotSound,stepSound,voicePlay,vxStretch,VQ,announce,vxGraph,vxOpt,VOICE_G,get VB(){return VB;},voiceInit,get stepBufs(){return stepBufs;},get slideBuf(){return slideBuf;},get gunBufs(){return gunBufs;}}};
+window.__za={localTick:dt=>localTick(dt),showWeapon:k=>showWeapon(k),trigger:v=>{mouseDown=!!v;dragMode=true;},wheelKeys:()=>wheelKeys(),GLS,BEAMP,intro:INTRO,ml:ML,sites:siteGrp,mf:{MF,MFV,MFA,ZS,ZSV,ZST,RG,radAt:(x,z)=>radAt(x,z),coreAt:t=>coreAt(t),rainAt:t=>rainAt(t),zMutate:o=>zMutate(o),shotDmg:(k,h,d)=>shotDmg(k,h,d,wOf(k)),zsWant:Z=>zsWant(Z),zsOn:k=>zsOn(k),dropAt,magAt,ventAt,doorAt,ptlAt,scanAt,shutAt,zsT:()=>zsT(),zsLinks:()=>zsLinks(),rebuildGrid:()=>rebuildGrid(),craneAt:t=>craneAt(t),pourAt:t=>pourAt(t),mfT:()=>mfT(),damagePane:(i,d)=>damagePane(i,d),setMap:id=>setMap(id),tick:dt=>mfTick(dt)},dio:DIO,beat:BEAT,lx:LX,opt:OPT,zr:{ZB,ZR,ZCARDS,ZCAMP,zrEnd:(w,y)=>zrEnd(w,y),zcCarryCode:()=>zcCarryCode(),zrCardSend:c=>zrCardSend(c),zrCardAct:(p,c)=>zrCardAct(p,c),zrSeg:n=>zrSeg(n),zrInter:()=>zrInter(),zAoe:(...a)=>zAoe(...a),zSpawn:(t,x,z,y,e)=>zSpawn(t,x,z,y,e),zTick:dt=>zTick(dt),zRender:dt=>zRender(dt),zClear:()=>zClear(),zRay:(...a)=>zRay(...a),zHorde:()=>zHorde(),rgOn:()=>rgOn(),zBurst:(z,b)=>zBurst(z,b),zPack:()=>zPack(),zApplyT:(z,e,b)=>zApply(z,e,b),zSync:(a,b)=>zSync(a,b),zrWave:n=>zrWave(n),zKill:(z,h,b)=>zKill(z,h,b),zHitAt:(...a)=>zHitAt(...a),zDeliver:()=>zDeliver(),ZD},sim:{hostTick:dt=>hostTick(dt),coverTick:dt=>coverTick(dt),newMatch:()=>newMatch(),MATCH,dmSpawnSpot:p=>dmSpawnSpot(p),findPath:(a,b,c,d)=>findPath(a,b,c,d),freeAt:(x,z)=>freeAt(x,z),losPts:(...a)=>losPts(...a),DM_PTS,BOXES},BL,fire:()=>{const s=mySlot();if(s>=0)fire(s);},damage:(t,d,a,h)=>damage(t,d,a,h),prog:{PROG,PARTS,myW,modW,progSave,progLoad,rebuildVW,lvlOf,XPR},LX,MU,MM,WM,VB,OPT,AU,dev:{DEV,TUNE,GUN,W,COVER0,TWIN,STEP_MODE,devCollect,devApply},damageCover,COVER,coverVis,WH,openWheel:m=>openWheel(m),closeWheel:c=>closeWheel(c),wheelMove:(x,y)=>wheelMove(x,y),gfx:{renderer,scene,camera,applyGfx,DR,render:()=>renderScene(),FREF,BEAMS,MB,me,get gtao(){return gtaoPass;}},openPause:()=>openPause(),closePause:()=>closePause(),leaveMatch:()=>leaveMatch(),get S(){return S;},me,net,DMGDIR,rg:{RG,rgAdd,rgRemove,rgClear,BOXES},maps:{MAPS,MAP,MATCH,setMap,SITES,DM_PTS,findPath,freeAt,simTick:dt=>netTick(dt),SHOW,showCut:i=>showCut(i),TOD,ISO},botMem,CFG,SB,OPT,AU,get actx(){return actx;},mySlot:()=>mySlot(),sfx:{hitCue,HITX,footstep,slideSound,shotSound,stepSound,voicePlay,vxStretch,VQ,announce,vxGraph,vxOpt,VOICE_G,get VB(){return VB;},voiceInit,get stepBufs(){return stepBufs;},get slideBuf(){return slideBuf;},get gunBufs(){return gunBufs;}}};
 })();
 </script>
