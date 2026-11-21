@@ -222,8 +222,20 @@ body.prematch #topbar,body.prematch #mini,body.prematch #feed,body.prematch #vit
 #zrint{left:50%;top:50%;transform:translate(-50%,-50%);width:min(860px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;pointer-events:auto;z-index:8;background:var(--panel-solid);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 0 40px rgba(0,0,0,.6)}
 #zrint .zih{display:flex;justify-content:space-between;align-items:baseline}#zrint .zih b{font-family:var(--display);font-size:30px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}#zrint .zih span{font-size:22px;color:var(--warn)}
 #zrint p{margin:0;color:var(--muted);font-size:15px}
-#zrcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
-#zrcards:has(>:nth-child(5)){grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+#zrcards{display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));gap:10px}
+/* small screens: zrFit() steps through f1..f3 until the intermission fits with no scroll (cards, Locker's 4th card and the gun drop) */
+#zrint{max-height:calc(100dvh - 16px)}
+#zrint.f1{padding:10px 12px;gap:6px;width:min(860px,calc(100vw - 12px))}#zrint.f1 .zih b{font-size:22px}#zrint.f1 .zih span{font-size:18px}#zrint.f1 p{font-size:13px}
+#zrint.f1 #zrcards{gap:6px}#zrint.f1 .zcard{min-height:0;padding:7px 9px;gap:3px}#zrint.f1 .zcard b{font-size:18px}#zrint.f1 .zcard .zd{font-size:13px;line-height:1.25}
+#zrint.f1 .zcard .zst{font-size:11.5px;padding-top:3px;line-height:1.25}#zrint.f1 .zcard .zc{font-size:12px}#zrint.f1 .zcard .zr{font-size:10.5px}#zrint.f1 .zg{width:22px;height:22px;border-radius:5px}
+#zrint.f1 .zcard .zsp b{font-size:13px}#zrint.f1 .zcard .zsp span{font-size:10px}
+#zrint.f1 #zrdir{padding:5px 10px;gap:8px}#zrint.f1 #zrdir b{font-size:17px}#zrint.f1 #zrdir #zrdirD{font-size:13px}#zrint.f1 #zrdir .btn,#zrint.f1 .zib .btn{min-height:38px;padding:5px 12px;font-size:14px}
+#zrint.f1 .zib{gap:6px}
+#zrint.f2 .zcard .zsp span,#zrint.f2 .zcard .ztop .zk,#zrint.f2 #zrdir .zdh{display:none}#zrint.f2 .zcard b{font-size:15px}#zrint.f2 .zcard .zd{font-size:12px}#zrint.f2 .zcard .zst{font-size:11px}
+#zrint.f2 .zg{width:18px;height:18px;border-radius:4px}#zrint.f2 .zih b{font-size:18px}#zrint.f2 .zih span{font-size:15px}#zrint.f2 p{font-size:12px}#zrint.f2 #zrdir b{font-size:15px}#zrint.f2 #zrdir #zrdirD{font-size:12px}
+#zrint.f2 #zrdir .btn,#zrint.f2 .zib .btn{min-height:34px;padding:4px 10px;font-size:13px}
+#zrint.f3{padding:6px 8px;gap:4px}#zrint.f3 .zcard{padding:5px 7px;gap:2px}#zrint.f3 .zcard b{font-size:14px}#zrint.f3 .zcard .zd{font-size:11px;line-height:1.2}#zrint.f3 .zcard .zst{font-size:10px;line-height:1.2}
+#zrint.f3 .zcard .zr,#zrint.f3 .zcard .zc{font-size:10px}#zrint.f3 #zrdir{flex-wrap:nowrap;padding:3px 8px}#zrint.f3 #zrdir #zrdirD{font-size:11px}#zrint.f3 #zrintP{display:none}#zrint.f3 .zih b{font-size:16px}
 .zcard{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:5px;min-height:150px;padding:12px 14px;border-radius:8px;border:1px solid color-mix(in srgb,var(--rc) 45%,transparent);border-top:4px solid var(--rc);background:linear-gradient(180deg,color-mix(in srgb,var(--rc) 10%,transparent),rgba(255,255,255,.03) 45%);color:var(--fg)}
 .zcard:hover:not([aria-disabled=true]),.zcard:focus-visible{background:rgba(255,255,255,.09);outline:2px solid var(--rc);outline-offset:1px}
 .zcard .ztop{display:flex;align-items:center;gap:8px;min-width:0}.zcard .ztop .zk{margin-left:auto}
@@ -11224,7 +11236,14 @@ function zrInterUI(P){const Z=S.zr,el=$('zrint'),on=S.phase==='live'&&Z.ph==='in
   const gf=$('zrfor');gf.hidden=!mate||!pk||rd;gf.textContent=`Buying for: ${gift?mate.name:'you'}`;
   if(!of.length&&!gun)$('zrcards').append(mk('p','',pk?'You took every card on offer.':''));
   const rr=$('zrreroll');{const rc=zrRerollCost(P);rr.textContent=`Reroll${TOUCH.on?'':' (R)'} · ${rc} Favor`;rr.disabled=rd||!of.length||fv<rc;}
-  const go=$('zrready');go.textContent=rd?'Waiting for your partner':!pk?'Pick a card first':`Ready${TOUCH.on?'':' (Enter)'}`;go.disabled=rd||!pk;}
+  const go=$('zrready');go.textContent=rd?'Waiting for your partner':!pk?'Pick a card first':`Ready${TOUCH.on?'':' (Enter)'}`;go.disabled=rd||!pk;
+  zrFit();}
+/* fit the intermission on screen with no scroll: columns from the width, then smaller steps (f1..f3) until nothing overflows */
+function zrFit(){const el=$('zrint');if(el.hidden)return;const cs=$('zrcards'),n=cs.childElementCount||1;
+  el.classList.remove('f1','f2','f3');const W=cs.clientWidth||innerWidth,minW=innerHeight<520?118:W<560?150:170;
+  let cols=Math.max(1,Math.min(n,Math.floor((W+6)/(minW+6))));cols=Math.ceil(n/Math.ceil(n/cols));cs.style.setProperty('--cols',cols);
+  for(const f of ['f1','f2','f3']){if(el.scrollHeight<=el.clientHeight+1)break;el.classList.add(f);}}
+addEventListener('resize',()=>{if(!$('zrint').hidden)zrFit();});
 $('zrdirB').addEventListener('click',()=>{if(!$('zrdirB').disabled){blip(980,0.022,0.012,false,'ui');zrCardSend({a:'dir'});}});
 $('zrfor').addEventListener('click',()=>{ZI.gift=!ZI.gift;ZI.k='';blip(760,0.022,0.012,false,'ui');});
 $('zrreroll').addEventListener('click',()=>{if(!$('zrreroll').disabled){blip(760,0.022,0.012,false,'ui');zrCardSend({a:'reroll'});}});
