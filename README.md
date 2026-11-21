@@ -7,7 +7,9 @@ Monday Night Zombie Rumble
 A browser-based 3D arena shooter. Play it solo against bots, co-op against waves of zombies ("Revenants"), or online with friends. The whole game is one static HTML file, so it needs no build step and no server.
 
 > **Status:** prototype build. The menu footer reads "Prototype build".
-> **Planned home:** https://mnzr.lol (Vercel static hosting)
+> **Live at:** https://mnzr.lol (Vercel static hosting, deploys from `main`)
+>
+> Full development notes (systems, tuning, tests, history) are in [DEVELOPMENT.md](DEVELOPMENT.md). This repo took over from `c0nques7/2v2-Shooter-Idea` on 2026-11-21 with its full history.
 
 ## Game modes
 
