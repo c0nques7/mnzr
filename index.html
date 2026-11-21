@@ -10731,7 +10731,7 @@ function zRangeUI(el,mk,ab){el.append(mk('h3','','Revenants (Zombie Rumble)'));
    go for whoever is still standing). The run ends when nobody is standing, or when the last wave is cleared. In solo play the
    partner is a bot that fights the Revenants and comes to revive you. */
 /* the campaign: four weeks, each unlocked by clearing the one before. Progress is per browser ('za-zr'): cleared weeks and best times. */
-const ZWEEKS=[null,{n:'Draft Night',boss:'The Juggernaut',built:1},{n:'Containment Week',boss:'The Matriarch'},{n:'Glass Cathedral',boss:'The Hive Choir'},{n:'Championship',boss:'The Champion'}];
+const ZWEEKS=[null,{n:'Draft Night',boss:'The Juggernaut',built:1},{n:'Containment Week',boss:'The Matriarch',built:1},{n:'Glass Cathedral',boss:'The Hive Choir'},{n:'Championship',boss:'The Champion'}];
 const ZCAMP=(()=>{let d={};try{d=JSON.parse(localStorage.getItem('za-zr')||'{}')||{};}catch(e){}if(!d.w||typeof d.w!=='object')d.w={};if(!(d.sel>=1&&d.sel<=4))d.sel=1;return d;})();
 function zcSave(){try{localStorage.setItem('za-zr',JSON.stringify(ZCAMP));}catch(e){}}
 function zcWeek(n){return ZCAMP.w[n]||(ZCAMP.w[n]={c:0,runs:0,best:{}});}
@@ -10741,7 +10741,7 @@ function zcSel(){return zcPlayable(ZCAMP.sel)?ZCAMP.sel:1;}
 /* a run ended: every client that played it records it */
 function zcRecord(Z,secs){const w=zcWeek(Z.week||1),was=!!w.c;w.runs=(w.runs|0)+1;if(Z.won){w.c=1;const k=Z.len==='short'?'short':'full';if(!(w.best[k]>0)||secs<w.best[k])w.best[k]=Math.round(secs);}
   // Credits: 12 per wave or surge cleared, 1 per 4 Revenants you dropped, and a bonus for the week (Full 250, Short 120)
-  const s=mySlot(),P=s>=0&&S?S.players[s]:null;ZW.cr=Math.round((Z.cleared|0)*12+((P&&P.k)|0)/4+(Z.won?(Z.len==='short'?120:250):0));ZCAMP.cr=(ZCAMP.cr|0)+ZW.cr;
+  const s=mySlot(),P=s>=0&&S?S.players[s]:null;ZW.cr=Math.round(((Z.cleared|0)*12+((P&&P.k)|0)/4+(Z.won?(Z.len==='short'?120:250):0))*((Z.week|0)>=2?1.2:1));ZCAMP.cr=(ZCAMP.cr|0)+ZW.cr;
   zcSave();zcUI();lockUI();return Z.won&&!was;}
 /* the Locker: Credits buy permanent upgrades for Zombie Rumble only (never PvP). Levels live in ZCAMP.lk; the host reads each
    human's levels from their presence ('lk', one digit per upgrade in ZLOCKK order), so a guest's upgrades work online too. */
@@ -10980,14 +10980,16 @@ function zrSeg(n){const Z=S.zr;Z.act=n>1&&Z.dirOn&&Z.dir?Z.dir:null;Z.dir=null;Z
   for(const p of S.players){p.swUsed=0;p.edUsed=0;p.rcUsed=0;p.lfUsed=0;p.ak=null;p.ap=0;zrHome(p);}
 }
 /* how many of each kind a wave sends, growing through the run */
-function zrWaveDef(seg,w,short){const k=seg-1+(w-1)*0.5,n=Math.round((short?11:14)+k*(short?4:3.5));
-  const sp=Math.round(n*Math.min(0.35,0.12+k*0.05)),cr=Math.round(n*0.12),bl=seg>=2||w>=3?Math.min(4,1+Math.floor(k/1.5)):0;
-  return{sham:Math.max(4,n-sp-cr-bl),sprint:sp,crawl:cr,bloat:bl};}
+function zrWaveDef(seg,w,short,week){const w2=(week|0)>=2,k=seg-1+(w-1)*0.5+(w2?1:0),n=Math.round(((short?11:14)+k*(short?4:3.5))*(w2?1.1:1));
+  const sp=Math.round(n*Math.min(0.35,0.12+k*0.05)),cr=Math.round(n*0.12),bl=w2||seg>=2||w>=3?Math.min(4,1+Math.floor(k/1.5)):0;
+  // Week 2 brings Spitters from the second wave on: one or two at first, up to five by the last segment
+  const spi=w2&&!(seg===1&&w===1)?Math.min(short?4:5,1+Math.floor((seg-1)*1.2+(w-1)*0.5)):0;
+  return{sham:Math.max(4,n-sp-cr-bl-spi),sprint:sp,crawl:cr,bloat:bl,spit:spi};}
 function zrQueue(c){const q=[];for(const t in c)for(let i=0;i<c[t];i++)q.push(t);
   for(let i=q.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;const k=q[i];q[i]=q[j];q[j]=k;}
   {const hd=q.slice(0,6),bl=hd.filter(t=>t==='bloat');if(bl.length){q.splice(0,6,...hd.filter(t=>t!=='bloat'));q.push(...bl);}}/* Bloaters never lead */
   return q;}
-function zrWave(n){const Z=S.zr;Z.w=n;Z.ph='wave';Z.sp=1;const c=zrWaveDef(Z.seg,n,Z.len==='short');if(Z.act==='swarm')for(const k in c)c[k]=Math.round(c[k]*1.3);Z.q=zrQueue(c);Z.total=Z.q.length;
+function zrWave(n){const Z=S.zr;Z.w=n;Z.ph='wave';Z.sp=1;const c=zrWaveDef(Z.seg,n,Z.len==='short',Z.week);if(Z.act==='swarm')for(const k in c)c[k]=Math.round(c[k]*1.3);Z.q=zrQueue(c);Z.total=Z.q.length;
 }
 /* where the next one rises: an open spot 14+ m from everyone still in the fight (about 24 m is best), out of their sight if it can */
 function zrSpot(far){const P=S.players.filter(p=>p.st!=='dead');let best=null,bs=-1e9;
@@ -10996,8 +10998,10 @@ function zrSpot(far){const P=S.players.filter(p=>p.st!=='dead');let best=null,bs
     for(const p of P){const d=hyp(x,z,p.x,p.z);if(d<dmin)dmin=d;if(d<50&&losPts(p.x,p.y+1.6,p.z,x,1,z))seen++;}
     const sc=far?dmin-seen*5:(dmin<14?-100:0)-Math.abs(dmin-24)*0.5-seen*25+Math.random()*4;if(sc>bs){bs=sc;best={x,z};}}
   return best;}
-function zrRise(t,elite,far){if(!elite&&t!=='jugg'&&S.zr.act==='elite'&&Math.random()<0.25)elite=true;const c=(!far&&zsHatchSpot())||zrSpot(far);if(!c)return null;const P=S.players.filter(p=>p.st==='alive');let n=P[0]||S.players[0];for(const p of P)if(hyp(p.x,p.z,c.x,c.z)<hyp(n.x,n.z,c.x,c.z))n=p;
-  return zSpawn(t,c.x,c.z,Math.atan2(-(n.x-c.x),-(n.z-c.z)),elite);}
+function zrRise(t,elite,far){const Z=S.zr,boss=ZTYPES[t]&&ZTYPES[t].boss;if(!elite&&!boss&&Z.act==='elite'&&Math.random()<0.25)elite=true;
+  // Week 2: from segment 2 about one in twelve rises elite on its own, and most Week 2 elites carry a modifier (Shielded or Splitter)
+  let mod=null;if((Z.week|0)>=2&&!boss){if(!elite&&Z.seg>=2&&Math.random()<0.08)elite=true;if(elite&&Math.random()<0.75)mod=Math.random()<0.5?'sh':'sp';}const c=(!far&&zsHatchSpot())||zrSpot(far);if(!c)return null;const P=S.players.filter(p=>p.st==='alive');let n=P[0]||S.players[0];for(const p of P)if(hyp(p.x,p.z,c.x,c.z)<hyp(n.x,n.z,c.x,c.z))n=p;
+  return zSpawn(t,c.x,c.z,Math.atan2(-(n.x-c.x),-(n.z-c.z)),elite,mod);}
 /* everyone back up and healed (between waves and segments); anyone out of the fight comes back beside a partner */
 function zrRegroup(){const up=S.players.find(p=>p.st==='alive');
   for(const p of S.players){if(p.st==='alive'){p.hp=100;continue;}
@@ -11026,12 +11030,12 @@ function zrTick(dt){const Z=S.zr;if(!Z)return;S.timer+=dt;zrDropTick();const sho
       else{Z.ph='boss';Z.sp=4;zrRegroup();const b=zrRise('jugg',false,true);if(b){b.hp=b.max=Math.round(CFG.zJgHp*(short?0.6:1));zBossHp(b);}}}}
   else if(Z.ph==='break'){Z.t-=dt;if(Z.t<=0)zrWave(Z.w+1);}
   else if(Z.ph==='surge'){Z.t=Math.max(0,Z.t-dt);Z.sp-=dt;
-    if(Z.t>0&&Z.sp<=0&&alive<cap+4){const r=Math.random(),t=r<0.12?'bloat':r<0.45?'sprint':r<0.55?'crawl':'sham';if(zrRise(t,Math.random()<0.35))alive++;Z.sp=short?0.55:0.4;}
+    if(Z.t>0&&Z.sp<=0&&alive<cap+4){const r=Math.random(),t=r<0.12?'bloat':r<0.45?'sprint':r<0.55?'crawl':(Z.week|0)>=2&&r<0.68?'spit':'sham';if(zrRise(t,Math.random()<0.35))alive++;Z.sp=short?0.55:0.4;}
     if(Z.t<=0&&!alive){Z.cleared++;for(const p of S.players){xsAdd(p,'wv');zrFavor(p,ZFV.surge*(zrV(p,'sp')||1));}zrInter();}}
   else if(Z.ph==='boss'){const b=ZB.list.find(o=>ZTYPES[o.t].boss);
     if(b&&b.st!=='dead'){Z.boss={hp:Math.max(0,Math.round(b.reg.torso.hp)),max:Math.round(b.reg.torso.max)};Z.sp-=dt;
-      if(Z.sp<=0&&alive<(short?5:7)){const r=Math.random();zrRise(r<0.5?'sham':r<0.85?'sprint':'crawl');Z.sp=2.5;}}
-    else if(b||Z.boss){Z.boss={hp:0,max:Z.boss?Z.boss.max:1};for(const p of S.players){xsAdd(p,'zb');zrFavor(p,ZFV.boss);}zrEnd(true,'The Juggernaut is down');return;}}
+      if(Z.sp<=0&&alive<(short?5:7)){const r=Math.random();zrRise((Z.week|0)>=2&&r<0.2?'spit':r<0.5?'sham':r<0.85?'sprint':'crawl');Z.sp=2.5;}}
+    else if(b||Z.boss){Z.boss={hp:0,max:Z.boss?Z.boss.max:1};for(const p of S.players){xsAdd(p,'zb');zrFavor(p,ZFV.boss);}zrEnd(true,`${ZTYPES[b?b.t:'jugg'].name} is down`);return;}}
   else if(Z.ph==='inter'){Z.t-=dt;const hum=S.players.filter(p=>!p.bot);
     if(Z.t<=0||hum.every(p=>Z.ready[p.s])){for(const p of S.players)if(!Z.picked[p.s]&&(Z.offers[p.s]||[]).length)zrCardAct(p,{a:'pick',id:Z.offers[p.s][0]});zrSeg(Z.seg+1);}}
   Z.left=Z.ph==='surge'?alive:Z.q.length+alive;}
@@ -11225,7 +11229,7 @@ function zrWatch(){const Z=S.zr,k=S.mid+':'+Z.seg+':'+Z.w+':'+Z.ph+':'+S.phase,w
   if(S.phase==='over'){crowdCheer(Z.won?'win':'knock',1);sting(Z.won?'win':'lose');ZW.cr=0;ZW.unl=zcRecord(Z,S.timer)?(Z.week||1)+1:0;zrCap(Z.won?'Week complete':'Broadcast terminated',Z.won?'You have been retained':Z.why,Z.won?'e1':'e3');if(Z.won)setTimeout(()=>announce('e2'),1600);}
   else if(S.phase!=='live')return;
   else if(Z.ph==='pre')zrCap(`Segment ${Z.seg}`,Z.act&&ZDIR[Z.act]?`Directive: ${ZDIR[Z.act].n}. ${ZDIR[Z.act].d}. Double Favor`:Z.seg===Z.awaySeg?`Away broadcast from the ${MAPS[MAP.id].name}`:'The host world is watching');
-  else if(Z.ph==='wave'){if(Z.w>1)sting('armed',0,0.04);if(Z.seg===1&&Z.w===1)zrCap('The Circuit presents',`Week ${Z.week||1}: ${ZWEEKS[Z.week||1].n} · the host world is watching`);else zrCap(Z.w===Z.nw?'Final wave':`Wave ${Z.w}`,`Segment ${Z.seg}`,Z.w===Z.nw?'r3':'r'+Z.w);}
+  else if(Z.ph==='wave'){if(Z.w>1)sting('armed',0,0.04);if(Z.seg===1&&Z.w===1)zrCap('The Circuit presents',`Week ${Z.week||1}: ${ZWEEKS[Z.week||1].n} · the host world is watching`);else zrCap(Z.w===Z.nw?'Final wave':`Wave ${Z.w}`,(Z.week|0)>=2&&Z.seg===1&&Z.w===2?'Spitters in the field: shoot the glowing throat':`Segment ${Z.seg}`,Z.w===Z.nw?'r3':'r'+Z.w);}
   else if(Z.ph==='break'){crowdCheer('point',1);sting('win',0,0.04);}
   else if(Z.ph==='surge'){sting('armed',0,0.05);zrCap('Surge','Elites incoming. Hold the floor','r4');}
   else if(Z.ph==='boss'){crowdCheer('point',1);sting('armed',0,0.06);zrCap('Headliner incoming','The Juggernaut','r12');setTimeout(()=>announce('h1'),1500);}
