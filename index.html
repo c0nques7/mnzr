@@ -8853,17 +8853,17 @@ function vxGraph(ctx,buf,P,G,dest,t,vol,send){
   const lim=ctx.createDynamicsCompressor();lim.threshold.value=-1;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=0.003;lim.release.value=0.06;trim.connect(lim);
   const g=ctx.createGain();g.gain.value=vol;lim.connect(g);g.connect(dest);if(send){const w=ctx.createGain();w.gain.value=send[1];g.connect(w);w.connect(send[0]);}
   s.start(t);return{s,g};}
-/* deeper (or higher) voice without changing its timing: stretch the take with WSOLA (overlap-add of 32 ms grains, each placed where it lines up
+/* deeper (or higher) voice without changing its timing: squeeze the take (r < 1 makes it shorter) with WSOLA (overlap-add of 32 ms grains, each placed where it lines up
    best with the last one, so the pitch stays put), then play it back faster or slower by the same ratio. Both channels share the grain plan. */
 function vxStretch(ctx,buf,semi){const r=Math.pow(2,semi/12);if(Math.abs(semi)<0.05)return buf;
-  const sr=buf.sampleRate,N=Math.round(0.032*sr)&~3,Hs=N>>1,Ha=Hs*r,tol=Math.round(0.008*sr)&~3,inL=buf.length,outL=Math.ceil(inL/r)+N;
+  const sr=buf.sampleRate,N=Math.round(0.032*sr)&~3,Hs=N>>1,Ha=Hs/r,tol=Math.round(0.008*sr)&~3,inL=buf.length,outL=Math.ceil(inL*r)+N;
   const ch=[...Array(buf.numberOfChannels)].map((_,c)=>buf.getChannelData(c)),out=ch.map(()=>new Float32Array(outL)),win=new Float32Array(N);
   for(let i=0;i<N;i++)win[i]=0.5-0.5*Math.cos(2*Math.PI*i/N);
   const mono=new Float32Array(inL);for(const d of ch)for(let i=0;i<inL;i++)mono[i]+=d[i];
   let prev=0;for(let k=0;;k++){const o=k*Hs,nom=Math.round(k*Ha);if(nom+N+tol>=inL||o+N>outL)break;
     let best=nom;if(k>0&&prev+Hs+N<inL){const want=prev+Hs;let bc=-Infinity;for(let d=-tol;d<=tol;d+=4){const p=nom+d;if(p<0)continue;let c=0;for(let i=0;i<N;i+=4)c+=mono[want+i]*mono[p+i];if(c>bc){bc=c;best=p;}}}
     for(let c=0;c<ch.length;c++){const s=ch[c],d=out[c];for(let i=0;i<N;i++)d[o+i]+=s[best+i]*win[i];}prev=best;}
-  const len=Math.min(outL,Math.ceil(inL/r)),b=ctx.createBuffer(ch.length,len,sr);for(let c=0;c<ch.length;c++)b.copyToChannel(out[c].subarray(0,len),c);return b;}
+  const len=Math.min(outL,Math.ceil(inL*r)),b=ctx.createBuffer(ch.length,len,sr);for(let c=0;c<ch.length;c++)b.copyToChannel(out[c].subarray(0,len),c);return b;}
 /* the takes at the current Voice pitch, stretched in the background (a few ms each) so nothing stalls mid-match */
 const VBP={semi:null,b:{},t:0};
 function vxPrep(){if(!actx)return;clearTimeout(VBP.t);VBP.t=setTimeout(()=>{const semi=OPT.vxPitch||0;if(VBP.semi!==semi)Object.assign(VBP,{semi,b:{}});
