@@ -68,6 +68,23 @@ Each map has its own mechanic, light and sound, on top of its layout. Everything
 - **Warren:** much darker light and nearer haze, lamps that flicker, acid puddles that glow, and a big flare at the muzzle whenever someone fires, so shooting gives you away. Other players' footsteps carry further.
 - **Ambience:** each map has its own recorded background (city hum, machinery, air handling; Warren is left quiet) and its own reverb. The **Map ambience** slider in Settings sets its volume.
 
+### Stage changes (Zombie Rumble)
+
+In Zombie Rumble each map changes between waves. Wave 1 is the map as built. Wave 2 adds the map's first stage change (it lands in the break before, with a caption), wave 3 swaps it for the second, and the finale and the headliner fight run both. Segment 2 flips the order, and Short broadcasts alternate by segment. 2v2 and Deathmatch are unchanged.
+
+| Map | Stage change | What it does |
+| --- | --- | --- |
+| Yard | Container Drop | Every 24 s two containers (a mirrored pair) lift away and drop into new open spots. Red shadows mark the spots 2 s ahead. Revenants underneath are crushed; a player takes 40. You can stand on them. |
+| Yard | Magnet Sweep | An electromagnet laps the yard. Every 15 s it charges (1.5 s), then pulls for 2 s: Revenants under it are lifted and slammed for 120, players float up 2 m unhurt. |
+| Foundry | Steam Vents | Six floor vents hiss, then blast every 8 s: anyone on one is launched about 4 m up, Revenants on one take 60. |
+| Foundry | Blast Doors | Doors rise out of the floor in turn (20 s cycle): the two in the centre gaps of the steel walls, then four extending the wall ends. |
+| Atrium | Portal Panes | Every 12 s the glass flickers, then opens for 6 s as a portal to its mirrored twin. Walk through and you come out of the twin; shots carry on from the same spot on the twin. Revenants path through portals. A broken pane can't open. |
+| Atrium | Security Scan | Every 20 s a red scan line sweeps the floor (alternating direction). Anyone it catches without cover within 2.5 m on the side it comes from (glass doesn't count) is marked for 5 s, and every Revenant goes for the marked player. |
+| Warren | Shutter Maze | Eight shutters roll down between crates in two groups that swap every 20 s, with a 2 s warning. |
+| Warren | Hatches | Two floor hatches open every 12 s and Revenants climb out of open ones. Hold Use on an open hatch for 2 s to weld it shut (+10 Favor). |
+
+Code: `ZST` (the picks per map), `zsWant` (which run), the pure timelines `dropAt`, `magAt`, `ventAt`, `doorAt`, `ptlAt`, `scanAt`, `shutAt` on `S.zr.stt`, and the pieces in `MAPS[id].zs` (built by `zsBuild` as dyn boxes). The host runs `zsHost` (damage, portal trips for bots and Revenants, scan marks `S.zr.mk`, hatches `S.zr.hat`); every client runs `zsTick` (looks, collision, path grids) and `zsLocal` (vents, magnet and portals for your own player). Sounds reuse the existing map sounds until new ones are approved.
+
 ## Rules
 
 - Two teams of two. Attackers arm a charge at site A or B; defenders stop them or defuse it.
