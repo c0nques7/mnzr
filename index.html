@@ -6934,10 +6934,50 @@ function botStuck(b,m,step,ux,uz){m.sExp+=step;if(m.sExp<3)return;
 const net={mode:'none',room:null,lobby:null,inLobby:false,myPeer:null,host:false,hostPeer:null,lastState:0,code:'',hitLog:{}};
 let roomNS=null;
 const notes=$('netstatus');
+/* Outside claude.ai there is no window.claude room, so online play goes through the mnzr relay (a Cloudflare Worker, relay/ in
+   the repo). relayRooms() gives the same shape the game uses from claude.use('room'): join(name) -> {peers, on, onPeers,
+   presence, emit, leave, connected}. Each page picks a random peer id per join and keeps it across reconnects, so a dropped
+   connection comes back as the same player. ?relay=ws://host:port points a page at another relay (local testing). */
+const RELAY_URL=(()=>{try{const q=new URLSearchParams(location.search).get('relay')||localStorage.getItem('za-relay');if(q&&/^wss?:\/\//.test(q))return q.replace(/\/$/,'');}catch(e){}return 'wss://mnzr-relay.joewade0110.workers.dev';})();
+function relayRooms(){
+  if(typeof WebSocket!=='function')return null;
+  return{join:name=>new Promise((res,rej)=>{
+    const id=Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,6);
+    const peers=new Map(),subs={},peerSubs=new Set();let me={},ws=null,open=false,left=false,first=true,tries=0;
+    const df=o=>{if(o&&typeof o==='object'){Object.freeze(o);for(const k in o)df(o[k]);}return o;};
+    const snap=(peer,isMe,p)=>({peer,by:null,isMe,sameTab:isMe,kind:'viewer',guest:false,presence:p||{}});
+    const firePeers=()=>{for(const f of peerSubs)try{f(room.peers());}catch(e){}};
+    const deliver=(t,peer,d,isMe)=>{const l=subs[t];if(!l)return;const msg={peer,by:null,isMe,sameTab:isMe,kind:'viewer',guest:false,topic:t,data:d};for(const f of l)try{f(msg);}catch(e){console.warn('room cb',e);}};
+    const send=o=>{if(!open||!ws||ws.readyState!==1)return false;try{ws.send(JSON.stringify(o));return true;}catch(e){return false;}};
+    const connect=()=>{
+      const sock=ws=new WebSocket(RELAY_URL+'/room/'+encodeURIComponent(name)+'?peer='+id);
+      const to=first?setTimeout(()=>{if(first){first=false;left=true;try{ws.close();}catch(e){}rej({code:'unavailable'});}},8000):0;
+      sock.onmessage=e=>{if(sock!==ws)return;let m;try{m=JSON.parse(e.data);}catch(x){return;}
+        if(m.k==='hi'){open=true;tries=0;peers.clear();for(const p of m.peers||[])peers.set(p.peer,p.p||{});if(me.n!==undefined||Object.keys(me).length)send({k:'p',p:me});firePeers();if(first){first=false;clearTimeout(to);res(room);}}
+        else if(m.k==='p'){peers.set(m.peer,m.p||{});firePeers();}
+        else if(m.k==='x'){peers.delete(m.peer);firePeers();}
+        else if(m.k==='e')deliver(m.t,m.peer,m.d,false);};
+      sock.onclose=()=>{if(sock!==ws)return;/* a replaced socket closing must not start another reconnect */open=false;if(left)return;if(first){first=false;clearTimeout(to);left=true;rej({code:'unavailable'});return;}
+        tries++;setTimeout(()=>{if(!left)connect();},Math.min(4000,300*tries));};
+      sock.onerror=()=>{};
+    };
+    const room={
+      peers:()=>df([snap(id,true,JSON.parse(JSON.stringify(me))),...[...peers.entries()].map(([k,v])=>snap(k,false,v))]),
+      on:(t,cb)=>{(subs[t]=subs[t]||[]).push(cb);return()=>{subs[t]=subs[t].filter(f=>f!==cb);};},
+      onPeers:cb=>{peerSubs.add(cb);return()=>peerSubs.delete(cb);},
+      presence:async p=>{const n=Object.assign({},me,p);for(const k in p)if(p[k]===null)delete n[k];if(JSON.stringify(n).length>4096)throw{code:'invalid_argument'};me=n;send({k:'p',p:me});},
+      emit:async(t,data)=>{const s=JSON.stringify({k:'e',t,d:data});if(s.length>4096+32)throw{code:'invalid_argument'};if(!open||ws.readyState!==1)throw{code:'unavailable'};ws.send(s);const d=JSON.parse(s).d;setTimeout(()=>deliver(t,id,d,true),0);},
+      leave:async()=>{left=true;open=false;try{ws.close(1000,'leave');}catch(e){}},
+      connected:()=>open
+    };
+    connect();
+  })};
+}
 (async()=>{
   try{roomNS=window.claude&&window.claude.use?await window.claude.use('room'):null;}catch(e){roomNS=null;}
+  if(!roomNS)roomNS=relayRooms();
   if(roomNS){$('joinbtn').disabled=false;notes.textContent='Same code and mode play together; the host picks the map. Bots fill empty slots.';}
-  else notes.textContent='Online play works when this page is opened on claude.ai. Play works anywhere.';
+  else notes.textContent='Online play needs a browser with WebSockets. Play works anywhere.';
 })();
 
 function myPresence(){return{n:me.name,p:[+me.x.toFixed(2),+me.y.toFixed(2),+me.z.toFixed(2)],yw:+viewYaw().toFixed(3),pt:+viewPitch().toFixed(3),c:me.crouch||me.slideT>0?1:0,l:+((me.leanOff||0)/0.55).toFixed(2),wr:me.wr,u:me.use,k:me.pick,g:me.give,sh:me.sh,tm:me.teamPref,w:me.w,r:me.reloadT>0?1:0,sx:myW(me.w).supp?1:0,cg:me.chgT>0?Math.round(clamp(me.chgT/(myW(me.w).chg||1),0,1)*9):0,ls:myW(me.w).las?1:0,ds:(me.dashSeq|0)%1000,sl:me.slideT>0?1:0,lk:lkMine(),h:net.host&&net.mode==='online'?net.hostSince:0,hb:Math.floor(performance.now()/1000)%100,lb:net.inLobby?1:0};}
