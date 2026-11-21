@@ -6,7 +6,8 @@ The whole game is one file, `index.html`, built on Three.js r186 (ES modules loa
 
 ## Play it
 
-- **Locally:** open `index.html` in a desktop browser, or serve the folder (`npx serve .` or `python3 -m http.server`) and open the page. Practice and Sandbox work anywhere. The match music playlist loads from `music/`, so it needs the folder served; opened straight from disk, matches play only the embedded track.
+- **Locally:** open `index.html` in a desktop browser, or serve the folder (`npx serve .` or `python3 -m http.server`) and open the page. Practice and Sandbox work anywhere.
+- **Dev tools on mnzr.lol:** the Sandbox (with its T overlay), Workshop's "Unlock everything" and saved sandbox tuning are hidden on mnzr.lol and www.mnzr.lol, and shown everywhere else (claude.ai, Vercel previews, localhost). Open `https://mnzr.lol/?dev` to turn them on in that browser (it is remembered), and `?dev=0` to turn them off again. This is a convenience switch, not protection. The match music playlist loads from `music/`, so it needs the folder served; opened straight from disk, matches play only the embedded track.
 - **Online:** online matches use the claude.ai Artifact `room` capability, so they only work when the page is opened as the published Artifact on claude.ai. Players who join the same match code and mode play together; bots fill empty slots. The host's tab must stay in the foreground. Whoever is already running a match keeps hosting when others join; if the host leaves, the next player takes over the match where it stands. Room messages are capped at 4 KiB, so the host's state packet is kept compact (see `packState`).
 
 Play with a keyboard and mouse, or with the on-screen touch controls on phones, tablets and foldables (see Touch controls below).

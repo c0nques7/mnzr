@@ -6299,6 +6299,12 @@ const {THREE,EffectComposer,RenderPass,ShaderPass,UnrealBloomPass,FXAAPass,GTAOP
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
+/* dev tools (Sandbox, its T overlay, "Unlock everything", saved sandbox tuning) are off on the production site mnzr.lol and
+   on everywhere else (claude.ai, Vercel previews, localhost). ?dev turns them on in this browser and remembers it
+   (localStorage 'za-devmode'); ?dev=0 turns them off again. A convenience switch, not protection: it all runs in the browser. */
+const DEVMODE=(()=>{let on=null;try{const q=new URLSearchParams(location.search);if(q.has('dev')){on=!/^(0|off|false|no)$/i.test(q.get('dev')||'');localStorage.setItem('za-devmode',on?'1':'0');}
+  else{const v=localStorage.getItem('za-devmode');if(v==='1'||v==='0')on=v==='1';}}catch(e){}
+  return on!==null?on:!/^(www\.)?mnzr\.lol$/i.test(location.hostname);})();
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const hyp=(ax,az,bx,bz)=>Math.hypot(ax-bx,az-bz);
 const dist=(a,b)=>hyp(a.x,a.z,b.x,b.z);
@@ -9488,7 +9494,7 @@ function devApply(d){d=d&&typeof d==='object'?d:{};const oldHit=!d.hitRec;/* tun
   let gch=false;for(const k in GUN){const o=(d.gunLayers||{})[k]||{};for(const f in GUN[k]){const v=num(o[f])?o[f]:GUN0[k][f];if(GUN[k][f]!==v){GUN[k][f]=v;gch=true;}}}if(gch)gunRerender(0);
   for(const k in STEP_MODE){const o=(d.steps||{})[k]||{};for(const f in STEP0[k])STEP_MODE[k][f]=num(o[f])?o[f]:STEP0[k][f];}
   for(const k of WKEYS){const o=(d.weapons||{})[k]||{};for(const [f] of W_FIELDS){if(k==='rifle'&&RIFLE_CFG[f])continue;W[k][f]=num(o[f])?o[f]:W0[k][f];}}
-  coverApply((d.coverMap||'yard')===MAP.id?d.cover:null);}
+  coverApply(DEVMODE&&(d.coverMap||'yard')===MAP.id?d.cover:null);}
 function coverApply(cv){COVER.forEach((b,i)=>{const o=(cv||{})[i];const g=o&&['x','z','w','d','h','hp'].every(f=>num(o[f]))?o:COVER0[i];if(!coverEq(cGeo(b),g))setCover(i,g);});}
 function gunRerender(ms){clearTimeout(DEV.gunT);DEV.gunT=setTimeout(()=>{if(actx){gunBufs=null;gunInit();}},ms);}
 function devSave(){sbSave();const s=JSON.stringify(devCollect());try{localStorage.setItem('za-dev',s);}catch(e){}DEV.saved=s;devStatus();}
@@ -9506,7 +9512,7 @@ function setMap(id){if(!MAPS[id])id='yard';if(id===MAP.id)return false;
   if(RG.stowed)COVER.forEach((b,i)=>{b.y1=0;coverVis[i].g.visible=false;});
   midStow(RG.stowed);rebuildGrid();dmPts();for(const k in botMem)botMem[k].path=null;
   DEV.sel=-1;if(DEV.hl)devHL();NET_TN.s='';
-  if(net.mode!=='online'||net.host){let d={};try{d=JSON.parse(localStorage.getItem('za-dev')||'{}')||{};}catch(e){}coverApply((d.coverMap||'yard')===MAP.id?d.cover:null);if(SB.on)DEV.saved=JSON.stringify(devCollect());}
+  if(net.mode!=='online'||net.host){let d={};try{d=JSON.parse(localStorage.getItem('za-dev')||'{}')||{};}catch(e){}coverApply(DEVMODE&&(d.coverMap||'yard')===MAP.id?d.cover:null);if(SB.on)DEV.saved=JSON.stringify(devCollect());}
   const s0=S;if(S&&S.map!==MAP.id)S=null;/* newMatch calls this before the new state exists: draw the cover whole */for(const v of coverVis)v.hp=-2;coverTick();S=s0;renderer.shadowMap.needsUpdate=true;
   return true;}
 /* ---------- map features, every client: the Yard crane, the Foundry pour, Atrium glass, Warren's dark, map ambience ----------
@@ -9805,7 +9811,7 @@ function midStow(want){for(const b of BOXES){if(!b.mid)continue;b.y1=want?0:b.h0
 function sbDefaults(){Object.assign(CFG,CFG0);ZHP0.forEach((v,i)=>ZHP[i]=v);devApply({});DEV.sel=-1;devHL();}
 /* everything tuned in the sandbox is saved as you change it and is this browser's rules for every mode: practice, and the
    online matches this browser hosts. The sandbox-only toggles (no damage, infinite ammo, bots, timer) never leave the sandbox. */
-function tuneApply(){Object.assign(CFG,CFG0);ZHP0.forEach((v,i)=>ZHP[i]=v);sbLoad();devLoad();DEV.sel=-1;devHL();NET_TN.s='';}
+function tuneApply(){Object.assign(CFG,CFG0);ZHP0.forEach((v,i)=>ZHP[i]=v);if(DEVMODE){sbLoad();devLoad();}else{devApply({});DEV.saved=JSON.stringify(devCollect());}DEV.sel=-1;devHL();NET_TN.s='';}
 setInterval(()=>{if(!SB.on||!S)return;const s=JSON.stringify(devCollect());if(s!==DEV.saved)devSave();},800);
 /* online, the host's rules, weapon stats and cover layout ride along with the state so every player simulates the same game;
    sounds stay each player's own. Leaving the match puts your own settings back. */
@@ -11290,7 +11296,7 @@ function lvlOf(xp){let L=1;xp=Math.max(0,xp|0);while(L<MAXL&&xp>=lvlNeed(L)){xp-
 const wlvlOf=x=>Math.min(WMAXL,1+Math.floor((x||0)/WL_XP));
 const PROG={xp:0,wxp:Object.fromEntries(WKEYS.map(k=>[k,0])),n:0,builds:{},sel:{},all:false,last:null,wheel:WHEEL0.slice()};
 /* why gun k is locked, or null: the new guns open by player level; Zombie Rumble exclusives only come from drops */
-function gunLock(k){const w=W[k];if(!w)return'Unknown';if(w.zr)return'Zombie Rumble drop';if(PROG.all||!w.pl||plvl()>=w.pl)return null;return'Level '+w.pl;}
+function gunLock(k){const w=W[k];if(!w)return'Unknown';if(w.zr)return'Zombie Rumble drop';if((DEVMODE&&PROG.all)||!w.pl||plvl()>=w.pl)return null;return'Level '+w.pl;}
 /* the six guns on your weapon wheel and keys 1-6 (picked in the Workshop); a locked or missing pick falls back to a free gun */
 function wheelKeys(){const out=[];for(const k of PROG.wheel)if(PVPK.includes(k)&&!gunLock(k)&&!out.includes(k))out.push(k);
   for(const k of [...WHEEL0,...PVPK]){if(out.length>=6)break;if(!out.includes(k)&&!gunLock(k))out.push(k);}return out.slice(0,6);}
@@ -11307,9 +11313,9 @@ function progLoad(){let d=null;try{d=JSON.parse(localStorage.getItem('za-prog')|
 function progSave(){try{const {last,...o}=PROG;localStorage.setItem('za-prog',JSON.stringify(o));}catch(e){}}
 const plvl=()=>lvlOf(PROG.xp).L;
 /* why a part is locked for gun k, or null when you can use it */
-function partLock(k,sl,p){if(!partFits(k,sl,p))return'Does not fit';if(PROG.all||p.id===defParts(k)[sl])return null;if(p.pl&&plvl()<p.pl)return'Level '+p.pl;if(p.wl&&wlvlOf(PROG.wxp[k])<p.wl)return W[k].name+' level '+p.wl;return null;}
-const glowLock=g=>PROG.all||plvl()>=g.pl?null:'Level '+g.pl;
-const buildLock=i=>PROG.all||plvl()>=BUILD_PL[i]?null:'Level '+BUILD_PL[i];
+function partLock(k,sl,p){if(!partFits(k,sl,p))return'Does not fit';if((DEVMODE&&PROG.all)||p.id===defParts(k)[sl])return null;if(p.pl&&plvl()<p.pl)return'Level '+p.pl;if(p.wl&&wlvlOf(PROG.wxp[k])<p.wl)return W[k].name+' level '+p.wl;return null;}
+const glowLock=g=>(DEVMODE&&PROG.all)||plvl()>=g.pl?null:'Level '+g.pl;
+const buildLock=i=>(DEVMODE&&PROG.all)||plvl()>=BUILD_PL[i]?null:'Level '+BUILD_PL[i];
 function buildOf(k){const bs=PROG.builds[k]||[newBuild(k,0)];return bs[PROG.sel[k]]||bs[0];}
 /* the parts a build really uses: anything still locked (say, after turning "unlock everything" off) falls back to the stock part */
 function effParts(k,b){b=b||buildOf(k);const d=defParts(k),o={};for(const sl of SLOTS){const p=partBy(sl,b.p[sl]);o[sl]=p&&partFits(k,sl,p)&&!partLock(k,sl,p)?p.id:d[sl];}return o;}
@@ -11598,7 +11604,8 @@ window.addEventListener('keydown',e=>{if($('lobby').hidden)return;if(e.code==='E
   else if(e.code==='Enter'||e.code==='NumpadEnter'){e.preventDefault();e.stopImmediatePropagation();$('lobStart').click();}},true);
 tuneApply();
 $('practice').addEventListener('click',()=>{tuneApply();SB.on=false;if(introDue())introStart(startSolo);else startSolo();});
-$('sandboxbtn').addEventListener('click',()=>{SB.on=true;SB.mode='range';SB.tab='range';sbLoad();devLoad();buildSB();startSolo();});
+if(!DEVMODE)for(const el of [$('sandboxbtn'),$('shopAll').closest('label')]){el.hidden=true;el.style.display='none';}
+$('sandboxbtn').addEventListener('click',()=>{if(!DEVMODE)return;SB.on=true;SB.mode='range';SB.tab='range';sbLoad();devLoad();buildSB();startSolo();});
 $('joinbtn').addEventListener('click',async()=>{tuneApply();SB.on=false;readMenu();const code=($('code').value||'arena-1').toLowerCase().replace(/[^a-z0-9_.-]/g,'').slice(0,40)||'arena-1';$('code').value=code;$('joinbtn').disabled=true;
   if(await joinOnline(code))lobbyOpen();else $('joinbtn').disabled=false;});
 /* classic menu navigation: hover or arrow keys move the highlight, Enter picks, Esc closes the Play / Play online panel */
