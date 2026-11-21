@@ -6328,7 +6328,7 @@ const TEAMN=['Blue','Orange'];
 const BOTN=['Bot Ash','Bot Rook','Bot Vex','Bot Juno','Bot Kade','Bot Nyx','Bot Orin','Bot Sable'];
 const CFG={roundTime:75,buy:3,post:6,overT:10,multiT:5,fuse:25,arm:5,defuse:7,revive:2.5,bleed:8,respawn:4,tickets:4,downHP:30,winScore:4,killHeal:25,block:15,dmg:25,head:50,fireCd:0.12,mag:24,reload:1.8,buy1:8,speed:6,sprint:9.5,crawl:1.8,jump:5,grav:19,wallRun:1.3,wallGrav:0.22,wallKick:7,grab:2.3,dash:22,dashT:0.16,dashN:2,dashCd:3.5,regenMin:5,regenMax:10,spawnProt:3,dmTime:600,dmRespawn:3,dmKills1:15,dmKills2:30,dmKills4:50};
 /* Revenant stats (Zombie Rumble): health, walking speed (m/s) and damage per swing for each type, and how close they swing from */
-Object.assign(CFG,{zShHp:60,zShSpd:1.6,zShDmg:20,zSpHp:40,zSpSpd:6.2,zSpDmg:12,zReach:1.25,zCrHp:35,zCrSpd:1.5,zCrDmg:10,zBlHp:150,zBlSpd:1.25,zBlDmg:45,zBlR:3.6,zrBreak:10,zJgHp:2400,zJgSpd:1.5,zJgDmg:40,zJgChg:11,zJgChgDmg:50,zSpiHp:80,zSpiSpd:1.9,zSpiDmg:12,zSpiGlob:15,zSpiCd:3.4,zShieldHp:100,zSpiWind:0.75,zAcidDps:12,zAcidT:4,zAcidR:1.5,zrRevHP:50,zrBleed:15});
+Object.assign(CFG,{zShHp:60,zShSpd:1.6,zShDmg:20,zSpHp:40,zSpSpd:6.2,zSpDmg:12,zReach:1.25,zCrHp:35,zCrSpd:1.5,zCrDmg:10,zBlHp:150,zBlSpd:1.25,zBlDmg:45,zBlR:3.6,zrBreak:10,zJgHp:2400,zJgSpd:1.5,zJgDmg:40,zJgChg:11,zJgChgDmg:50,zSpiHp:80,zSpiSpd:1.9,zSpiDmg:12,zSpiGlob:15,zSpiCd:3.4,zShieldHp:100,zMaHp:2600,zMaSpd:1.7,zMaDmg:30,zMaRegrow:12,zSpiWind:0.75,zAcidDps:12,zAcidT:4,zAcidR:1.5,zrRevHP:50,zrBleed:15});
 const SITES={A:{x:22,z:-9},B:{x:22,z:9}};
 /* weapons: the rifle reads CFG so the sandbox sliders tune it. near/far = full damage up to near m, down to fall x at far m */
 const W={
@@ -10166,8 +10166,10 @@ const ZTYPES={
   /* Week 2: keeps its distance and lobs acid that pools on the floor (zSpitTick); its throat sac glows on the windup, and a head shot then kills it outright */
   spit:{name:'Spitter',hp:'zSpiHp',spd:'zSpiSpd',dmg:'zSpiDmg',wind:0.5,cd:1.2,lean:-0.12,tint:0x86a07e,eye:0x9dff3c,size:1.02,spit:1},
   /* the Week 1 headliner: twice a person's height in riot plating; charges in straight lines (see zBossTick) */
-  jugg:{name:'The Juggernaut',hp:'zJgHp',spd:'zJgSpd',dmg:'zJgDmg',wind:0.7,cd:1.6,lean:0.05,tint:0x59606a,eye:0xff3030,size:1.9,boss:1}};
-function zSize(z){return ZTYPES[z.t].size*(z.elite?1.12:1);}
+  jugg:{name:'The Juggernaut',hp:'zJgHp',spd:'zJgSpd',dmg:'zJgDmg',wind:0.7,cd:1.6,lean:0.05,tint:0x59606a,eye:0xff3030,size:1.9,boss:1},
+  /* the Week 2 headliner: a swollen Spitter queen (zMatriTick); splits into two daughters at 66% and again at half a daughter's health (z.gen 0-2, z.gs scales her) */
+  matri:{name:'The Matriarch',hp:'zMaHp',spd:'zMaSpd',dmg:'zMaDmg',wind:0.6,cd:1.4,lean:-0.18,tint:0x8aa284,eye:0x9dff3c,size:1.7,boss:1,spit:1}};
+function zSize(z){return ZTYPES[z.t].size*(z.elite?1.12:1)*(z.gs||1);}
 function zA(z){const T=ZTYPES[z.t];return T.boss?T.name:'a '+T.name;}
 function zStat(z,k){const v=CFG[ZTYPES[z.t][k]];return k==='spd'&&zrAct('fast')?v*1.2:v;}
 const ZV=0.07;/* the old body voxel size; loose debris that isn't from a body part still uses it */
@@ -10179,7 +10181,8 @@ const ZLOOK={
   crawl:{shirt:[0xa09884,0x66758a,0x84684e],pants:[0x40454a],shoe:[0x3a3230],sleeve:0.7,shin:0.8,hair:1},
   bloat:{shirt:null,pants:[0x5c5640,0x4a5668],shoe:[0x3a3230],sleeve:0,shin:0.7,belly:1},
   spit:{shirt:[0x5a6a58,0x4a4e5c,0x6a5a4a],pants:[0x3a4038,0x4a4440],shoe:[0x2e2a28],sleeve:0.3,shin:0.6,hair:0},
-  jugg:{shirt:[0x30353e],pants:[0x2c3038],shoe:[0x1e2024],sleeve:1,shin:1,armor:0x7c8592,stripe:0xf07a22}};
+  jugg:{shirt:[0x30353e],pants:[0x2c3038],shoe:[0x1e2024],sleeve:1,shin:1,armor:0x7c8592,stripe:0xf07a22},
+  matri:{shirt:null,pants:[0x3a4636,0x46403a],shoe:[0x2a2622],sleeve:0,shin:0.5,hair:0}};
 /* the body: a scratch rig of joints, each body part a little box of voxels ("pixels") carved to a shape: rounded limbs, a skull with
    eye sockets and a hanging jaw, clawed hands. The head, hands and eyes use finer voxels than the trunk and limbs. Every voxel of every
    Revenant is one instance of a single InstancedMesh (plus one for the glowing eyes and seams), so a horde is two draw calls; only the
@@ -10246,7 +10249,7 @@ const ZR=(function(){
   // added later (append only)
   P('jaw',jaw,0.18,0.08,0.18,0,-0.03,-0.04,'skin','head',{s:SH.jaw,r:0.036,soft:1});
   for(let i=0;i<2;i++){const s=sh[i],n=i?'R':'L';P('hand'+n,s.h,0.09,0.13,0.08,0,-0.06,-0.005,'skin','arm'+n,{s:SH.hand,r:0.032,soft:1});}
-  P('ridge',spine,0.05,0.42,0.05,0,0.3,0.135,'bone','torso',{s:SH.ridge,r:0.05,only:['sprint'],soft:1});
+  P('ridge',spine,0.05,0.42,0.05,0,0.3,0.135,'bone','torso',{s:SH.ridge,r:0.05,only:['sprint','matri'],soft:1});
   P('boils',spine,0.36,0.36,0.03,0,0.22,-0.135,'glow','torso',{s:SH.dots,r:0.034,only:['bloat'],soft:1});
   P('helm',head,0.31,0.32,0.32,0,0.16,0.005,'metal','head',{s:SH.helm,r:0.04,only:['jugg'],soft:1});
   P('visor',head,0.22,0.04,0.02,0,0.165,-0.142,'glow','head',{r:0.037,only:['jugg']});
@@ -10254,7 +10257,8 @@ const ZR=(function(){
   for(let i=0;i<2;i++){const s=sh[i],l=lg[i],n=i?'R':'L',sx=i?1:-1;
     P('pad'+n,s.s,0.21,0.16,0.23,sx*0.025,0.01,0,'metal','arm'+n,{s:SH.pad,r:0.045,only:['jugg'],soft:1});
     P('greave'+n,l.k,0.17,0.24,0.18,0,-0.12,-0.005,'metal','leg'+n,{s:SH.shell,r:0.045,only:['jugg'],soft:1});}
-  P('sac',spine,0.16,0.13,0.07,0,0.5,-0.115,'glow','head',{s:SH.neck,r:0.032,only:['spit'],soft:1});/* the Spitter's throat sac (counts as head) */
+  P('sac',spine,0.16,0.13,0.07,0,0.5,-0.115,'glow','head',{s:SH.neck,r:0.032,only:['spit','matri'],soft:1});/* the Spitter's throat sac (counts as head) */
+  P('bsac',spine,0.4,0.4,0.2,0,0.26,0.2,'glow','torso',{s:SH.neck,r:0.04,only:['matri'],soft:1});/* the Matriarch's acid sac, her weak point (1.6x) */
   for(const p of parts){if(p.glow)NG=Math.max(NG,p.n);}
   const PI={};parts.forEach((p,i)=>{PI[p.name]=i;});
   const regParts={};parts.forEach((p,i)=>{(regParts[p.reg]||(regParts[p.reg]=[])).push(i);});
@@ -10393,8 +10397,9 @@ function zTick(dt){if(!S||S.phase!=='live')return;
     z.cd=Math.max(0,z.cd-dt);z.slow=Math.max(0,z.slow-dt);z.flinch=Math.max(0,z.flinch-dt*4);
     // nearest target
     let tg=null,td=1e9;for(const p of T){const d=hyp(p.x,p.z,z.x,z.z);if(d<td){td=d;tg=p;}}
-    if(ZTYPES[z.t].boss&&zBossTick(z,tg,td,dt))continue;
-    if(ZTYPES[z.t].spit&&zSpitTick(z,tg,td,dt))continue;
+    if(z.t==='jugg'&&zBossTick(z,tg,td,dt))continue;
+    if(z.t==='matri'){if(zMatriTick(z,tg,td,dt))continue;}
+    else if(ZTYPES[z.t].spit&&zSpitTick(z,tg,td,dt))continue;
     const lb=zLimbs(z),ty=tg?(tg.y||0):0,rk=ZTYPES[z.t].boss?1.6:1,reach=tg&&td<CFG.zReach*rk+0.35&&ty<(lb.legs?1.1*rk:0.5);
     // the swing: wind up, then hit whoever is still in reach
     const BL=ZTYPES[z.t].bloat;
@@ -10464,6 +10469,45 @@ function zHordeOne(){for(let i=0;i<10;i++){const x=40+Math.random()*7,z=(Math.ra
    A limb also passes 30% of its damage on to the body. Every hit knocks pixels out around the impact and leaves the edges
    glowing with ichor; a region at zero falls off in a burst of pixels. Lost arms weaken the swing, a lost leg makes it limp,
    both legs gone and it crawls. */
+/* ---------- the Matriarch (Week 2 headliner) ----------
+   A Spitter queen: lobs volleys of acid (3 globs, then 2 and 1 for her daughters), screams every 20 s to call Spitters, and takes
+   1.6x through the glowing sac on her back. At 66% she bursts into two daughters (z.gen 1, each a third of her health); a daughter
+   splits again at half its health into two smaller copies (gen 2); every split floods the floor with acid. A daughter nobody has hurt
+   for zMaRegrow seconds grows back whole. The run's boss bar sums the whole family. */
+const ZMGS=[1,0.76,0.6];
+function zBossLeft(fam){let h=0;for(const o of fam)h+=Math.max(0,o.reg.torso.hp);return Math.round(h);}/* a split hands its threshold health to its copies, so the family's sum is what is left */
+function zBossText(t,n){const bb=$('zrboss');if(bb.dataset.t===t+(n|0))return;bb.dataset.t=t+(n|0);
+  bb.querySelector('b').textContent=t==='matri'?'The Matriarch'+(n>1?` · ${n} copies`:''):'The Juggernaut';
+  bb.querySelector('span').textContent=t==='matri'?'Shoot the glowing sac on her back. A copy left alone grows back':'Plating turns bullets from the front. Hit it in the back';}
+function zMatriTick(z,tg,td,dt){const g=z.gen|0;z.scd=(z.scd==null?2:z.scd)-dt;z.cry=(z.cry==null?8:z.cry)-dt;z.quiet=(z.quiet||0)+dt;z.hold=0;
+  // a daughter left alone grows back to full
+  if(g>0&&z.quiet>CFG.zMaRegrow&&z.reg.torso.hp<z.max*0.98){zMatriRegrow(z);}
+  if(!tg||!ZB.hunt){z.sw=0;return false;}
+  if(z.sw>0){z.sw-=dt;z.vx*=0.8;z.vz*=0.8;const fy=Math.atan2(-(tg.x-z.x),-(tg.z-z.z));let dy=fy-z.yaw;while(dy>Math.PI)dy-=Math.PI*2;while(dy<-Math.PI)dy+=Math.PI*2;z.yaw+=clamp(dy,-5*dt,5*dt);
+    if(z.sw<=0){z.sw=0;const n=3-g;for(let i=0;i<n;i++)zSpitFire(z,tg,(i-(n-1)/2)*0.32);z.scd=(3.2+g*0.4)*(0.85+Math.random()*0.3);}return true;}
+  // the scream: Spitters answer it (not too many at once)
+  if(g<2&&z.cry<=0){z.cry=20;zVoice(z,'zSnarl',1.3);const n=2-g,live=ZB.list.filter(o=>o.t==='spit'&&o.st!=='dead').length;
+    for(let i=0;i<n&&live+i<6;i++){if(S.mode==='zr'&&S.zr)zrRise('spit');else{const a=Math.random()*6.283,x=z.x+Math.cos(a)*6,zz=z.z+Math.sin(a)*6;zSpawn('spit',x,zz,a);}}
+    if(S.mode!=='zr'||!S.zr)feed('The Matriarch screams for her Spitters');}
+  if(zLimbs(z).legs<1)return false;
+  if(z.scd<=0&&td>3&&td<24){z.losT=(z.losT||0)-dt;if(z.losT<=0){z.losT=0.25;z.los=losPts(z.x,1.6*zSize(z),z.z,tg.x,(tg.y||0)+1.2,tg.z);}
+    if(z.los){z.sw=CFG.zSpiWind*1.1;zVoice(z,'zSnarl',1);return true;}}
+  return false;}
+function zMatriSplit(z){const g=(z.gen|0)+1,mx=Math.max(20,Math.round(z.max*((z.gen|0)?0.5:0.66)/2));
+  for(let i=0;i<2;i++){const a=z.yaw+(i?1.4:-1.4),x=z.x-Math.sin(a)*1.2,zz=z.z-Math.cos(a)*1.2;const c=zSpawn('matri',x,zz,z.yaw);if(!c)continue;
+    c.gen=g;c.gs=ZMGS[g];c.hp=c.max=mx;zBossHp(c);c.riseT=0.5;c.scd=2+i;c.cry=12+i*4;c.quiet=0;}
+  // the floor floods where she burst
+  for(let i=0;i<6;i++){const a=i/6*6.283,x=z.x+Math.cos(a)*2.4,zz=z.z+Math.sin(a)*2.4;zAcidPool(x,zz);const q=ZB.pools[ZB.pools.length-1];if(q)q.t=6;}
+  for(let i=0;i<30;i++)zPix(z.x,0.8+Math.random()*1.5,z.z,(Math.random()-.5)*5,1+Math.random()*3,(Math.random()-.5)*5,0.07,0.5,1,0.2,true,0.8);
+  feed(g===1?'The Matriarch bursts into two':'A daughter splits again');}
+function zMatriRegrow(z){z.quiet=0;const hp=z.max,s=z.seed;z.vox=[];z.col=[];z.cnt=[];z.vis=[];zBody(z);z.seed=s;z.hp=hp;z.flash=1;
+  for(let i=0;i<20;i++)zPix(z.x,0.5+Math.random()*1.5,z.z,(Math.random()-.5)*2,1+Math.random()*2,(Math.random()-.5)*2,0.05,0.5,1,0.3,true,0.7);
+  feed('A daughter grows back whole');}
+/* a sandbox boss bar: the same bar as the run, for whatever boss is up at the range */
+function zRangeBossBar(){const bb=$('zrboss');if(!bb||!rgOn())return;const fam=ZB.list.filter(o=>ZTYPES[o.t].boss&&o.st!=='dead');
+  if(!fam.length){if(ZB.rbMax){bb.hidden=true;ZB.rbMax=0;}return;}
+  const t=fam[0].t;if(!ZB.rbMax||ZB.rbT!==t){ZB.rbT=t;ZB.rbMax=t==='matri'?zBossLeft(fam):fam[0].max;}
+  bb.hidden=false;$('zrbossF').style.width=(100*clamp(zBossLeft(fam)/ZB.rbMax,0,1)).toFixed(1)+'%';const ban=$('netpill');const tb=Math.max($('topbar').getBoundingClientRect().bottom,ban&&!ban.hidden?ban.getBoundingClientRect().bottom:0);bb.style.top=(tb+6)+'px';zBossText(t,fam.length);}
 /* ---------- elite modifiers (Week 2) ----------
    An elite can carry one modifier, shown by its eye and seam colour: Shielded (blue; a shell takes the first zShieldHp damage,
    then shatters) and Splitter (violet; when it dies two Crawlers rise from it). z.mod 'sh' | 'sp'; online bits 16384 shell up,
@@ -10497,9 +10541,10 @@ function zSpitTick(z,tg,td,dt){z.scd=(z.scd==null?1+Math.random()*1.5:z.scd)-dt;
   if(td<6)z.hold=2;else z.hold=1;
   if(z.scd<=0&&td>3.5){z.sw=CFG.zSpiWind;zVoice(z,'zSnarl',0.85);return true;}
   return false;}
-function zSpitFire(z,tg){if(ZB.globs.length>=ZAC_MAXG)ZB.globs.shift();const s=zSize(z),x=z.x-Math.sin(z.yaw)*0.35*s,y=1.55*s,zz=z.z-Math.cos(z.yaw)*0.35*s;
-  const d=hyp(tg.x,tg.z,x,zz),T=clamp(d/13,0.55,1.3),tx=tg.x+(tg.vx||0)*T*0.7,tz=tg.z+(tg.vz||0)*T*0.7,ty=(tg.y||0)+0.9;
-  ZB.globs.push({id:++ZB.gid,x,y,z:zz,vx:(tx-x)/T,vy:(ty-y+0.5*ZAC_G*T*T)/T,vz:(tz-zz)/T,t:0,src:{id:'s'+z.id,x:z.x,z:z.z,t:'spit'}});
+function zSpitFire(z,tg,off){if(ZB.globs.length>=ZAC_MAXG)ZB.globs.shift();const s=zSize(z),x=z.x-Math.sin(z.yaw)*0.35*s,y=1.55*s,zz=z.z-Math.cos(z.yaw)*0.35*s;
+  const d=hyp(tg.x,tg.z,x,zz),T=clamp(d/13,0.55,1.3);let tx=tg.x+(tg.vx||0)*T*0.7,tz=tg.z+(tg.vz||0)*T*0.7;const ty=(tg.y||0)+0.9;
+  if(off){const c=Math.cos(off),sn=Math.sin(off),dx=tx-x,dz=tz-zz;tx=x+dx*c-dz*sn;tz=zz+dx*sn+dz*c;}
+  ZB.globs.push({id:++ZB.gid,x,y,z:zz,vx:(tx-x)/T,vy:(ty-y+0.5*ZAC_G*T*T)/T,vz:(tz-zz)/T,t:0,src:{id:'s'+z.id,x:z.x,z:z.z,t:z.t}});
   zVoice(z,'zCall',0.7);}
 function zAcidPool(x,z){if(!freeAt(x,z)){const c=nearestFree(...cellOf(x,z));if(!c)return;x=c[0]-50+0.5;z=c[1]-20+0.5;}
   const near=ZB.pools.find(q=>hyp(q.x,q.z,x,z)<0.9);if(near){near.t=CFG.zAcidT;near.r=Math.min(CFG.zAcidR*1.45,near.r+0.25);return;}
@@ -10583,6 +10628,7 @@ function zKill(z,head,by,remote){z.hp=0;z.st='dead';z.deadT=0;z.wind=0;z.fallDir
   if(!remote){if(S&&S.zr&&S.mode==='zr')S.zr.kills++;if(S&&S.mode==='zr'&&S.zr)zrDrop(z);if(by&&S&&S.mode==='zr'){by.k=(by.k|0)+1;xsAdd(by,'zk',by.w);zrOnKill(z,head,by);}}
   else if(by&&by.s===mySlot())setTimeout(()=>{hitCue('kill');killMark();},0);
   if(z.mod==='sp'&&!remote&&!zGuest())zSplit(z);
+  if(z.t==='matri'&&(z.gen|0)<2&&!remote&&!zGuest())zMatriSplit(z);
   if(ZTYPES[z.t].bloat)zBurst(z,by);else if(head)zHeadPop(z);else zVoice(z,'zDie',0.9);}/* no "X down" text for Revenants (Joe): the kill cue and hitmarker say it */
 /* one shooter's hits on one Revenant this shot (by: the player who fired; numbers and the kill call only show for your own) */
 function zApply(z,e,by,pred){if(z.st==='dead')return false;const boss=!!ZTYPES[z.t].boss,l=Math.hypot(e.dx,e.dz)||1,ux=e.dx/l,uz=e.dz/l;
@@ -10590,12 +10636,13 @@ function zApply(z,e,by,pred){if(z.st==='dead')return false;const boss=!!ZTYPES[z
     if(S&&S.mode==='zr'){const hv=(by&&by.st==='down'?zrV(by,'lb')||1:1)*(1+zrV(by,'hv'))*[1,1.05,1.15][zrSet(by,'arm')]*zrSwDmg(by)*(zrHas(by,'ex')?1.4:1)*(z.elite?1+zrV(by,'os'):1)*(z.reg.torso.hp<z.reg.torso.max?1+zrV(by,'wp'):1)*((z.mk|0)>zClk()?1.4:1),hp=1+zrV(by,'hp');let pl=1;
       // Overwatch: every 8 s your next hit marks the Revenant (host side)
       if(!pred&&!zGuest()&&zrHas(by,'ow')&&zClk()-(by.owT||-99)>=8){by.owT=zClk();z.mk=zClk()+5;}
-      if(boss){const f=ux*-Math.sin(z.yaw)+uz*-Math.cos(z.yaw);pl=f<-0.2?0.3:f>0.35?1.6:0.7;e.plate=pl;}
+      if(boss){const f=ux*-Math.sin(z.yaw)+uz*-Math.cos(z.yaw);pl=z.t==='matri'?(f>0.35?1.6:1):f<-0.2?0.3:f>0.35?1.6:0.7;e.plate=pl;}
       if(hv!==1||hp!==1||pl!==1){e.dmg=0;for(const h of e.hits){h.dmg*=hv*pl*(ZR.parts[h.p].reg==='head'?hp:1);e.dmg+=h.dmg;}}}
     // a Shielded elite's shell takes the first zShieldHp of damage, then shatters
     if(z.shield>0&&e.dmg>0){const a=Math.min(z.shield,e.dmg),k=(e.dmg-a)/e.dmg;z.shield-=a;z.shF=1;for(const h of e.hits)h.dmg*=k;e.dmg-=a;
       if(z.shield<=0){z.shield=0;zShieldBreak(z);}
       if(e.dmg<=0.01){if(by&&by.s===mySlot())dmgNum(e.x,e.y,e.z,Math.round(a),false);return false;}}
+    if(boss&&!(S&&S.mode==='zr')){const f=ux*-Math.sin(z.yaw)+uz*-Math.cos(z.yaw),pl=z.t==='matri'?(f>0.35?1.6:1):f<-0.2?0.3:f>0.35?1.6:0.7;if(pl!==1){e.dmg=0;for(const h of e.hits){h.dmg*=pl;e.dmg+=h.dmg;}}e.plate=pl;}/* the same plating and weak spots at the range */
     const mine=by&&by.s===mySlot();if(mine)dmgNum(e.x,e.y,e.z,e.dmg,e.head);
     z.flash=1;if(!boss){z.flinch=1;z.slow=Math.max(z.slow,z.t==='sprint'?0.28:0.2);
     const k=Math.min(0.25,e.dmg/200);const px=z.x+ux*k,pz=z.z+uz*k;if(freeAt(px,pz)){z.x=px;z.z=pz;}}
@@ -10612,6 +10659,7 @@ function zApply(z,e,by,pred){if(z.st==='dead')return false;const boss=!!ZTYPES[z
     if(!pred&&!zGuest()&&zrHas(by,'px')){by.pxN=(by.pxN|0)+1;if(by.pxN>=10){by.pxN=0;const bx=z.x,bz=z.z;setTimeout(()=>{if(S&&S.phase==='live')zAoe(bx,bz,2.5,40,by);},0);}}
     const regs=Object.keys(hitReg).map(r=>`${ZREG[r].name} ${Math.round(hitReg[r])}`).join(', ');
     const rd=mine&&rgOn();if(rd){RG.hits++;RG.read=`${ZTYPES[z.t].name} · ${regs} at ${e.dist.toFixed(1)} m`+(off.length?` · ${off.join(' and ')} off`:'');}
+    if(z.t==='matri'){z.quiet=0;if(!pred&&!zGuest()&&(z.gen|0)<2&&z.reg.torso.hp<=z.max*((z.gen|0)?0.5:0.66)){zKill(z,false,by);return true;}}
     if(headKill||z.reg.torso.hp<=0){if(pred){z.hp=1;return false;}/* online guests wait for the host to call the kill */zKill(z,headKill,by);if(rd)RG.read+=headKill?' · head off, kill':' · down';return true;}
     z.hp=Math.max(1,Math.round(z.reg.torso.hp));return false;}
 function zDeliver(){const a=ZB.acc;ZB.acc=null;if(!a||!a.size)return 0;let head=false,kill=false;const s=mySlot(),by=s>=0&&S?S.players[s]:null;
@@ -10642,7 +10690,7 @@ function zPose(z,dt){const R=ZR,T=ZTYPES[z.t],s=zSize(z),lb=zLimbs(z),crawl=lb.l
   R.hips.rotation.set(0,Math.sin(ph)*0.12*sw,Math.sin(ph)*0.07*sw+Math.sin(z.seed)*0.05);R.hips.position.y=0.95-Math.abs(Math.sin(ph))*0.04*sw-(sprint?0.06:0);
   R.spine.rotation.set(T.lean+fl*0.45-z.atkK*0.25-(z.chg>0?0.55:0)+(z.chW>0?0.25:0),-Math.sin(ph)*0.1*sw,Math.sin(z.seed*1.7)*0.08);
   // a Bloater's gut is swollen (and swells further as it is about to burst); head and arms keep their size
-  {const sw0=T.bloat?(z.wind>0?1+0.35*(1-z.wind/T.wind):1)+0.06*Math.sin(zClk()*2+z.seed):0,fx=1+0.42*sw0,fy=1+0.06*sw0,fz=1+0.6*sw0;
+  {const sw0=T.bloat?(z.wind>0?1+0.35*(1-z.wind/T.wind):1)+0.06*Math.sin(zClk()*2+z.seed):z.t==='matri'?0.4+0.04*Math.sin(zClk()*1.6+z.seed):0,fx=1+0.42*sw0,fy=1+0.06*sw0,fz=1+0.6*sw0;
     R.spine.scale.set(fx,fy,fz);R.head.scale.set(1/fx,1/fy,1/fz);for(const A of R.sh)A.s.scale.set(1/fx,1/fy,1/fz);}
   R.head.rotation.set(-T.lean*0.6-fl*0.3,Math.sin(z.seed*3+zClk()*0.7)*0.25,Math.sin(z.seed+zClk()*1.3)*0.18);
   if(z.sw>0){const k=zGuest()?0.8:clamp(1-z.sw/CFG.zSpiWind,0,1);R.spine.rotation.x+=0.5*k;R.head.rotation.x+=0.55*k;}/* a Spitter rears back to throw */
@@ -10698,10 +10746,10 @@ function zRender(dt){
         const tx=e[o]*x+e[o+4]*y+e[o+8]*w+e[o+12],ty=e[o+1]*x+e[o+5]*y+e[o+9]*w+e[o+13],tz=e[o+2]*x+e[o+6]*y+e[o+10]*w+e[o+14];
         const j=P.glow?ng++:nb++,m=j*16;
         A[m]=ax;A[m+1]=ay;A[m+2]=az;A[m+3]=0;A[m+4]=bx;A[m+5]=by;A[m+6]=bz;A[m+7]=0;A[m+8]=cx;A[m+9]=cy;A[m+10]=cz;A[m+11]=0;A[m+12]=tx;A[m+13]=ty;A[m+14]=tz;A[m+15]=1;
-        let r=col[i*3],g=col[i*3+1],b=col[i*3+2];if(P.glow){const gk=eyeK*(p===R.PI.sac?(z.sw>0?1.8+0.5*Math.sin(zClk()*30):0.45):1);r*=gk;g*=gk;b*=gk;}else if(f>0){const q=f*0.6;r+=(1.6-r)*q;g+=(1.6-g)*q;b+=(1.6-b)*q;}
+        let r=col[i*3],g=col[i*3+1],b=col[i*3+2];if(P.glow){const gk=eyeK*(p===R.PI.sac?(z.sw>0?1.8+0.5*Math.sin(zClk()*30):0.45):p===R.PI.bsac?0.75+0.35*Math.sin(zClk()*3+z.seed)+(z.sw>0?0.6:0):1);r*=gk;g*=gk;b*=gk;}else if(f>0){const q=f*0.6;r+=(1.6-r)*q;g+=(1.6-g)*q;b+=(1.6-b)*q;}
         C[j*3]=r;C[j*3+1]=g;C[j*3+2]=b;}}
     if(z.st!=='dead'||z.deadT<ZDIS0+0.3){R.m.makeTranslation(z.x,0.02,z.z);R.blob.setMatrixAt(bi++,R.m);}}
-  bm.count=nb;gm.count=ng;zUpd(bm,nb);zUpd(gm,ng);zAcidDraw(dt);zShellDraw(dt);
+  bm.count=nb;gm.count=ng;zUpd(bm,nb);zUpd(gm,ng);zAcidDraw(dt);zShellDraw(dt);zRangeBossBar();
   R.blob.count=bi;if(bi)R.blob.instanceMatrix.needsUpdate=true;
   zPixTick(dt);}
 /* ---------- the Range tab section ---------- */
@@ -10710,7 +10758,7 @@ function zHorde(){for(let i=0;i<ZB.horde;i++)zHordeOne();}
 function zRangeUI(el,mk,ab){el.append(mk('h3','','Revenants (Zombie Rumble)'));
   const alive=ZB.list.filter(z=>z.st!=='dead').length;
   el.append(mk('div','note',`Spawned where props go (Place and Distance above), or as a horde rising at the far end. ${alive} up, ${ZB.kills} dropped.`));
-  const b=mk('div','btns');ab('Shambler',()=>zSpawnAhead('sham'),b);ab('Sprinter',()=>zSpawnAhead('sprint'),b);ab('Spitter',()=>zSpawnAhead('spit'),b);ab(`Horde of ${ZB.horde}`,()=>{zHorde();rgUI();},b);
+  const b=mk('div','btns');ab('Shambler',()=>zSpawnAhead('sham'),b);ab('Sprinter',()=>zSpawnAhead('sprint'),b);ab('Spitter',()=>zSpawnAhead('spit'),b);ab('The Matriarch',()=>{const a=ZB.as;ZB.as='';const m=zSpawnAhead('matri');ZB.as=a;if(m){m.gen=0;m.gs=1;ZB.rbMax=0;}},b);ab(`Horde of ${ZB.horde}`,()=>{zHorde();rgUI();},b);
   ab(ZB.endless?'Stop the endless horde':'Endless horde',()=>{ZB.endless=!ZB.endless;rgUI();},b);ab('Clear Revenants',()=>{zClear();ZB.kills=0;rgUI();},b);el.append(b);
   const hl=mk('label','');hl.append(document.createTextNode('Revenants'));const hs=document.createElement('select');
   [['hunt','Come at you'],['still','Stand still']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;hs.append(o);});
@@ -10720,7 +10768,7 @@ function zRangeUI(el,mk,ab){el.append(mk('h3','','Revenants (Zombie Rumble)'));
     as.value=ZB.as||'';as.addEventListener('change',()=>{ZB.as=as.value;});al.append(as);el.append(al);}
   devKnob(el,'Horde size',1,ZB.cap,1,()=>ZB.horde,v=>{ZB.horde=v;},10);
   for(const [k,t,lo,hi,st] of [['zShHp','Shambler health',1,500,1],['zShSpd','Shambler speed (m/s)',0.3,6,0.1],['zShDmg','Shambler hit damage',0,100,1],
-    ['zSpHp','Sprinter health',1,500,1],['zSpSpd','Sprinter speed (m/s)',1,12,0.1],['zSpDmg','Sprinter hit damage',0,100,1],['zSpiHp','Spitter health',1,500,1],['zSpiGlob','Spitter acid hit',0,100,1],['zAcidDps','Acid pool damage per second',0,60,1],['zSpiCd','Spitter seconds between throws',0.5,10,0.1],['zShieldHp','Shielded elite shell',0,500,5],['zReach','Reach (m)',0.6,3,0.05]])
+    ['zSpHp','Sprinter health',1,500,1],['zSpSpd','Sprinter speed (m/s)',1,12,0.1],['zSpDmg','Sprinter hit damage',0,100,1],['zSpiHp','Spitter health',1,500,1],['zSpiGlob','Spitter acid hit',0,100,1],['zAcidDps','Acid pool damage per second',0,60,1],['zSpiCd','Spitter seconds between throws',0.5,10,0.1],['zShieldHp','Shielded elite shell',0,500,5],['zMaHp','Matriarch health (all copies)',100,8000,50],['zMaRegrow','Matriarch copy regrows after (s)',3,60,1],['zReach','Reach (m)',0.6,3,0.05]])
     devKnob(el,t,lo,hi,st,()=>CFG[k],v=>{CFG[k]=v;sbSave();},CFG0[k]);
   el.append(mk('div','note','Health is split over head (75%), body (100%), arms (45% each) and legs (60% each); a head or body at zero kills, a limb at zero falls off. Health and damage apply to the next ones spawned; speed and reach apply at once. "You take no damage" on the Rules tab keeps them from dropping you.'));}
 
@@ -10864,7 +10912,7 @@ function zrAct(k){return !!S&&S.mode==='zr'&&!!S.zr&&S.zr.act===k;}
 function zrSet(p,h){let n=0;if(p&&p.cards)for(const id of new Set(p.cards))if(ZCARDS[id]&&ZCARDS[id].h===h)n++;return n>=3?2:n>=2?1:0;}/* distinct cards: levels don't count twice */
 function zrMySet(h){if(!S||S.mode!=='zr')return 0;const s=mySlot();return s>=0?zrSet(S.players[s],h):0;}
 const ZFV={kill:1,head:1,multi:3,rev:15,revHot:10,wave:15,surge:30,boss:100};
-const ZTK=['sham','sprint','crawl','bloat','jugg','spit'];/* append only: online packets name types by index */
+const ZTK=['sham','sprint','crawl','bloat','jugg','spit','matri'];/* append only: online packets name types by index */
 function zOn(){return rgOn()||!!(S&&S.mode==='zr')||!!(!S&&DIO.on&&DIO.zr);}
 function zClk(){return S?S.clock:DIO.t;}
 function zrHas(p,k){return !!(p&&p.cards&&p.cards.includes(k));}
@@ -10897,7 +10945,7 @@ const zrSwDmg=p=>p&&p.sw&&p.w===p.sw.k?swMods(p.sw).dmg:1;
 function zrSwRoll(r,k){if(!k){const q=Math.random();k=r===3&&q<0.35?'gl':q<0.08?'arc':PVPK[(Math.random()*PVPK.length)|0];}return{k,r,s:1+((Math.random()*999999)|0)};}
 function zrDrop(z){const Z=S.zr;if(!Z||!Z.drops)return;const boss=!!ZTYPES[z.t].boss,el=!!z.elite;
   const add=(o,sp)=>{let x=z.x+(Math.random()-0.5)*sp,q=z.z+(Math.random()-0.5)*sp;if(!freeAt(x,q)){x=z.x;q=z.z;}o.i=++Z.di;o.x=+x.toFixed(2);o.z=+q.toFixed(2);o.e=Math.round(S.timer+o.e);Z.drops.push(o);};
-  if(boss){Z.crT=(Z.crT|0)+75;return;}/* the run ends with the headliner, so its 75 Credits go straight to everyone */
+  if(boss){if(!ZB.list.some(o=>o!==z&&o.st!=='dead'&&ZTYPES[o.t].boss))Z.crT=(Z.crT|0)+75;return;}/* the run ends with the headliner, so its 75 Credits go straight to everyone */
   else{if(Math.random()<(el?1:0.3))add({t:'c',v:el?8+((Math.random()*5)|0):2+((Math.random()*3)|0),e:25},0.8);
     // the last Revenant of every wave always drops a special weapon (Joe)
     const last=Z.ph==='wave'&&!Z.q.length&&!ZB.list.some(o=>o!==z&&o.st!=='dead');
@@ -11027,15 +11075,15 @@ function zrTick(dt){const Z=S.zr;if(!Z)return;S.timer+=dt;zrDropTick();const sho
     if(!Z.q.length&&!alive){Z.cleared++;for(const p of S.players){xsAdd(p,'wv');zrFavor(p,ZFV.wave*(zrV(p,'sp')||1));}
       if(Z.w<Z.nw){Z.ph='break';Z.t=Z.act==='rush'?3:CFG.zrBreak;zrRegroup();}
       else if(Z.seg<Z.segs){Z.ph='surge';Z.t=(short?25:40)*(Z.act==='long'?1.6:1);Z.sp=0.5;zrRegroup();}
-      else{Z.ph='boss';Z.sp=4;zrRegroup();const b=zrRise('jugg',false,true);if(b){b.hp=b.max=Math.round(CFG.zJgHp*(short?0.6:1));zBossHp(b);}}}}
+      else{Z.ph='boss';Z.sp=4;zrRegroup();const m=(Z.week|0)===2,b=zrRise(m?'matri':'jugg',false,true);if(b){b.hp=b.max=Math.round((m?CFG.zMaHp:CFG.zJgHp)*(short?0.6:1));zBossHp(b);Z.bossMax=b.max;}}}}
   else if(Z.ph==='break'){Z.t-=dt;if(Z.t<=0)zrWave(Z.w+1);}
   else if(Z.ph==='surge'){Z.t=Math.max(0,Z.t-dt);Z.sp-=dt;
     if(Z.t>0&&Z.sp<=0&&alive<cap+4){const r=Math.random(),t=r<0.12?'bloat':r<0.45?'sprint':r<0.55?'crawl':(Z.week|0)>=2&&r<0.68?'spit':'sham';if(zrRise(t,Math.random()<0.35))alive++;Z.sp=short?0.55:0.4;}
     if(Z.t<=0&&!alive){Z.cleared++;for(const p of S.players){xsAdd(p,'wv');zrFavor(p,ZFV.surge*(zrV(p,'sp')||1));}zrInter();}}
-  else if(Z.ph==='boss'){const b=ZB.list.find(o=>ZTYPES[o.t].boss);
-    if(b&&b.st!=='dead'){Z.boss={hp:Math.max(0,Math.round(b.reg.torso.hp)),max:Math.round(b.reg.torso.max)};Z.sp-=dt;
+  else if(Z.ph==='boss'){const fam=ZB.list.filter(o=>ZTYPES[o.t].boss&&o.st!=='dead'),b=fam[0]||ZB.list.find(o=>ZTYPES[o.t].boss);
+    if(fam.length){Z.boss={hp:zBossLeft(fam),max:Math.round(Z.bossMax||b.reg.torso.max),n:fam.length};Z.sp-=dt;
       if(Z.sp<=0&&alive<(short?5:7)){const r=Math.random();zrRise((Z.week|0)>=2&&r<0.2?'spit':r<0.5?'sham':r<0.85?'sprint':'crawl');Z.sp=2.5;}}
-    else if(b||Z.boss){Z.boss={hp:0,max:Z.boss?Z.boss.max:1};for(const p of S.players){xsAdd(p,'zb');zrFavor(p,ZFV.boss);}zrEnd(true,`${ZTYPES[b?b.t:'jugg'].name} is down`);return;}}
+    else if(b||Z.boss){Z.boss={hp:0,max:Z.boss?Z.boss.max:1};for(const p of S.players){xsAdd(p,'zb');zrFavor(p,ZFV.boss);}zrEnd(true,`${ZTYPES[b?b.t:'jugg'].name} is down`);return;}}/* the Matriarch's family counts as one: the bar sums every copy still up */
   else if(Z.ph==='inter'){Z.t-=dt;const hum=S.players.filter(p=>!p.bot);
     if(Z.t<=0||hum.every(p=>Z.ready[p.s])){for(const p of S.players)if(!Z.picked[p.s]&&(Z.offers[p.s]||[]).length)zrCardAct(p,{a:'pick',id:Z.offers[p.s][0]});zrSeg(Z.seg+1);}}
   Z.left=Z.ph==='surge'?alive:Z.q.length+alive;}
@@ -11146,14 +11194,14 @@ const ZLOST=['head','armL','armR','legL','legR'];
 function zGuest(){return net.mode==='online'&&!net.host;}
 function zHitLog(z,h,by){if(!(net.mode==='online'&&net.host))return;const L=ZB.hlog||(ZB.hlog=[]);if(L.length<48)L.push([z.id,h.p,+h.lx.toFixed(2),+h.ly.toFixed(2),+h.lz.toFixed(2),Math.round(h.dmg),by?by.s:-1]);}
 function zPack(withHits){const out=[];
-  for(const z of ZB.list){if(z.st==='dead'&&z.deadT>1.5)continue;let b=z.st==='rise'?0:z.st==='dead'?2:1;if(z.wind>0)b|=4;if(z.headKill)b|=8;if(z.fallBack)b|=16;if(z.elite)b|=1024;if(z.chg>0)b|=2048;if(z.chW>0)b|=4096;if(z.sw>0)b|=8192;if(z.shield>0)b|=16384;if(z.mod==='sp')b|=32768;if(z.mod==='sh')b|=65536;
+  for(const z of ZB.list){if(z.st==='dead'&&z.deadT>1.5)continue;let b=z.st==='rise'?0:z.st==='dead'?2:1;if(z.wind>0)b|=4;if(z.headKill)b|=8;if(z.fallBack)b|=16;if(z.elite)b|=1024;if(z.chg>0)b|=2048;if(z.chW>0)b|=4096;if(z.sw>0)b|=8192;if(z.shield>0)b|=16384;if(z.mod==='sp')b|=32768;if(z.mod==='sh')b|=65536;if(z.gen)b|=131072*z.gen;
     ZLOST.forEach((r,i)=>{if(z.reg[r].gone)b|=32<<i;});const e=[z.id,ZTK.indexOf(z.t),Math.round(z.x*10),Math.round(z.z*10),Math.round(z.yaw*100),b];if(b&2&&z.ks>=0)e.push(z.ks);out.push(e);}
   return out;}
 /* a guest: bring the local copies in line with the host's list */
 function zSync(zv,zh){ZB.zacAt=performance.now();if(!Array.isArray(zv))return;const seen=new Set(),byId=new Map();for(const z of ZB.list)byId.set(z.id,z);
   for(const e of zv){if(!Array.isArray(e)||e.length<6)continue;const [id,ti,xi,zi,yi,b]=e,t=ZTK[ti];if(!t)continue;seen.add(id);let z=byId.get(id);
     const x=xi/10,zz=zi/10,yaw=yi/100,st=b&3;
-    if(!z){if(st===2)continue;/* never saw it alive: nothing to show */z=zSpawn(t,x,zz,yaw,!!(b&1024),b&32768?'sp':b&65536?'sh':null);if(!z)continue;if(!(b&16384))z.shield=0;z.id=id;z.x=x;z.z=zz;byId.set(id,z);if(st===1){z.st='walk';z.riseT=0;}}
+    if(!z){if(st===2)continue;/* never saw it alive: nothing to show */z=zSpawn(t,x,zz,yaw,!!(b&1024),b&32768?'sp':b&65536?'sh':null);if(!z)continue;if(!(b&16384))z.shield=0;if(t==='matri'){z.gen=(b>>17)&3;z.gs=ZMGS[z.gen];}z.id=id;z.x=x;z.z=zz;byId.set(id,z);if(st===1){z.st='walk';z.riseT=0;}}
     z.tx=x;z.tz=zz;z.tyaw=yaw;z.netT=0;z.chg=b&2048?1:0;z.chW=b&4096?1:0;z.sw=b&8192?1:0;if(!(b&16384)&&z.shield>0){z.shield=0;zShieldBreak(z);}
     if(st===1&&z.st==='rise'){z.st='walk';z.riseT=0;}
     if(z.st!=='dead'){const w=!!(b&4);if(w&&!(z.wind>0))z.wind=ZTYPES[z.t].wind;if(!w&&z.wind>0){z.wind=0;z.atkK=1;}}
@@ -11198,14 +11246,14 @@ function zrHud(P){const Z=S.zr;if(!Z)return;const L=Z.left|0;
   const rb=$('role'),dir=Z.act&&ZDIR[Z.act];rb.hidden=!dir;if(dir){rb.className='zd';rb.textContent=`${ZDIR[Z.act].n} · 2× Favor`;}
   $('objective').textContent=!live?'':Z.ph==='surge'?(Z.t>0?'Elites incoming. Hold the floor':`Drop the last ${L}`):'';
   {const bb=$('zrboss'),on=S.phase==='live'&&Z.ph==='boss'&&!!Z.boss;bb.hidden=!on;const tb=$('topbar').getBoundingClientRect().bottom;
-    if(on){$('zrbossF').style.width=(100*clamp(Z.boss.hp/(Z.boss.max||1),0,1)).toFixed(1)+'%';bb.style.top=(tb+6)+'px';}
+    if(on){$('zrbossF').style.width=(100*clamp(Z.boss.hp/(Z.boss.max||1),0,1)).toFixed(1)+'%';bb.style.top=(tb+6)+'px';zBossText((Z.week|0)===2?'matri':'jugg',Z.boss.n);}
     $('zrcap').style.top=Math.max(innerHeight*0.28,(on?bb.getBoundingClientRect().bottom:tb)+12)+'px';}/* below everything up top */
   // Favor the audience paid you, as toasts
   zrCredT(Z);zrWCard(P);
   if(P){if(ZW.fvK===S.mid&&(P.fv|0)>ZW.fv)xpToast(`+${(P.fv|0)-ZW.fv} Favor`);ZW.fvK=S.mid;ZW.fv=P.fv|0;}
   zrCardsLine(P);zrInterUI(P);zrWatch();}
 /* the cards you hold, under your health */
-function zrHide(){for(const id of ['zrheld','zrboss','zrint','zrwcard'])if(!$(id).hidden)$(id).hidden=true;$('zrcap').replaceChildren();}
+function zrHide(){for(const id of rgOn()&&ZB.rbMax?['zrheld','zrint','zrwcard']:['zrheld','zrboss','zrint','zrwcard'])if(!$(id).hidden)$(id).hidden=true;$('zrcap').replaceChildren();}
 function zrCardsLine(P){const el=$('zrheld'),cs=(P&&P.cards)||[],k=cs.join(',')+(TOUCH.on?'t':'')+(innerHeight<520?'s':'');el.hidden=!cs.length;if(el.dataset.k===k)return;el.dataset.k=k;
   const chip=(h,t,d,set,r)=>{const sp=document.createElement('span');sp.className='zrcd'+(set?' set':'');if(r)sp.style.setProperty('--rc',ZRARC[r]);if(set)sp.style.setProperty('--hc',ZHOUSE[h][1]);if(!set)sp.append(zGlyphEl(h));/* h: a card id here */sp.append(t);sp.title=d;return sp;};
   el.replaceChildren(...Object.keys(ZHOUSE).filter(h=>zrSet(P,h)).map(h=>{const n=zrSet(P,h);return chip(h,`${ZHOUSE[h][0]} set ${n>1?'III':'II'}: ${ZSET[h][n-1]}`,`${ZHOUSE[h][0]} set ${n>1?'III':'II'}, sponsored by the house (${n>1?'3':'2'} ${ZHOUSE[h][0]} cards): ${ZSET[h][n-1]}`,true);}),
@@ -11232,7 +11280,7 @@ function zrWatch(){const Z=S.zr,k=S.mid+':'+Z.seg+':'+Z.w+':'+Z.ph+':'+S.phase,w
   else if(Z.ph==='wave'){if(Z.w>1)sting('armed',0,0.04);if(Z.seg===1&&Z.w===1)zrCap('The Circuit presents',`Week ${Z.week||1}: ${ZWEEKS[Z.week||1].n} · the host world is watching`);else zrCap(Z.w===Z.nw?'Final wave':`Wave ${Z.w}`,(Z.week|0)>=2&&Z.seg===1&&Z.w===2?'Spitters in the field: shoot the glowing throat':`Segment ${Z.seg}`,Z.w===Z.nw?'r3':'r'+Z.w);}
   else if(Z.ph==='break'){crowdCheer('point',1);sting('win',0,0.04);}
   else if(Z.ph==='surge'){sting('armed',0,0.05);zrCap('Surge','Elites incoming. Hold the floor','r4');}
-  else if(Z.ph==='boss'){crowdCheer('point',1);sting('armed',0,0.06);zrCap('Headliner incoming','The Juggernaut','r12');setTimeout(()=>announce('h1'),1500);}
+  else if(Z.ph==='boss'){crowdCheer('point',1);sting('armed',0,0.06);if((Z.week|0)===2)zrCap('Headliner incoming','The Matriarch','r12');else{zrCap('Headliner incoming','The Juggernaut','r12');setTimeout(()=>announce('h1'),1500);}}
   else if(Z.ph==='inter'){crowdCheer('win',0.8);zrCap('Intermission','The patrons are bidding','r5');setTimeout(()=>announce('r6'),1300);}}
 /* the intermission: three patron cards. The first pick is free; then Favor buys the others or rerolls them. */
 const ZI={k:'',gift:false};
