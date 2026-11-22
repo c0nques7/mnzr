@@ -11421,7 +11421,7 @@ function zVis(z,p){const P=ZR.parts[p],v=z.vox[p],nb=P.nb,out=z.vis[p];let k=0;
   z.vn[p]=k;z.vd[p]=0;}
 function zRender(dt){
   if(ZB.list.length&&!zOn())zClear();
-  // the first time Revenants can appear, build their shaders ahead (one instance each, under the floor) so the first ones rising don't stall a frame
+  // fallback if startup prewarm failed: build their shaders ahead (one instance each, under the floor) so the first ones rising don't stall a frame
   if(!ZB.warm&&zOn()){ZB.warm=1;const R0=ZR;R0.m.makeTranslation(0,-50,0);for(const m of [R0.body,R0.glowM,R0.dBody,R0.dGlow,R0.blob]){m.setMatrixAt(0,R0.m);m.count=1;m.instanceMatrix.needsUpdate=true;}
     try{renderer.compileAsync(scene,camera).catch(()=>{});}catch(e){}}
   if(ZB.list.length&&zGuest())zGuestTick(dt);
@@ -14213,7 +14213,7 @@ function warmUI(step,label){
     el.innerHTML='<b style="font-size:20px;letter-spacing:.1em">PREPARING ARENAS</b><div style="width:min(300px,70vw);height:5px;border-radius:3px;background:rgba(255,255,255,.14);overflow:hidden"><div id="mapwarmBar" style="height:100%;width:0;background:#5ff2ff"></div></div><div id="mapwarmName" style="font:12px/1.3 ui-monospace,monospace;color:#b9b0d6"></div>';
     document.body.appendChild(el);}
   const bar=document.getElementById('mapwarmBar'),nm=document.getElementById('mapwarmName');
-  if(bar)bar.style.width=Math.round(step/(MAP_IDS.length+1)*100)+'%';
+  if(bar)bar.style.width=Math.round(step/(MAP_IDS.length+2)*100)+'%';
   if(nm&&label)nm.textContent=label;
 }
 warmUI(0,'Compiling shaders…');
@@ -14230,6 +14230,17 @@ warmUI(0,'Compiling shaders…');
   }
   if(MAP.id!==start){try{setMap(start);}catch(e){}}
   try{renderScene();await renderer.compileAsync(scene,camera);}catch(e){}
+  warmUI(++step,'Revenants…');
+  /* ZR's Revenant instance materials are not in the menu scene. The old zRender() warm-up fired compileAsync on the first
+     game frame without awaiting it, so the *next* frame blocked in shaderSource/getProgramInfoLog (~0.4 s). Draw one
+     hidden instance below the floor and await the compile here, behind the progress screen, then mark ZB warm. */
+  try{
+    const R0=ZR;R0.m.makeTranslation(0,-50,0);
+    for(const m of [R0.body,R0.glowM,R0.dBody,R0.dGlow,R0.blob]){m.setMatrixAt(0,R0.m);m.count=1;m.instanceMatrix.needsUpdate=true;}
+    renderScene();
+    await renderer.compileAsync(scene,camera);
+    ZB.warm=1;
+  }catch(e){}
   warmUI(-1);
   requestAnimationFrame(frame);
 })();
