@@ -523,7 +523,10 @@ body.ended #touch,body.ended #zrcap,body.ended #down,body.ended #lockhint,body.e
 @media (max-height:520px){.mnlab{display:none}}
 /* Updates island on the main menu (UPDATES list in the script): version + latest changes, older versions below, scrolls inside */
 .mupd{box-sizing:border-box;grid-area:upd;justify-self:end;align-self:start;width:min(340px,100%);max-height:100%;min-height:0;display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 6px 8px 12px;zoom:calc(max(var(--mfit,1),.8)*var(--uiz,1))}
-.muhd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding-right:6px}.muhd b{font-family:var(--display);font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}.muhd .num{color:var(--accent);font-size:15px}
+.muhd{font:inherit;color:inherit;background:none;border:0;padding:0 6px 0 0;margin:0;text-align:left;display:flex;align-items:baseline;gap:10px;cursor:default;-webkit-tap-highlight-color:transparent}.muhd b{flex:1}
+.muchev{display:none}body.touch .muhd{cursor:pointer;min-height:36px;align-items:center}body.touch .muchev{display:block;width:9px;height:9px;border-right:2px solid var(--accent);border-bottom:2px solid var(--accent);transform:rotate(225deg) translate(-2px,-2px);transition:transform .15s}
+body.touch .mupd.col .muchev{transform:rotate(45deg) translate(-2px,-2px)}body.touch .mupd.col .mulist{display:none}body.touch .mupd.col{gap:0;padding-block:4px}
+.mupd .munew{display:none;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#05040c;background:var(--accent2);border-radius:3px;padding:1px 5px;align-self:center}body.touch .mupd.col.hasnew .munew{display:inline}.muhd b{font-family:var(--display);font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}.muhd .num{color:var(--accent);font-size:15px}
 .mulist{overflow:auto;min-height:0;flex:1;display:flex;flex-direction:column;gap:10px;padding-right:6px;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.25) transparent}
 .mue{outline:none;border-radius:4px}.mue:focus-visible{box-shadow:0 0 0 2px var(--accent)}
 .mue h3{margin:0;font-size:15px;line-height:1.25;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px}.mue h3 .num{color:var(--accent);font-size:13px}.mue h3 small{font-size:12px;color:var(--muted);font-weight:400}
@@ -916,7 +919,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
       <div class="mname"><input id="nick" class="mnick" maxlength="16" autocomplete="off" value="Player" aria-label="Player name" spellcheck="false" enterkeyhint="done"><button type="button" class="mnedit" id="nickEd" aria-label="Change your name" title="Change your name">&#9998;</button></div>
       <div class="lvlbox"><div class="lvlhd"><b id="lvlN">Level 1</b><span id="lvlX"></span></div><div class="xpbar"><i id="lvlBar"></i></div><div class="cap" id="lvlNext"></div></div>
     </aside>
-    <aside class="mupd" id="mupd" aria-label="Updates"><div class="muhd"><b>Updates</b><span class="num" id="muver"></span></div><div class="mulist" id="mulist"></div></aside>
+    <aside class="mupd" id="mupd" aria-label="Updates"><button type="button" class="muhd" id="muhd" aria-expanded="true" aria-controls="mulist"><b>Updates</b><span class="munew">New</span><span class="num" id="muver"></span><i class="muchev" aria-hidden="true"></i></button><div class="mulist" id="mulist"></div></aside>
     <div class="mfoot"><span class="mhint" id="mhint"><kbd>&#8593;</kbd><kbd>&#8595;</kbd> select · <kbd>Enter</kbd> confirm · <kbd>Esc</kbd> back</span><span id="mver">Prototype build</span></div>
     <div id="touchnote" hidden></div>
   </div>
@@ -12410,7 +12413,12 @@ function updDate(d){const t=new Date(d+'T12:00:00');return isNaN(t)?d:t.toLocale
     const h=document.createElement('h3'),n=document.createElement('span');n.className='num';n.textContent='v'+u.v;h.append(n,document.createTextNode(u.t));
     const sm=document.createElement('small');sm.textContent=updDate(u.d);h.append(sm);
     if(i===0&&seen!==GAME_VER){const g=document.createElement('span');g.className='tag';g.textContent='New';h.append(g);}
-    const ul=document.createElement('ul');for(const x of u.n){const li=document.createElement('li');li.textContent=x;ul.append(li);}a.append(h,ul);L.append(a);});})();
+    const ul=document.createElement('ul');for(const x of u.n){const li=document.createElement('li');li.textContent=x;ul.append(li);}a.append(h,ul);L.append(a);});
+  /* touch screens: tap the header to fold the island down to one line; remembered per device, a new version opens it once */
+  const box=$('mupd'),hd=$('muhd');box.classList.toggle('hasnew',seen!==GAME_VER);
+  let col=false;try{col=localStorage.getItem('za-updcol')==='1'&&seen===GAME_VER;}catch(e){}
+  const setCol=c=>{box.classList.toggle('col',c);hd.setAttribute('aria-expanded',String(!(c&&document.body.classList.contains('touch'))));};setCol(col);
+  hd.addEventListener('click',()=>{if(!document.body.classList.contains('touch'))return;col=!col;setCol(col);try{localStorage.setItem('za-updcol',col?'1':'0');}catch(e){}blip(col?520:660,0.04,0.025,false,'ui');if(typeof menuFit==='function')menuFit();});})();
 $('lockbtn').addEventListener('click',()=>lockOpen(true));$('zrlockx').addEventListener('click',()=>{lockOpen(false);$('lockbtn').focus();});
 window.addEventListener('keydown',e=>{if($('zrlocker').hidden)return;if(e.code==='Escape'||e.code==='Backspace'){e.preventDefault();e.stopImmediatePropagation();lockOpen(false);$('lockbtn').focus();}},true);
 lockUI();$('modesel').addEventListener('change',()=>{modeCap();try{localStorage.setItem('za-mode',$('modesel').value);}catch(e){}});
