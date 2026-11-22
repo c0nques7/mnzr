@@ -9734,6 +9734,14 @@ function toggleSB(force){const el=$('sbpanel');const open=force!==undefined?forc
   if(SB.on&&SB.tab==='obj'&&devPickAim()>=0)buildSB();}devHL();}
 function sbMe(){const s=mySlot();return s>=0&&S?S.players[s]:null;}
 function sbTeleport(zi){const P=sbMe();if(!P||P.st!=='alive')return;me.x=ZX[zi];me.z=P.s<2?-14:14;me.y=0;me.vy=0;me.vx=me.vz=0;P.x=me.x;P.z=me.z;P.y=0;}
+/* which CFG numbers already have a hand-made knob: read once from the game's own source ([key,'label',lo,hi,step] lists) */
+let CFG_KNOBBED=null;
+function cfgAuto(){if(!CFG_KNOBBED){CFG_KNOBBED=new Set(['regen']);for(const sc of document.scripts){const t=sc.textContent;if(!t||t.indexOf('SB_KNOBS')<0)continue;
+    for(const m of t.matchAll(/\['([A-Za-z0-9]+)','[^'\n]{1,80}',-?[0-9.]+,-?[0-9.]+,[0-9.]+\]/g))CFG_KNOBBED.add(m[1]);}}
+  const fam=[[/^zMa/,'The Matriarch'],[/^zJg/,'The Juggernaut'],[/^zSpi|^zAcid/,'Spitter and acid'],[/^z|^zr/,'Zombie Rumble'],[/^rad/,'Fallout'],[/^eh/,'Event Horizon'],[/^dm/,'Deathmatch'],[/./,'Other rules']];
+  const out=new Map();for(const k of Object.keys(CFG0)){if(CFG_KNOBBED.has(k)||!num(CFG0[k]))continue;const g=fam.find(([re])=>re.test(k))[1];
+    if(!out.has(g))out.set(g,[]);out.get(g).push([k,autoLabel(k),...autoRange(CFG0[k])]);}
+  return [...out];}
 function buildSB(){
   const el=$('sbpanel'),top=el.scrollTop,same=el.dataset.tab===SB.tab+DEV.sel+DEV.gunW+DEV.wW;el.dataset.tab=SB.tab+DEV.sel+DEV.gunW+DEV.wW;
   const fresh=el.cloneNode(false);el.replaceWith(fresh);return buildSBIn(fresh,same?top:0);}
@@ -9787,6 +9795,10 @@ function buildSBIn(el,top){
       r.type='range';r.min=lo;r.max=hi;r.step=st;r.value=CFG[k];out.textContent=sbFmt(CFG[k],st);w.classList.toggle('chg',CFG[k]!==CFG0[k]);
       r.addEventListener('input',()=>{CFG[k]=+r.value;out.textContent=sbFmt(CFG[k],st);w.classList.toggle('chg',CFG[k]!==CFG0[k]);if(k==='mag'&&me.w==='rifle')me.ammo=Math.min(me.ammo,CFG.mag);sbSave();});
       w.append(sp,out,r);el.append(w);}}
+  // automatic knobs: every rule number that has no hand-made knob anywhere in the Sandbox
+  {const groups=cfgAuto();for(const [g,list] of groups){el.append(mk('h3','',g+' (automatic)'));
+    for(const [k,txt,lo,hi,st] of list)devKnob(el,txt,lo,hi,st,()=>CFG[k],v=>{CFG[k]=v;sbSave();},CFG0[k]);}
+    if(groups.length)el.append(mk('div','note','Automatic knobs appear for any new rule number that has no knob of its own yet. Their ranges are guessed from the default (0 to 3x).'));}
   const eb=mk('div','btns');
   const rs=mk('button','btn','Reset rules');rs.type='button';rs.addEventListener('click',()=>{Object.assign(CFG,CFG0);ZHP0.forEach((v,i)=>ZHP[i]=v);Object.assign(SB,{timer:false,tickets:true,bots:'on',god:false,ammo:false,names:false});try{localStorage.removeItem('za-sb');}catch(e){}buildSB();});
   const cl=mk('button','btn','Close');cl.type='button';cl.addEventListener('click',()=>{toggleSB(false);autoLock(true);});
@@ -9805,6 +9817,22 @@ const W_FIELDS=[['dmg','Body damage',5,150,1],['head','Head damage',5,250,1],['c
 const wGet=(k,f)=>k==='rifle'&&RIFLE_CFG[f]?CFG[RIFLE_CFG[f]]:W[k][f];
 function wSet(k,f,v){if(k==='rifle'&&RIFLE_CFG[f])CFG[RIFLE_CFG[f]]=v;else W[k][f]=v;if(f==='mag'&&me.w===k)me.ammo=Math.min(me.ammo,v);}
 const W0={};for(const k of WKEYS){W0[k]={};for(const [f] of W_FIELDS)W0[k][f]=k==='rifle'&&RIFLE_CFG[f]?CFG0[RIFLE_CFG[f]]:W[k][f];}
+/* auto knobs (Joe): any other number a gun carries (charge time, chain reach, splash...) gets a Sandbox knob without anyone listing it.
+   W_AUTO[k] = [[field, label, lo, hi, step]], built from the defaults at load; W0 keeps their defaults for reset, save and export. */
+const AUTO_SKIP=new Set(['key','wl','lv','lvl','unlock','ord','order','slot','id','zr']);
+const AUTO_LBL={tap:'Tap shot damage',chg:'Charge time (s)',chgMax:'Full charge time (s)',hip:'Hip-fire spread',cmove:'Move speed while charging (x)',ads:'Aim-down-sights time (x)',zoom:'Aim zoom (x)',
+  beamR:'Beam radius (m)',pl:'Pierce length (m)',range:'Range (m)',chain:'Chain jumps',chainR:'Chain reach (m)',splash:'Splash radius (m)',burst:'Shots per burst',burstCd:'Gap inside a burst (s)',pellets:'Pellets',heatUp:'Heat per shot',heatDn:'Cooling per second',speed:'Projectile speed (m/s)',buy:'Buy time (s)',buy1:'First round buy time (s)',post:'After-round pause (s)',overT:'Overtime (s)',multiT:'Multi-kill window (s)',winScore:'Rounds to win',ehPullG:'Black hole pull on grenades and acid globs'};
+const AUTO_TOK={z:'',zr:'Rumble',Sh:'Shambler',Sp:'Sprinter',Spi:'Spitter',Cr:'Crawler',Bl:'Bloater',Jg:'Juggernaut',Ma:'Matriarch',Acid:'acid',rad:'rad',eh:'pull',
+  Hp:'health',Spd:'speed',Dmg:'damage',Chg:'charge',Cd:'cooldown (s)',T:'time (s)',R:'radius (m)',Wind:'wind-up (s)',Glob:'glob',Pull:'pull',Boss:'boss',Dps:'damage per second',Hit:'hit',
+  In:'in',Out:'out',Decon:'decon',Boost:'boost',Mut:'mutate',G:'grab',P:'players',Wall:'wall',Regrow:'regrow',Reach:'reach'};
+function autoLabel(f){if(AUTO_LBL[f])return AUTO_LBL[f];const t=f.match(/^[a-z]+|[A-Z][a-z]*|[0-9]+/g)||[f];
+  const w=t.map(x=>x in AUTO_TOK?AUTO_TOK[x]:x.toLowerCase()).filter(Boolean).join(' ');return (w.charAt(0).toUpperCase()+w.slice(1))+' ('+f+')';}
+function autoRange(v){const a=Math.abs(v),int=Number.isInteger(v)&&a>=2,st=int?1:a>0?Math.pow(10,Math.floor(Math.log10(a))-1):0.01;
+  return [v<0?v*3:0,v>0?Math.max(v*3,v+st*10):v<0?0:1,Math.max(st,0.001)];}
+const W_AUTO={};for(const k of WKEYS){const known=new Set(W_FIELDS.map(x=>x[0]));W_AUTO[k]=[];
+  for(const f of Object.keys(W[k])){const dsc=Object.getOwnPropertyDescriptor(W[k],f);if(known.has(f)||AUTO_SKIP.has(f)||!dsc||!('value' in dsc)||typeof W[k][f]!=='number'||!isFinite(W[k][f]))continue;
+    const v=W[k][f];W0[k][f]=v;W_AUTO[k].push([f,autoLabel(f),...autoRange(v)]);}}
+function wFields(k){return W_FIELDS.concat(W_AUTO[k]||[]);}
 const GUN_FIELDS=[['crack','Supersonic crack',0,1.5,0.01],['blastF','Blast brightness (Hz)',800,10000,50],['blastF1','Blast low end (Hz)',100,2000,10],['blastT','Blast length (s)',0.005,0.12,0.001],
  ['tail','Blast tail level',0,1,0.01],['tailT','Tail length (s)',0.02,0.6,0.005],['body','Body thump',0,2,0.01],['f0','Thump pitch (Hz)',50,400,1],['bodyT','Thump length (s)',0.01,0.2,0.001],
  ['mech','Action clicks',0,1,0.01],['boltT','Second click delay (s)',0.02,0.15,0.001],['drive','Grit (saturation)',0.5,6,0.05],['refl','Wall reflections',0,0.6,0.01],['len','Clip length (s)',0.2,1.5,0.01]];
@@ -9838,7 +9866,7 @@ function devCollect(){const d={};const put=(sec,k,f,v)=>{((d[sec]=d[sec]||{})[k]
   d.hitRec=1;
   for(const k in GUN)for(const f in GUN[k])if(GUN[k][f]!==GUN0[k][f])put('gunLayers',k,f,GUN[k][f]);
   for(const k in STEP_MODE)for(const f in STEP_MODE[k])if(STEP_MODE[k][f]!==STEP0[k][f])put('steps',k,f,STEP_MODE[k][f]);
-  for(const k of WKEYS)for(const [f] of W_FIELDS){if(k==='rifle'&&RIFLE_CFG[f])continue;if(W[k][f]!==W0[k][f])put('weapons',k,f,W[k][f]);}
+  for(const k of WKEYS)for(const [f] of wFields(k)){if(k==='rifle'&&RIFLE_CFG[f])continue;if(W[k][f]!==W0[k][f])put('weapons',k,f,W[k][f]);}
   COVER.forEach((b,i)=>{const g=cGeo(b);if(!coverEq(g,COVER0[i])){(d.cover=d.cover||{})[i]={x:r2(g.x),z:r2(g.z),w:r2(g.w),d:r2(g.d),h:r2(g.h),hp:g.hp};}});
   if(d.cover&&MAP.id!=='yard')d.coverMap=MAP.id;/* cover edits are per map (indices differ); no tag = the Yard */
   return d;}
@@ -9849,7 +9877,7 @@ function devApply(d){d=d&&typeof d==='object'?d:{};const oldHit=!d.hitRec;/* tun
   for(const k in HITX){const o=oldHit?{}:(d.hitfx||{})[k]||{};for(const f in HITX0[k])HITX[k][f]=num(o[f])?o[f]:HITX0[k][f];}
   let gch=false;for(const k in GUN){const o=(d.gunLayers||{})[k]||{};for(const f in GUN[k]){const v=num(o[f])?o[f]:GUN0[k][f];if(GUN[k][f]!==v){GUN[k][f]=v;gch=true;}}}if(gch)gunRerender(0);
   for(const k in STEP_MODE){const o=(d.steps||{})[k]||{};for(const f in STEP0[k])STEP_MODE[k][f]=num(o[f])?o[f]:STEP0[k][f];}
-  for(const k of WKEYS){const o=(d.weapons||{})[k]||{};for(const [f] of W_FIELDS){if(k==='rifle'&&RIFLE_CFG[f])continue;W[k][f]=num(o[f])?o[f]:W0[k][f];}}
+  for(const k of WKEYS){const o=(d.weapons||{})[k]||{};for(const [f] of wFields(k)){if(k==='rifle'&&RIFLE_CFG[f])continue;W[k][f]=num(o[f])?o[f]:W0[k][f];}}
   coverApply(DEVMODE&&(d.coverMap||'yard')===MAP.id?d.cover:null);}
 function coverApply(cv){COVER.forEach((b,i)=>{const o=(cv||{})[i];const g=o&&['x','z','w','d','h','hp'].every(f=>num(o[f]))?o:COVER0[i];if(!coverEq(cGeo(b),g))setCover(i,g);});}
 function gunRerender(ms){clearTimeout(DEV.gunT);DEV.gunT=setTimeout(()=>{if(actx){gunBufs=null;gunInit();}},ms);}
@@ -10384,7 +10412,7 @@ function tunePack(){const now=performance.now();if(now-NET_TN.outT>1000||!NET_TN
 function tuneFromHost(str){if(typeof str!=='string'||str===NET_TN.s||str.length>60000)return;NET_TN.s=str;let t;try{t=JSON.parse(str);}catch(e){return;}if(!t||typeof t!=='object')return;
   Object.assign(CFG,CFG0);for(const k in t.c||{})if(k in CFG0&&num(t.c[k]))CFG[k]=t.c[k];
   if(Array.isArray(t.z)&&t.z.length===5)t.z.forEach((v,i)=>{if(isFinite(+v))ZHP[i]=clamp(+v,1,100);});
-  for(const k of WKEYS){const o=(t.w||{})[k]||{};for(const [f] of W_FIELDS){if(k==='rifle'&&RIFLE_CFG[f])continue;W[k][f]=num(o[f])?o[f]:W0[k][f];}}
+  for(const k of WKEYS){const o=(t.w||{})[k]||{};for(const [f] of wFields(k)){if(k==='rifle'&&RIFLE_CFG[f])continue;W[k][f]=num(o[f])?o[f]:W0[k][f];}}
   coverApply((t.m||'yard')===MAP.id?t.v:null);}
 function devExport(){const d={};const c={};for(const k in CFG0)if(CFG[k]!==CFG0[k])c[k]=CFG[k];if(Object.keys(c).length)d.cfg=c;if(ZHP.some((v,i)=>v!==ZHP0[i]))d.returnHP=[...ZHP];return Object.assign(d,devCollect());}
 function devStatus(){const el=document.getElementById('devstat');if(!el)return;const ch=JSON.stringify(devCollect())!==DEV.saved;el.textContent=ch?'Saving…':'Saved automatically. These settings apply to every mode in this browser.';el.classList.toggle('chg',ch);}
@@ -10459,8 +10487,9 @@ function buildWpn(el,mk){
   const sl=mk('label','');sl.append(document.createTextNode('Weapon'));const ws=document.createElement('select');for(const k of WKEYS){const o=document.createElement('option');o.value=k;o.textContent=W[k].name;ws.append(o);}
   ws.value=DEV.wW;ws.addEventListener('change',()=>{DEV.wW=ws.value;buildSB();});sl.append(ws);el.append(sl);const k=DEV.wW;
   for(const [f,txt,lo,hi,st] of W_FIELDS)devKnob(el,txt,lo,hi,st,()=>wGet(k,f),v=>wSet(k,f,v),W0[k][f]);
+  if(W_AUTO[k]&&W_AUTO[k].length){el.append(mk('h3','','More for this gun (automatic)'));for(const [f,txt,lo,hi,st] of W_AUTO[k])devKnob(el,txt,lo,hi,st,()=>W[k][f],v=>{W[k][f]=v;},W0[k][f]);}
   const bb=mk('div','btns');const b1=mk('button','btn','Equip it');b1.type='button';b1.addEventListener('click',()=>{const P=sbMe();if(P&&P.st==='alive'){me.w=k;me.ammo=W[k].mag;me.reloadT=0;showWeapon(k);}});
-  const b2=mk('button','btn','Reset weapon');b2.type='button';b2.addEventListener('click',()=>{for(const [f] of W_FIELDS)wSet(k,f,W0[k][f]);buildSB();});bb.append(b1,b2);el.append(bb);
+  const b2=mk('button','btn','Reset weapon');b2.type='button';b2.addEventListener('click',()=>{for(const [f] of wFields(k))wSet(k,f,W0[k][f]);buildSB();});bb.append(b1,b2);el.append(bb);
   devFooter(el,mk);}
 function buildObj(el,mk){
   if(rgOn()){el.append(mk('div','note','Arena cover is put away at the shooting range. Spawn range cover on the Range tab, or switch the Game mode (Range or Rules tab) to edit the arena cover.'));devFooter(el,mk);return;}
