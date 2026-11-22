@@ -394,7 +394,7 @@ body.ended #touch,body.ended #zrcap,body.ended #down,body.ended #lockhint,body.e
 /* main menu: classic layout. Logo top left, a big vertical list of items, a flyout panel for Play / Play online, the player card top right.
    The left side is darkened so the list reads; the arena flyover stays visible on the right. */
 #menu{align-items:stretch;justify-content:stretch;background:linear-gradient(90deg,rgba(10,7,20,.9) 0%,rgba(10,7,20,.62) 34%,rgba(10,7,20,.12) 64%,rgba(10,7,20,0) 80%),radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(10,7,20,.55) 100%)}
-.mwrap{box-sizing:border-box;width:100%;height:100%;overflow:hidden;display:grid;grid-template-columns:minmax(260px,calc(400px*var(--uiz,1))) minmax(0,calc(380px*var(--uiz,1))) minmax(0,1fr);grid-template-rows:auto 1fr auto;grid-template-areas:"logo logo card" "list panel ." "foot foot foot";gap:clamp(14px,3vh,32px) clamp(18px,3vw,44px);padding:clamp(4px,3vh,36px) clamp(0px,2vw,32px) 0}
+.mwrap{box-sizing:border-box;width:100%;height:100%;overflow:hidden;display:grid;grid-template-columns:minmax(260px,calc(400px*var(--uiz,1))) minmax(0,calc(380px*var(--uiz,1))) minmax(0,1fr);grid-template-rows:auto 1fr auto;grid-template-areas:"logo logo card" "list panel upd" "foot foot foot";gap:clamp(14px,3vh,32px) clamp(18px,3vw,44px);padding:clamp(4px,3vh,36px) clamp(0px,2vw,32px) 0}
 .mlogo{grid-area:logo;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
 .mlogo h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(40px,min(11vh,14.5vw),calc(104px*var(--uiz,1)));line-height:.82;letter-spacing:.01em;text-transform:uppercase;display:flex;flex-direction:column;gap:.06em;text-shadow:0 0 22px rgba(95,242,255,.35)}
 .mlogo h1 span{font-size:.5em;letter-spacing:.14em;padding-left:.06em;line-height:1}
@@ -521,19 +521,28 @@ body.ended #touch,body.ended #zrcap,body.ended #down,body.ended #lockhint,body.e
 .mnedit{flex:none;width:32px;height:32px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--accent);font-size:17px;line-height:1;cursor:pointer;padding:0}
 .mnedit:hover,.mnedit:focus-visible{background:#0b0f12;border-color:var(--accent);outline:none}
 @media (max-height:520px){.mnlab{display:none}}
+/* Updates island on the main menu (UPDATES list in the script): version + latest changes, older versions below, scrolls inside */
+.mupd{box-sizing:border-box;grid-area:upd;justify-self:end;align-self:start;width:min(340px,100%);max-height:100%;min-height:0;display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 6px 8px 12px;zoom:calc(max(var(--mfit,1),.8)*var(--uiz,1))}
+.muhd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding-right:6px}.muhd b{font-family:var(--display);font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}.muhd .num{color:var(--accent);font-size:15px}
+.mulist{overflow:auto;min-height:0;flex:1;display:flex;flex-direction:column;gap:10px;padding-right:6px;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.25) transparent}
+.mue{outline:none;border-radius:4px}.mue:focus-visible{box-shadow:0 0 0 2px var(--accent)}
+.mue h3{margin:0;font-size:15px;line-height:1.25;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px}.mue h3 .num{color:var(--accent);font-size:13px}.mue h3 small{font-size:12px;color:var(--muted);font-weight:400}
+.mue .tag{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#05040c;background:var(--accent2);border-radius:3px;padding:1px 5px;align-self:center}
+.mue ul{margin:4px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:3px;font-size:13px;line-height:1.32;color:rgba(238,240,255,.8)}
+.mue+.mue{border-top:1px solid rgba(255,255,255,.1);padding-top:8px}.mue.old ul{color:rgba(238,240,255,.62)}
 .mfoot{grid-area:foot;display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding-bottom:2px}
 .mfoot kbd{font-family:var(--mono);font-size:.9em;border:1px solid var(--line);border-radius:3px;padding:0 5px;margin-right:3px;background:rgba(255,255,255,.06)}
 body.touch .mhint{visibility:hidden}
 @media (prefers-reduced-motion:reduce){.mi,.mi::before,.mi::after{transition:none}.mpanel{animation:none}}
 @media (max-width:1100px) and (min-height:521px){
-  .mwrap{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"logo card" "list panel" "foot foot";grid-template-rows:auto 1fr auto}
-  .mcard{justify-self:end;width:min(280px,36vw)}.mlogo h1{font-size:clamp(40px,min(10vh,7.2vw),84px)}}
+  .mwrap{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"logo card" "list upd" "foot foot";grid-template-rows:auto 1fr auto}
+  .mcard{justify-self:end;width:min(280px,36vw)}.mupd{width:min(300px,38vw)}.mlogo h1{font-size:clamp(40px,min(10vh,7.2vw),84px)}}
 @media (max-width:760px) and (max-aspect-ratio:4/5){
-  .mwrap{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto 1fr auto;grid-template-areas:"logo" "card" "list" "foot";gap:16px}
-  .mcard{justify-self:stretch;width:100%}
+  .mwrap{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto 1fr auto auto;grid-template-areas:"logo" "card" "list" "upd" "foot";gap:16px}.mupd{max-height:30vh}
+  .mcard,.mupd{justify-self:stretch;width:100%}
   }
 @media (max-width:760px) and (max-height:900px){.mgo{font-size:20px;padding:9px 14px}}
-@media (max-height:520px) and (min-aspect-ratio:4/5){.mwrap{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"logo card" "list panel";grid-template-rows:auto 1fr;gap:10px 28px;padding-top:0}.mfoot{display:none}.mcard{width:min(280px,100%);padding:8px 12px;gap:4px}.mcard .cap{display:none}.mlogo h1{font-size:48px}.mgo{font-size:20px;padding:8px}}
+@media (max-height:520px) and (min-aspect-ratio:4/5){.mwrap{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"logo card" "list upd";grid-template-rows:auto 1fr;gap:10px 28px;padding-top:0;padding-bottom:8px}.mupd{width:min(280px,100%);justify-self:end}.mfoot{display:none}.mcard{width:min(280px,100%);padding:8px 12px;gap:4px}.mcard .cap{display:none}.mlogo h1{font-size:48px}.mgo{font-size:20px;padding:8px}}
 #score,#zoneline,#banner,.panel{box-shadow:0 0 0 1px rgba(255,43,214,.12),0 0 18px rgba(39,230,255,.12)}
 #hpnum,#ammonum,#score .s{text-shadow:0 0 12px currentColor}
 #banner h2{text-shadow:0 0 14px rgba(95,242,255,.6)}
@@ -907,7 +916,8 @@ body.touch #dock #dashpips i{width:22px;height:6px}
       <div class="mname"><input id="nick" class="mnick" maxlength="16" autocomplete="off" value="Player" aria-label="Player name" spellcheck="false" enterkeyhint="done"><button type="button" class="mnedit" id="nickEd" aria-label="Change your name" title="Change your name">&#9998;</button></div>
       <div class="lvlbox"><div class="lvlhd"><b id="lvlN">Level 1</b><span id="lvlX"></span></div><div class="xpbar"><i id="lvlBar"></i></div><div class="cap" id="lvlNext"></div></div>
     </aside>
-    <div class="mfoot"><span class="mhint" id="mhint"><kbd>&#8593;</kbd><kbd>&#8595;</kbd> select · <kbd>Enter</kbd> confirm · <kbd>Esc</kbd> back</span><span>Prototype build</span></div>
+    <aside class="mupd" id="mupd" aria-label="Updates"><div class="muhd"><b>Updates</b><span class="num" id="muver"></span></div><div class="mulist" id="mulist"></div></aside>
+    <div class="mfoot"><span class="mhint" id="mhint"><kbd>&#8593;</kbd><kbd>&#8595;</kbd> select · <kbd>Enter</kbd> confirm · <kbd>Esc</kbd> back</span><span id="mver">Prototype build</span></div>
     <div id="touchnote" hidden></div>
   </div>
 </div>
@@ -12357,6 +12367,50 @@ try{const mv=localStorage.getItem('za-mode');if(mv&&MODECAP[mv])$('modesel').val
 {let v=null;try{v=localStorage.getItem('za-zrlen');}catch(e){}$('zrlen').value=v==='0'||v==='1'?v:matchMedia('(pointer:coarse)').matches?'0':'1';
   $('zrlen').addEventListener('change',()=>{modeCap();try{localStorage.setItem('za-zrlen',$('zrlen').value);}catch(e){}});}
 zcUI();modeCap();segSync();
+/* ---------- Updates island (main menu) ----------
+   To add a release: put a new entry at the TOP of UPDATES. v is the version shown on the menu, d the date (YYYY-MM-DD),
+   t a short headline, n the changes in plain player language (one line each). The newest entry's v is the game version. */
+const UPDATES=[
+  {v:'0.5.0',d:'2026-11-22',t:'Locker upgrades, HUD editor and big-screen menus',n:[
+    'Locker: see the Credits you earn on the run board and end screen, your last five runs, and three new upgrades: Scavenger, Quick hands and Second wind.',
+    'Settings > Sound now has Basic and Advanced. Advanced lets you fine-tune the announcer and set a volume for every single sound.',
+    'New Zombie Rumble Favor card: VOLTEX Official Drink. Headshot kills drop a can that refills your dash and speeds up your fire rate for 5 seconds.',
+    'Desktop and ultrawide screens: the menus grow with the window instead of sitting small in the middle.',
+    'Edit HUD (in the pause menu): drag and resize the score, minimap, kill feed, health, ammo and more. Your layout is saved on this device.',
+    'Sandbox: every rule and gun number now has a tuning knob.',
+    'Weapons: the Hecklers sit centred in first person, Arc Caster lightning is thick and glowing, and Encore grenades break cover and glass.',
+    'The crowd comes alive between big moments: fans bounce, clap, wave and chat with each other.',
+    'New sounds: a chunky blast for Encore grenades and a coin pickup for Credits.',
+    'When a match ends, the other players warp out one by one so the results sit over an empty arena.',
+    'Cover comes in three looks per height: crates, cargo containers, server stacks and more.']},
+  {v:'0.4.0',d:'2026-11-22',t:'Event Horizon and a meaner Matriarch',n:[
+    'New Week 2 map: Event Horizon, with its energy beam blast.',
+    'The Matriarch raises acid walls that block bullets and burn on contact.',
+    'Revenants now build themselves up from the floor under a glowing scan line when they spawn.',
+    'Reload progress ring around the crosshair, and a sound when a dash charge refills.',
+    'A quiet arena buzz plays under every map (Map ambience slider).',
+    'Zombie Rumble: pick your gun and build in a Workshop view after the map screen. Workshop has a Test in range button.',
+    'Foundry: the molten pour alternates sides, so there is always a way across the middle.',
+    'Phones: a reminder to turn sideways when playing in portrait.',
+    'Fixes: floor markings no longer flicker on the map screen, and the menu backdrop holds still.']},
+  {v:'0.3.0',d:'2026-11-21',t:'Week 2 opens and online play on mnzr.lol',n:[
+    'Online play works on mnzr.lol.',
+    'Zombie Rumble Week 2 (Containment Week): Spitters, Shielded and Splitter elites, and the Matriarch as the headliner boss.',
+    'New Week 2 map: Fallout.',
+    'Carry your Favor cards and gun into the next week.',
+    'Each Rumble map changes between waves.',
+    'The announcer speaks through a live stadium PA, with voice and pitch settings, and lines no longer talk over each other.',
+    '12 new Favor cards from the house brands, and five new tracks in the match playlist.']}
+];
+const GAME_VER=UPDATES[0].v;
+function updDate(d){const t=new Date(d+'T12:00:00');return isNaN(t)?d:t.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+(function updIsland(){let seen=null;try{seen=localStorage.getItem('za-updseen');localStorage.setItem('za-updseen',GAME_VER);}catch(e){}
+  $('muver').textContent='v'+GAME_VER;$('mver').textContent='Version '+GAME_VER;const L=$('mulist');
+  UPDATES.forEach((u,i)=>{const a=document.createElement('article');a.className='mue'+(i?' old':'');a.tabIndex=0;
+    const h=document.createElement('h3'),n=document.createElement('span');n.className='num';n.textContent='v'+u.v;h.append(n,document.createTextNode(u.t));
+    const sm=document.createElement('small');sm.textContent=updDate(u.d);h.append(sm);
+    if(i===0&&seen!==GAME_VER){const g=document.createElement('span');g.className='tag';g.textContent='New';h.append(g);}
+    const ul=document.createElement('ul');for(const x of u.n){const li=document.createElement('li');li.textContent=x;ul.append(li);}a.append(h,ul);L.append(a);});})();
 $('lockbtn').addEventListener('click',()=>lockOpen(true));$('zrlockx').addEventListener('click',()=>{lockOpen(false);$('lockbtn').focus();});
 window.addEventListener('keydown',e=>{if($('zrlocker').hidden)return;if(e.code==='Escape'||e.code==='Backspace'){e.preventDefault();e.stopImmediatePropagation();lockOpen(false);$('lockbtn').focus();}},true);
 lockUI();$('modesel').addEventListener('change',()=>{modeCap();try{localStorage.setItem('za-mode',$('modesel').value);}catch(e){}});
