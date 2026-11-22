@@ -614,8 +614,23 @@ input,select{font:inherit;font-size:16px;color:var(--fg);background:#0b0f12;bord
 @keyframes bcap{50%{background:rgba(95,242,255,.16)}}
 #setS:not(.adv) .sadv,#setS:not(.adv) .vxrow{display:none}#setS .sgrp.sadv h4{margin:10px 0 2px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}#setS .sgrp.sadv>.btn{margin-top:8px}
 #setS .vxrow{display:flex;flex-wrap:wrap;gap:8px}#setS .vxrow .btn{font-size:14px;padding:7px 12px}
-#setC .tlayrow{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}#setC .tlayrow .btn{font-size:14px;padding:7px 12px;white-space:nowrap}
+#setC .tlayrow,.hudrow{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}#setC .tlayrow .btn{font-size:14px;padding:7px 12px;white-space:nowrap}
 #tebar #teSz{min-width:52px;font-family:var(--mono);color:var(--fg)}
+/* HUD layout editor (pause menu > Edit HUD): boxes over each HUD piece, drag to move, wheel/pinch/buttons to resize */
+#hebar{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:63;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 14px;max-width:min(94vw,560px);
+  background:rgba(12,8,24,.92);border:1px solid rgba(120,230,255,.4);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.5);font-size:14px;color:var(--muted);text-align:center;touch-action:none}
+#hebar.low{top:auto;bottom:12px;transform:translateX(-50%)}
+#hebar b{color:var(--fg);font-family:var(--display);letter-spacing:.05em;text-transform:uppercase}
+#hebar .row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center}
+#hebar .btn{font-size:14px;padding:8px 12px;min-height:40px}#heMinus,#hePlus{font-size:22px!important;min-width:44px;line-height:1}
+#hebar .btn[disabled]{opacity:.4}#heSz{min-width:52px;font-family:var(--mono);color:var(--fg)}
+#hedit{position:fixed;inset:0;z-index:62;touch-action:none;cursor:default;background:rgba(5,4,12,.25)}
+#hedit .hbox{position:absolute;box-sizing:border-box;border:1.5px dashed rgba(120,230,255,.75);border-radius:6px;background:rgba(95,242,255,.06);cursor:grab}
+#hedit .hbox.sel{border:2px solid var(--accent);background:rgba(95,242,255,.14);box-shadow:0 0 14px rgba(95,242,255,.45)}
+#hedit .hbox span{position:absolute;left:-1px;top:-19px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#0a0714;background:rgba(120,230,255,.85);padding:1px 6px;border-radius:4px 4px 0 0;white-space:nowrap;pointer-events:none}
+#hedit .hbox.sel span{background:var(--accent)}
+#hedit.drag .hbox{cursor:grabbing}
+#pause.hed{visibility:hidden}body.hedit :is(#topbar,#mini,#feed,#vitals,#ammo,#zrheld,#zrboss,#zrwcard,#zrcap,#prompt){visibility:visible!important}
 body.touch #view{cursor:default}
 body.touch,body.touch #view{touch-action:none;overscroll-behavior:none}
 body.touch .overlay,body.touch #sbpanel{touch-action:pan-x pan-y}
@@ -770,6 +785,13 @@ body.touch #dock #dashpips i{width:22px;height:6px}
   <div class="row"><button class="btn" type="button" id="teMinus" aria-label="Smaller">&minus;</button><span id="teSz">&ndash;</span><button class="btn" type="button" id="tePlus" aria-label="Bigger">+</button><button class="btn" type="button" id="teHide">Hide</button><button class="btn" type="button" id="teOne">Reset this</button><button class="btn" type="button" id="teFlip" aria-label="Move this panel">&#8597;</button></div>
   <div class="row"><button class="btn" type="button" id="teAll">Reset all</button><button class="btn" type="button" id="teCopy" hidden></button><button class="btn" type="button" id="teCancel">Cancel</button><button class="btn primary" type="button" id="teSave">Save</button></div>
 </div>
+<div id="hedit" hidden></div>
+<div id="hebar" hidden role="dialog" aria-label="Edit HUD">
+  <div><b>Edit HUD</b> · <span id="heOr"></span></div>
+  <div id="heHelp">Drag a box to move that part of the HUD. Use the mouse wheel, a pinch, or the size buttons to resize it.</div>
+  <div class="row"><button class="btn" type="button" id="heMinus" aria-label="Smaller">&minus;</button><span id="heSz">&ndash;</span><button class="btn" type="button" id="hePlus" aria-label="Bigger">+</button><button class="btn" type="button" id="heOne">Reset this</button><button class="btn" type="button" id="heFlip" aria-label="Move this panel">&#8597;</button></div>
+  <div class="row"><button class="btn" type="button" id="heAll">Reset all</button><button class="btn" type="button" id="heCancel">Cancel</button><button class="btn primary" type="button" id="heSave">Save</button></div>
+</div>
 <div class="hud" id="lockhint" hidden>Click to aim · <span id="lockmode"></span></div>
 
 <div class="overlay" id="endscr" hidden role="dialog" aria-label="Match over"><div id="endcol"><div id="endbtns"><button class="btn primary" type="button" id="eagain">Play again</button><button class="btn" type="button" id="ereplay" hidden>Replay week</button><button class="btn" type="button" id="emenu">Main menu</button></div><p id="endnote"></p><p id="endcr" hidden></p></div></div>
@@ -804,7 +826,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
   <div class="setcard">
     <div class="hd"><b>Menu</b><span><kbd>Esc</kbd> closes</span></div>
     <div class="sub" id="pauseS" style="color:var(--muted);font-size:15px"></div>
-    <div class="pbtns"><button class="btn primary" type="button" id="presume">Resume</button><button class="btn" type="button" id="psettings">Settings</button><button class="btn fsbtn" type="button" id="pfull">Full screen</button><button class="btn" type="button" id="prestart">Restart match</button><button class="btn" type="button" id="pleave">Leave match</button></div>
+    <div class="pbtns"><button class="btn primary" type="button" id="presume">Resume</button><button class="btn" type="button" id="psettings">Settings</button><button class="btn" type="button" id="phud">Edit HUD</button><button class="btn fsbtn" type="button" id="pfull">Full screen</button><button class="btn" type="button" id="prestart">Restart match</button><button class="btn" type="button" id="pleave">Leave match</button></div>
     <div class="pnow" id="pnow" hidden><span>Now playing<b id="pnowT"></b></span><button class="btn" type="button" id="pnext">Next track</button></div>
     <div class="keys kbkeys" id="kbkeys"></div>
     <div class="keys padkeys" id="padkeys"></div>
@@ -12569,7 +12591,7 @@ document.addEventListener('keydown',e=>{if($('endscr').hidden)return;const c=e.c
   else if(/^(ArrowRight|ArrowDown|KeyD|KeyS|Tab)$/.test(c)){e.preventDefault();e.stopImmediatePropagation();endFocus(END.padI+(e.shiftKey&&c==='Tab'?-1:1),true);}
   else if(c==='Enter'||c==='Space'||c==='NumpadEnter'){e.preventDefault();e.stopImmediatePropagation();const b=[...$('endbtns').children].filter(b=>!b.hidden)[END.padI];if(b&&!b.disabled)b.click();}
   else if(c==='Escape'||c==='Backspace'){e.preventDefault();e.stopImmediatePropagation();}},true);
-function closePause(){if($('pause').hidden)return;$('pause').hidden=true;toggleSettings(false);autoLock();blip(660,0.05,0.03,false,'ui');}
+function closePause(){if($('pause').hidden)return;if(HE.on)heClose(false);$('pause').hidden=true;toggleSettings(false);autoLock();blip(660,0.05,0.03,false,'ui');}
 function leaveMatch(){endHide();net.inLobby=false;$('lobby').hidden=true;xpFlush();bigCountOff();closeWheel(false);WH.auto=false;$('pause').hidden=true;toggleSettings(false);toggleSB(false);
   if(net.room){try{net.room.leave().catch(()=>{});}catch(e){}}
   net.mode='none';net.room=null;net.host=false;net.hostPeer=null;net.myPeer=null;rgClear();RG.init=false;RG.shots=RG.hits=0;RG.read='';S=null;zrHide();rgSync();setMap(MATCH.map);tuneApply();SB.on=false;me.sp=-1;me.round=0;me.mid=0;coverTick();
@@ -12756,6 +12778,76 @@ $('teFlip').addEventListener('click',()=>$('tebar').classList.toggle('low'));
 $('teCancel').addEventListener('click',()=>teClose(false));
 $('teSave').addEventListener('click',()=>teClose(true));
 window.addEventListener('keydown',e=>{if(!TE.on)return;if(e.code==='Escape'){e.preventDefault();e.stopImmediatePropagation();teClose(false);}else if(e.code==='Enter'){e.preventDefault();e.stopImmediatePropagation();teClose(true);}},true);
+/* HUD layout (Joe): move and resize HUD pieces. Saved per orientation in za-hudlay as {land|port:{id:{x,y,k}}}:
+   x,y = offset from the default spot as a fraction of the window, k = scale. Applied with the CSS translate/scale properties,
+   which stack on top of each piece's own transform, so the default layout code never has to know. */
+const HUDE=[['topbar','Score'],['mini','Minimap'],['feed','Kill feed'],['vitals','Health'],['ammo','Ammo'],['zrheld','Cards'],['zrboss','Boss bar'],['zrwcard','Weapon card'],['zrcap','Captions'],['prompt','Prompts']];
+let HLAY={};try{HLAY=JSON.parse(localStorage.getItem('za-hudlay')||'{}')||{};}catch(e){HLAY={};}
+const HE={on:false,drafts:null,sel:null,ptrs:new Map(),pinch:null,shown:[]};
+function hLayCur(){return (HE.on?HE.drafts:HLAY)[tLayOr()]||{};}
+function hLayOne(id){const el=$(id);if(!el)return;const e=hLayCur()[id];
+  if(e&&(e.x||e.y))el.style.translate=Math.round(e.x*innerWidth)+'px '+Math.round(e.y*innerHeight)+'px';else el.style.removeProperty('translate');
+  if(e&&e.k&&e.k!==1)el.style.scale=e.k;else el.style.removeProperty('scale');}
+function hLayApply(){for(const [id] of HUDE)hLayOne(id);}
+function heEntry(id){const d=HE.drafts[tLayOr()]||(HE.drafts[tLayOr()]={});return d[id]||(d[id]={x:0,y:0,k:1});}
+function heVisible(id){const el=$(id);if(!el||el.hidden)return false;const r=el.getBoundingClientRect();return r.width>4&&r.height>4&&getComputedStyle(el).display!=='none';}
+function heOpen(){if(HE.on)return;
+  HE.drafts=JSON.parse(JSON.stringify(HLAY));HE.on=true;HE.sel=null;HE.ptrs.clear();HE.pinch=null;
+  // pieces that are only up some of the time are shown with sample text so they can be placed too
+  HE.shown=[];for(const id of ['feed','zrcap','prompt']){const el=$(id);if(el&&(el.hidden||!el.textContent.trim())){HE.shown.push([id,el.hidden,el.innerHTML]);el.hidden=false;
+    if(!el.textContent.trim())el.innerHTML=id==='feed'?'<div>Player <b>&#8250;</b> Bot 2</div><div>Bot 3 <b>&#8250;</b> Player</div>':id==='zrcap'?'<div>Captions show up here</div>':'Press F to use';}}
+  $('pause').classList.add('hed');document.body.classList.add('hedit');$('hedit').hidden=false;$('hebar').hidden=false;$('hebar').classList.remove('low');
+  hLayApply();heSync();}
+function heClose(save){if(!HE.on)return;
+  if(save){HLAY=HE.drafts;try{localStorage.setItem('za-hudlay',JSON.stringify(HLAY));}catch(e){}}
+  HE.on=false;HE.ptrs.clear();HE.pinch=null;HE.sel=null;
+  for(const [id,h,html] of HE.shown){const el=$(id);el.innerHTML=html;el.hidden=h;}HE.shown=[];
+  $('hedit').hidden=true;$('hebar').hidden=true;$('hedit').innerHTML='';$('pause').classList.remove('hed');document.body.classList.remove('hedit');hLayApply();}
+function heSync(){const o=tLayOr();$('heOr').textContent=o==='land'?'Landscape':'Portrait';
+  const box=$('hedit');box.innerHTML='';
+  for(const [id,nm] of HUDE){if(!heVisible(id))continue;const r=$(id).getBoundingClientRect(),d=document.createElement('div');
+    d.className='hbox'+(HE.sel===id?' sel':'');d.dataset.id=id;d.style.left=r.left+'px';d.style.top=r.top+'px';d.style.width=r.width+'px';d.style.height=r.height+'px';
+    const l=document.createElement('span');l.textContent=nm;if(r.top<22)l.style.top=(r.height+1)+'px';d.append(l);box.append(d);}
+  const s=HE.sel,e=s&&hLayCur()[s];$('heSz').textContent=s?Math.round((e&&e.k||1)*100)+'%':'–';
+  for(const id of ['heMinus','hePlus','heOne'])$(id).disabled=!s;}
+function heFit(id){const el=$(id),en=heEntry(id),r=el.getBoundingClientRect(),W=innerWidth,H=innerHeight;let dx=0,dy=0;
+  if(r.width<W){if(r.left<0)dx=-r.left;else if(r.right>W)dx=W-r.right;}if(r.height<H){if(r.top<0)dy=-r.top;else if(r.bottom>H)dy=H-r.bottom;}
+  if(dx||dy){en.x+=dx/W;en.y+=dy/H;hLayOne(id);}}
+function heSize(id,k){const en=heEntry(id);en.k=Math.round(clamp(k,0.5,2.5)*100)/100;hLayOne(id);heFit(id);heSync();}
+$('hedit').addEventListener('pointerdown',e=>{if(!HE.on)return;e.preventDefault();const b=e.target.closest&&e.target.closest('.hbox');
+  if(!b){if(!HE.ptrs.size){HE.sel=null;heSync();}return;}
+  try{$('hedit').setPointerCapture(e.pointerId);}catch(_){}
+  const id=b.dataset.id,en=heEntry(id);HE.ptrs.set(e.pointerId,{id,x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,ex:en.x,ey:en.y});HE.sel=id;
+  const ps=[...HE.ptrs.values()];if(ps.length===2)HE.pinch={id:ps[0].id,d0:Math.max(20,Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y)),k0:en.k||1};
+  $('hedit').classList.add('drag');heSync();});
+$('hedit').addEventListener('pointermove',e=>{if(!HE.on)return;const p=HE.ptrs.get(e.pointerId);if(!p)return;e.preventDefault();p.x=e.clientX;p.y=e.clientY;
+  if(HE.pinch){const ps=[...HE.ptrs.values()];if(ps.length>=2)heSize(HE.pinch.id,HE.pinch.k0*Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y)/HE.pinch.d0);return;}
+  const en=heEntry(p.id);en.x=p.ex+(p.x-p.sx)/innerWidth;en.y=p.ey+(p.y-p.sy)/innerHeight;
+  // snap back to the default spot when close to it
+  if(Math.abs(en.x*innerWidth)<8&&Math.abs(en.y*innerHeight)<8){en.x=0;en.y=0;}
+  hLayOne(p.id);heFit(p.id);heSync();});
+function heUp(e){if(!HE.on||!HE.ptrs.delete(e.pointerId))return;if(HE.pinch&&HE.ptrs.size<2){HE.pinch=null;for(const p of HE.ptrs.values()){const en=heEntry(p.id);p.sx=p.x;p.sy=p.y;p.ex=en.x;p.ey=en.y;}}
+  if(!HE.ptrs.size)$('hedit').classList.remove('drag');}
+$('hedit').addEventListener('pointerup',heUp);$('hedit').addEventListener('pointercancel',heUp);
+$('hedit').addEventListener('wheel',e=>{if(!HE.on)return;e.preventDefault();const b=e.target.closest&&e.target.closest('.hbox'),id=b?b.dataset.id:HE.sel;if(!id)return;HE.sel=id;
+  heSize(id,(heEntry(id).k||1)*(e.deltaY<0?1.06:1/1.06));},{passive:false});
+$('hebar').addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
+$('heMinus').addEventListener('click',()=>{if(HE.sel)heSize(HE.sel,(heEntry(HE.sel).k||1)-0.1);});
+$('hePlus').addEventListener('click',()=>{if(HE.sel)heSize(HE.sel,(heEntry(HE.sel).k||1)+0.1);});
+$('heOne').addEventListener('click',()=>{if(!HE.sel)return;const d=HE.drafts[tLayOr()];if(d)delete d[HE.sel];hLayOne(HE.sel);heSync();});
+$('heAll').addEventListener('click',()=>{HE.drafts[tLayOr()]={};HE.sel=null;hLayApply();heSync();});
+$('heFlip').addEventListener('click',()=>$('hebar').classList.toggle('low'));
+$('heCancel').addEventListener('click',()=>heClose(false));
+$('heSave').addEventListener('click',()=>heClose(true));
+$('phud').addEventListener('click',heOpen);
+{const g=setEls.dmgDir&&setEls.dmgDir.inp.closest('.srow');if(g){const row=document.createElement('div');row.className='srow hudrow';
+  const c=document.createElement('span');c.textContent='HUD layout: press Esc in any match and pick Edit HUD to move and resize each part. Saved on this device.';
+  const b=document.createElement('button');b.className='btn';b.type='button';b.id='hudreset';b.textContent='Reset HUD';
+  b.addEventListener('click',()=>{HLAY={};try{localStorage.removeItem('za-hudlay');}catch(e){}hLayApply();b.textContent='HUD reset';setTimeout(()=>b.textContent='Reset HUD',1500);});
+  row.append(c,b);g.after(row);}}
+window.addEventListener('keydown',e=>{if(!HE.on)return;if(e.code==='Escape'){e.preventDefault();e.stopImmediatePropagation();heClose(false);}else if(e.code==='Enter'){e.preventDefault();e.stopImmediatePropagation();heClose(true);}},true);
+window.addEventListener('resize',()=>{hLayApply();if(HE.on)heSync();});
+hLayApply();
 /* announcer voice: hear the PA with the current sliders, or put it back to how 3-2-1-Fight first sounded */
 {const g=setEls.vxGrit.inp.closest('.sgrp'),row=document.createElement('div');row.className='srow vxrow';const mk=(id,t)=>{const b=document.createElement('button');b.className='btn';b.type='button';b.id=id;b.textContent=t;return b;};
   const hear=mk('vxhear','Hear the announcer'),rst=mk('vxreset','Reset voice');row.append(hear,rst);g.append(row);let live=[];
