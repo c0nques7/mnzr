@@ -8076,12 +8076,23 @@ uniform float uTime,uHype,uWave,uWaveOn,uTeam[2],uSec[16];
 float crowdEx(){return clamp(max(uTeam[int(aSeed.y)],uSec[int(aSeed.z)])+uHype,0.,1.);}
 float crowdWave(){float d=(instanceMatrix[3].x-uWave)/3.;return uWaveOn*exp(-d*d);}
 float crowdArm(float ex,float wv){return clamp(ex*(0.7+0.3*aSeed.w)+wv,0.,1.)*2.7+step(0.05,ex)*sin(uTime*(8.+aSeed.w*4.)+aSeed.x*6.283)*0.3*ex;}
-vec3 crowdRot(vec3 v,float a){float c=cos(a),s=sin(a);return vec3(v.x,v.y*c+v.z*s,-v.y*s+v.z*c);}`)
-    .replace('#include <beginnormal_vertex>','#include <beginnormal_vertex>\nfloat cEx=crowdEx(),cWv=crowdWave(),cArm=crowdArm(cEx,cWv);if(part>1.5)objectNormal=crowdRot(objectNormal,cArm);')
+vec3 crowdRot(vec3 v,float a){float c=cos(a),s=sin(a);return vec3(v.x,v.y*c+v.z*s,-v.y*s+v.z*c);}
+vec3 crowdYaw(vec3 v,float a){float c=cos(a),s=sin(a);return vec3(v.x*c+v.z*s,v.y,-v.x*s+v.z*c);}
+/* idle life (Joe): between game events each fan picks a little routine for a few seconds at a time: bouncing to the music, clapping,
+   pumping or waving one arm, or turning to the neighbour. x/y = left/right arm angle, z = upper-body turn, w = bounce */
+vec4 crowdIdle(){float r=aSeed.w,ph=aSeed.x,s=uTime/(3.5+r*3.)+ph*17.,f=fract(s),h=fract(sin(floor(s)*12.9898+ph*78.233)*43758.5453);
+  float env=smoothstep(0.,.15,f)*smoothstep(1.,.85,f);vec4 o=vec4(0.);
+  if(h<.32)o.w=abs(sin(uTime*3.3+ph*6.283))*0.07*env;
+  else if(h<.47){float c=1.2+0.22*abs(sin(uTime*7.+ph*6.));o.x=c*env;o.y=c*env;o.w=0.02*env;}
+  else if(h<.6){float a=(2.3+0.35*sin(uTime*(8.+r*3.)+ph*6.))*env;if(fract(h*7.)<.5)o.x=a;else o.y=a;}
+  else if(h<.76)o.z=(fract(h*13.)<.5?-1.:1.)*0.55*env;
+  return o;}`)
+    .replace('#include <beginnormal_vertex>','#include <beginnormal_vertex>\nfloat cEx=crowdEx(),cWv=crowdWave(),cArm=crowdArm(cEx,cWv);vec4 cId=crowdIdle()*(1.-clamp(cEx*3.+cWv*2.,0.,1.));cArm+=part>1.5?(position.x<0.?cId.x:cId.y):0.;if(part>1.5)objectNormal=crowdRot(objectNormal,cArm);if(position.y>0.7)objectNormal=crowdYaw(objectNormal,cId.z);')
     .replace('#include <begin_vertex>',`#include <begin_vertex>
 {float ex=cEx,wv=cWv,ph=aSeed.x*6.283,r=aSeed.w;
  if(part>1.5){vec3 piv=vec3(0.,1.32,0.);transformed=piv+crowdRot(transformed-piv,cArm);}
- transformed.y+=ex*max(0.,sin(uTime*(6.+r*3.)+ph))*0.32+wv*0.4+sin(uTime*(1.1+r)+ph)*0.02*(1.-ex);
+ if(position.y>0.7)transformed=crowdYaw(transformed,cId.z);
+ transformed.y+=ex*max(0.,sin(uTime*(6.+r*3.)+ph))*0.32+wv*0.4+sin(uTime*(1.1+r)+ph)*0.02*(1.-ex)+cId.w;
  transformed.x+=sin(uTime*(0.8+r*0.5)+ph)*0.05*transformed.y*(1.-ex);}`)
     .replace('#include <color_vertex>','#include <color_vertex>\nif(part>0.5&&part<1.5)vColor.rgb=aSkin;');};
   scene.add(mesh);mesh.userData.N=N;return mesh;})();
