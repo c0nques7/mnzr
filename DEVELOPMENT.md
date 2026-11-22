@@ -198,6 +198,12 @@ Online co-op: same match code and the Zombie Rumble mode puts two players togeth
 
 Settings live in this browser (`localStorage` keys `za-sb` and `za-dev`). **Copy JSON** exports every change from the built-in defaults, **Load pasted** applies JSON pasted into the box, and **Reset everything to the built-in defaults** clears them. To make settings the default for every player, the JSON has to be baked into `index.html`.
 
+## Updates log
+
+The Updates island on the main menu reads published GitHub releases from `c0nques7/mnzr` at startup, newest first. The release tag is the version (a leading `v` is stripped), the release name is the headline, and the body's lines become the change list (Markdown bullets, links and emphasis are reduced to plain text; the first 18 lines are shown). Drafts and prereleases are skipped, and each entry gets a "Notes ↗" link to the full release. If the newest release is older than the built-in `UPDATES[0].v`, the built-in list stays on screen, so the menu never downgrades its version.
+
+To post an update, publish a GitHub release on `main` with a version tag and player-facing notes; no change to `index.html` is needed. The feed is cached in `localStorage` under `za-updrel` (kept for 7 days, with a background refresh on the next load after 5 minutes), and the `UPDATES` array in `index.html` remains the offline fallback. `za-updseen` drives the New badge and opens the island once for a version the player has not seen before; `za-updcol` remembers the touch-screen fold state.
+
 ## Tech notes
 
 - Three.js r186 and its postprocessing addons (bloom, FXAA) from jsDelivr, mapped to `three` and `three/addons/` by the import map in `index.html`.

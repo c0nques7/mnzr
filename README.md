@@ -32,6 +32,7 @@ Play, Play online, Workshop, Locker, Sandbox, Settings and Full screen.
 
 - **Workshop:** build gun loadouts from parts, name your builds, and set up the weapon wheel. Builds are saved in your browser.
 - **Locker:** unlock items (Zombie Rumble credits).
+- **Updates:** the panel on the right reads published releases from `c0nques7/mnzr` on GitHub, so notes can be posted without rebuilding the game. It falls back to the built-in list when offline.
 - **Sandbox:** a test range with a tuning panel (default key `T` or `` ` ``).
 - **Progression:** XP and levels.
 

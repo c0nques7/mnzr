@@ -527,7 +527,7 @@ body.ended #touch,body.ended #zrcap,body.ended #vosub,body.ended #down,body.ende
 .mnedit{flex:none;width:32px;height:32px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--accent);font-size:17px;line-height:1;cursor:pointer;padding:0}
 .mnedit:hover,.mnedit:focus-visible{background:#0b0f12;border-color:var(--accent);outline:none}
 @media (max-height:520px){.mnlab{display:none}}
-/* Updates island on the main menu (UPDATES list in the script): version + latest changes, older versions below, scrolls inside */
+/* Updates island on the main menu (published GitHub releases, with the script's UPDATES list as fallback): version + latest changes, older versions below, scrolls inside */
 .mupd{box-sizing:border-box;grid-area:upd;justify-self:end;align-self:start;width:min(340px,100%);max-height:100%;min-height:0;display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 6px 8px 12px;zoom:calc(max(var(--mfit,1),.8)*var(--uiz,1))}
 .muhd{font:inherit;color:inherit;background:none;border:0;padding:0 6px 0 0;margin:0;text-align:left;display:flex;align-items:baseline;gap:10px;cursor:default;-webkit-tap-highlight-color:transparent}.muhd b{flex:1}
 .muchev{display:none}body.touch .muhd{cursor:pointer;min-height:36px;align-items:center}body.touch .muchev{display:block;width:9px;height:9px;border-right:2px solid var(--accent);border-bottom:2px solid var(--accent);transform:rotate(225deg) translate(-2px,-2px);transition:transform .15s}
@@ -537,6 +537,7 @@ body.touch .mupd.col .muchev{transform:rotate(45deg) translate(-2px,-2px)}body.t
 .mue{outline:none;border-radius:4px}.mue:focus-visible{box-shadow:0 0 0 2px var(--accent)}
 .mue h3{margin:0;font-size:15px;line-height:1.25;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px}.mue h3 .num{color:var(--accent);font-size:13px}.mue h3 small{font-size:12px;color:var(--muted);font-weight:400}
 .mue .tag{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#05040c;background:var(--accent2);border-radius:3px;padding:1px 5px;align-self:center}
+.mue h3 .mulnk{margin-left:auto;font-size:11px;letter-spacing:.06em;color:var(--accent);text-decoration:none;white-space:nowrap}.mue h3 .mulnk:hover,.mue h3 .mulnk:focus-visible{text-decoration:underline}
 .mue ul{margin:4px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:3px;font-size:13px;line-height:1.32;color:rgba(238,240,255,.8)}
 .mue+.mue{border-top:1px solid rgba(255,255,255,.1);padding-top:8px}.mue.old ul{color:rgba(238,240,255,.62)}
 .mfoot{grid-area:foot;display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding-bottom:2px}
@@ -12254,7 +12255,7 @@ function lvlUI(){const l=lvlOf(PROG.xp);$('lvlN').textContent='Level '+l.L;$('lv
   const k=W[$('wsel').value]?$('wsel').value:'rifle';$('wbuildcap').textContent=`Build: ${buildOf(k).n} · gun level ${wlvlOf(PROG.wxp[k])}`;}
 
 /* ---------- Workshop: pick parts for each gun, see the change in the stats and on a 3D model ---------- */
-const SHOP={pick:'',k:'rifle',hov:null,r:null,sc:null,cam:null,piv:null,gun:null,gunKey:'',yaw:Math.PI/2-0.45,pitch:0.12,drag:null,raf:0};
+const SHOP={pick:'',k:'rifle',carry:null,mode:'carry',hov:null,r:null,sc:null,cam:null,piv:null,gun:null,gunKey:'',yaw:Math.PI/2-0.45,pitch:0.12,drag:null,raf:0};
 const aimTime=w=>Math.log(10)/(15*w.ads);
 const zoomX=w=>{const f=OPT.fov;return Math.tan(f*Math.PI/360)/Math.tan((f-24*(f/78)*w.zoom)*Math.PI/360);};
 /* [label, value, display, bar 0..1, higher is better] */
@@ -12410,8 +12411,9 @@ try{const mv=localStorage.getItem('za-mode');if(mv&&MODECAP[mv])$('modesel').val
   $('zrlen').addEventListener('change',()=>{modeCap();try{localStorage.setItem('za-zrlen',$('zrlen').value);}catch(e){}});}
 zcUI();modeCap();segSync();
 /* ---------- Updates island (main menu) ----------
-   To add a release: put a new entry at the TOP of UPDATES. v is the version shown on the menu, d the date (YYYY-MM-DD),
-   t a short headline, n the changes in plain player language (one line each). The newest entry's v is the game version. */
+   Published GitHub releases in c0nques7/mnzr feed this panel: tag = version, name = headline, body bullets = changes.
+   UPDATES below is the offline fallback and the minimum version; release notes are cached in localStorage and refreshed
+   in the background, so the menu works offline and stays inside GitHub's API rate limit. Drafts and prereleases are skipped. */
 const UPDATES=[
   {v:'0.5.0',d:'2026-11-22',t:'Locker upgrades, HUD editor and big-screen menus',n:[
     'Locker: see the Credits you earn on the run board and end screen, your last five runs, and three new upgrades: Scavenger, Quick hands and Second wind.',
@@ -12445,19 +12447,49 @@ const UPDATES=[
     '12 new Favor cards from the house brands, and five new tracks in the match playlist.']}
 ];
 const GAME_VER=UPDATES[0].v;
+const UPD_API='https://api.github.com/repos/c0nques7/mnzr/releases?per_page=10';
+const UPD_CACHE='za-updrel',UPD_SEEN='za-updseen',UPD_COL='za-updcol';
+const okUpd=u=>u&&typeof u.v==='string'&&/\d/.test(u.v)&&typeof u.t==='string'&&Array.isArray(u.n)&&u.n.length>0;
 function updDate(d){const t=new Date(d+'T12:00:00');return isNaN(t)?d:t.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
-(function updIsland(){let seen=null;try{seen=localStorage.getItem('za-updseen');localStorage.setItem('za-updseen',GAME_VER);}catch(e){}
-  $('muver').textContent='v'+GAME_VER;$('mver').textContent='Version '+GAME_VER;const L=$('mulist');
-  UPDATES.forEach((u,i)=>{const a=document.createElement('article');a.className='mue'+(i?' old':'');a.tabIndex=0;
-    const h=document.createElement('h3'),n=document.createElement('span');n.className='num';n.textContent='v'+u.v;h.append(n,document.createTextNode(u.t));
-    const sm=document.createElement('small');sm.textContent=updDate(u.d);h.append(sm);
-    if(i===0&&seen!==GAME_VER){const g=document.createElement('span');g.className='tag';g.textContent='New';h.append(g);}
-    const ul=document.createElement('ul');for(const x of u.n){const li=document.createElement('li');li.textContent=x;ul.append(li);}a.append(h,ul);L.append(a);});
-  /* touch screens: tap the header to fold the island down to one line; remembered per device, a new version opens it once */
-  const box=$('mupd'),hd=$('muhd');box.classList.toggle('hasnew',seen!==GAME_VER);
-  let col=false;try{col=localStorage.getItem('za-updcol')==='1'&&seen===GAME_VER;}catch(e){}
-  const setCol=c=>{box.classList.toggle('col',c);hd.setAttribute('aria-expanded',String(!(c&&document.body.classList.contains('touch'))));};setCol(col);
-  hd.addEventListener('click',()=>{if(!document.body.classList.contains('touch'))return;col=!col;setCol(col);try{localStorage.setItem('za-updcol',col?'1':'0');}catch(e){}blip(col?520:660,0.04,0.025,false,'ui');if(typeof menuFit==='function')menuFit();});})();
+function verCmp(a,b){const A=String(a).split(/[^\d]+/).filter(Boolean).map(Number),B=String(b).split(/[^\d]+/).filter(Boolean).map(Number);for(let i=0;i<Math.max(A.length,B.length);i++){const d=(A[i]||0)-(B[i]||0);if(d)return d;}return 0;}
+function updLines(body){const out=[];for(let x of String(body||'').split(/\r?\n/)){x=x.trim();if(!x||/^#{1,6}\s/.test(x)||/^(-{3,}|\*{3,})$/.test(x))continue;
+  x=x.replace(/\[([^\]]+)\]\([^)]+\)/g,'$1').replace(/<[^>]*>/g,'').replace(/[`*_~]/g,'').replace(/^(?:[-*+•>]|\d+[.)])\s+/,'').trim();if(x)out.push(x);}return out.slice(0,18);}
+function updFromRelease(r){if(!r||r.draft||r.prerelease)return null;const v=String(r.tag_name||r.name||'').replace(/^v(?=\d)/i,'').trim();if(!v||!/\d/.test(v))return null;
+  const n=updLines(r.body),t=String(r.name||'').replace(/^v?\d[\d.]*\s*[-–—:]\s*/i,'').trim()||n.shift()||'Update';
+  const url=/^https:\/\/github\.com\//.test(String(r.html_url||''))?r.html_url:null;
+  return{v,d:String(r.published_at||r.created_at||'').slice(0,10),t,n:n.length?n:['See the full notes on GitHub.'],url};}
+function updSort(a,b){return String(b.d||'').localeCompare(String(a.d||''))||verCmp(b.v,a.v);}
+function updReadCache(){try{const c=JSON.parse(localStorage.getItem(UPD_CACHE)||'null');if(c&&Date.now()-c.at<7*864e5&&Array.isArray(c.list)&&c.list.length&&c.list.every(okUpd))return c;}catch(e){}return null;}
+function updSaveCache(list){try{localStorage.setItem(UPD_CACHE,JSON.stringify({at:Date.now(),list:list.slice(0,10)}));}catch(e){}}
+async function updFetch(){const ctl=typeof AbortController==='function'?new AbortController():null,timer=ctl?setTimeout(()=>ctl.abort(),7000):0;
+  try{const r=await fetch(UPD_API,{signal:ctl&&ctl.signal,headers:{Accept:'application/vnd.github+json'},cache:'no-store'});
+    if(!r.ok)throw new Error('HTTP '+r.status);const data=await r.json();if(!Array.isArray(data))throw new Error('bad feed');
+    const list=data.map(updFromRelease).filter(okUpd).slice(0,10).sort(updSort);
+    if(!list.length||verCmp(list[0].v,GAME_VER)<0)throw new Error('no current releases');updSaveCache(list);return list;
+  }finally{if(timer)clearTimeout(timer);}}
+(function updIsland(){
+  const box=$('mupd'),hd=$('muhd'),L=$('mulist');let seen=null,storedCol='0';
+  try{seen=localStorage.getItem(UPD_SEEN);storedCol=localStorage.getItem(UPD_COL)||'0';}catch(e){}
+  let marked=null,col=storedCol==='1';
+  const setCol=c=>{col=c;box.classList.toggle('col',c);hd.setAttribute('aria-expanded',String(!(c&&document.body.classList.contains('touch'))));};
+  hd.addEventListener('click',()=>{if(!document.body.classList.contains('touch'))return;setCol(!col);try{localStorage.setItem(UPD_COL,col?'1':'0');}catch(e){}blip(col?520:660,0.04,0.025,false,'ui');if(typeof menuFit==='function')menuFit();});
+  function render(list){
+    const ver=list[0].v,isNew=ver!==seen&&ver!==marked;
+    if(isNew){marked=ver;try{localStorage.setItem(UPD_SEEN,ver);}catch(e){}}
+    $('muver').textContent='v'+ver;$('mver').textContent='Version '+ver;L.replaceChildren();
+    list.forEach((u,i)=>{const a=document.createElement('article');a.className='mue'+(i?' old':'');a.tabIndex=0;
+      const h=document.createElement('h3'),n=document.createElement('span');n.className='num';n.textContent='v'+u.v;h.append(n,document.createTextNode(u.t));
+      const sm=document.createElement('small');sm.textContent=updDate(u.d);h.append(sm);
+      if(i===0&&isNew){const g=document.createElement('span');g.className='tag';g.textContent='New';h.append(g);}
+      if(u.url){const l=document.createElement('a');l.className='mulnk';l.href=u.url;l.target='_blank';l.rel='noopener noreferrer';l.textContent='Notes ↗';h.append(l);}
+      const ul=document.createElement('ul');for(const x of u.n){const li=document.createElement('li');li.textContent=x;ul.append(li);}a.append(h,ul);L.append(a);});
+    /* touch screens: tap the header to fold the island down to one line; a new version opens it once, otherwise the device preference sticks */
+    box.classList.toggle('hasnew',isNew);setCol(isNew?false:col);
+  }
+  const cached=updReadCache();render(cached?cached.list:UPDATES);
+  if(cached&&Date.now()-cached.at<5*60e3)return; /* recently refreshed: skip another API call */
+  updFetch().then(list=>render(list)).catch(()=>{}); /* offline, rate-limited or no releases yet: keep the list already shown */
+})();
 $('lockbtn').addEventListener('click',()=>lockOpen(true));$('zrlockx').addEventListener('click',()=>{lockOpen(false);$('lockbtn').focus();});
 window.addEventListener('keydown',e=>{if($('zrlocker').hidden)return;if(e.code==='Escape'||e.code==='Backspace'){e.preventDefault();e.stopImmediatePropagation();lockOpen(false);$('lockbtn').focus();}},true);
 lockUI();$('modesel').addEventListener('change',()=>{modeCap();try{localStorage.setItem('za-mode',$('modesel').value);}catch(e){}});
