@@ -150,7 +150,7 @@ body:not(.zrmode) #zrsb{display:none}
 #score .t0{color:var(--team0)} #score .t1{color:var(--team1)}
 #clock{font-size:22px;min-width:64px;text-align:center}
 #tickets:empty{display:none}
-#bigc{left:50%;top:57%;transform:translate(-50%,-50%);font-size:min(30vh,220px);font-weight:700;line-height:1;color:#fff;text-shadow:0 0 18px rgba(95,242,255,.9),0 0 60px rgba(39,230,255,.55);will-change:transform}
+#bigc{left:50%;top:57%;transform:translate(-50%,-50%);font-size:min(30vh,220px);font-weight:700;line-height:1;color:#fff;text-shadow:0 0 18px rgba(95,242,255,.9),0 0 60px rgba(39,230,255,.55);will-change:transform,opacity}
 #bigc.last{text-shadow:0 0 18px rgba(255,80,100,.95),0 0 60px rgba(255,40,64,.6)}
 #bigc span{display:inline-block;animation:bigpop .9s cubic-bezier(.2,.9,.3,1) both}
 @keyframes bigpop{0%{transform:scale(1.9);opacity:0}18%{transform:scale(1);opacity:1}100%{transform:scale(.92);opacity:.85}}
@@ -13643,17 +13643,30 @@ function renderOthers(dt){
 
 /* ---------- HUD ---------- */
 /* the last three seconds of the freeze count down big in the middle of the view; on "Fight" the number turns into the
-   round clock and flies up, shrinking, into the clock's place in the top bar */
-const BC={n:0,fly:0};
-function bigCountOff(){const bc=$('bigc');bc.hidden=true;bc.style.transition='none';bc.style.transform='';BC.n=0;BC.fly=0;$('clock').style.visibility='';}
-function bigCount(){const bc=$('bigc'),ck=$('clock'),n=Math.ceil(S.t);
-  if(S.phase==='buy'&&!WH.open&&n>=1&&n<=3){if(BC.n!==n||BC.fly){BC.n=n;BC.fly=0;bc.hidden=false;bc.className='hud num'+(n===1?' last':'');bc.style.transition='none';bc.style.transform='';bc.innerHTML='<span>'+n+'</span>';}
-    ck.style.visibility='hidden';}
-  else if(S.phase==='live'&&BC.n&&!BC.fly){BC.n=0;BC.fly=performance.now();bc.className='hud num';bc.style.transition='none';bc.style.transform='';bc.textContent=fmt(S.timer);
-    const b=bc.getBoundingClientRect(),r=ck.getBoundingClientRect(),sc=parseFloat(getComputedStyle(ck).fontSize)/parseFloat(getComputedStyle(bc).fontSize);
-    const dx=r.left+r.width/2-(b.left+b.width/2),dy=r.top+r.height/2-(b.top+b.height/2);
-    bc.style.transition=CALM?'none':'transform .8s cubic-bezier(.65,0,.2,1)';bc.style.transform=`translate(calc(-50% + ${dx.toFixed(1)}px),calc(-50% + ${dy.toFixed(1)}px)) scale(${sc.toFixed(4)})`;}
-  else if(BC.fly){if(S.phase!=='live'||performance.now()-BC.fly>(CALM?60:820))bigCountOff();else bc.textContent=fmt(S.timer);}
+   round clock (Zombie Rumble: the countdown box on the co-op board) and flies up, shrinking, then fades into it.
+   The target is wherever the clock really is on screen (the HUD editor can move and scale it); with no clock showing
+   it just shrinks and fades in place. Only transform and opacity animate, so it stays on the compositor. */
+const BC={n:0,fly:0,el:null};
+function bcTarget(){const el=$(document.body.classList.contains('zrmode')?'zsL':'clock');if(!el)return null;
+  const r=el.getBoundingClientRect();return r.width>2&&r.height>2&&r.bottom>0&&r.top<innerHeight?el:null;}
+function bcText(el){return el&&el.id==='zsL'?el.textContent:fmt(S.timer);}
+function bigCountOff(){const bc=$('bigc');bc.hidden=true;bc.style.transition='none';bc.style.transform='';bc.style.opacity='';BC.n=0;BC.fly=0;BC.el=null;
+  for(const id of ['clock','zsL']){const e=$(id);e.style.visibility='';e.style.opacity='';e.style.transition='';}}
+function bigCount(){const bc=$('bigc'),n=Math.ceil(S.t);
+  if(S.phase==='buy'&&!WH.open&&n>=1&&n<=3){if(BC.n!==n||BC.fly){BC.n=n;BC.fly=0;bc.hidden=false;bc.className='hud num'+(n===1?' last':'');bc.style.transition='none';bc.style.transform='';bc.style.opacity='';bc.innerHTML='<span>'+n+'</span>';}
+    const t=bcTarget();if(t)t.style.visibility='hidden';}
+  else if(S.phase==='live'&&BC.n&&!BC.fly){BC.n=0;BC.fly=performance.now();const ck=BC.el=bcTarget();
+    bc.className='hud num';bc.style.transition='none';bc.style.transform='';bc.style.opacity='';bc.textContent=bcText(ck);
+    if(ck){ck.style.transition='none';ck.style.opacity='0';ck.style.visibility='';}
+    const b=bc.getBoundingClientRect();let dx=0,dy=0,sc=0.35;
+    if(ck){const r=ck.getBoundingClientRect(),k=ck.offsetHeight?r.height/ck.offsetHeight:1;/* k = any scale the HUD editor put on the score box */
+      sc=k*parseFloat(getComputedStyle(ck).fontSize)/parseFloat(getComputedStyle(bc).fontSize);
+      dx=r.left+r.width/2-(b.left+b.width/2);dy=r.top+r.height/2-(b.top+b.height/2);}
+    if(CALM){bc.style.opacity='0';if(ck)ck.style.opacity='';}
+    else{bc.style.transition='transform .8s cubic-bezier(.65,0,.2,1),opacity .32s ease-in .48s';bc.style.opacity='0';
+      if(ck){ck.style.transition='opacity .3s ease-out .5s';ck.style.opacity='1';}}
+    bc.style.transform=`translate(calc(-50% + ${dx.toFixed(1)}px),calc(-50% + ${dy.toFixed(1)}px)) scale(${sc.toFixed(4)})`;}
+  else if(BC.fly){if(S.phase!=='live'||performance.now()-BC.fly>(CALM?60:840))bigCountOff();else bc.textContent=bcText(BC.el);}
   else if(BC.n||!bc.hidden)bigCountOff();}
 const fmt=t=>{t=Math.max(0,Math.ceil(t));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');};
 /* ---------- directional damage indicator ----------
