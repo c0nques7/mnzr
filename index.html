@@ -210,6 +210,8 @@ body.prematch #topbar,body.prematch #mini,body.prematch #feed,body.prematch #vit
 /* Zombie Rumble: captions, the headliner's health bar, the intermission's patron cards */
 #zrcap{left:50%;top:28%;transform:translateX(-50%);text-align:center;font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;pointer-events:none;width:min(720px,calc(100vw - 32px))}
 #zrcap div{font-size:30px;font-weight:700;color:var(--fg);text-shadow:0 0 18px rgba(255,43,214,.5),0 2px 3px #000;animation:zrc 3.2s ease-out forwards}
+#vosub{left:50%;bottom:calc(18vh + 18px);transform:translateX(-50%);width:min(760px,calc(100vw - 32px));text-align:center;pointer-events:none}
+#vosub div{display:inline-block;padding:4px 12px;border-radius:6px;background:rgba(0,0,0,.45);font-family:system-ui,sans-serif;font-size:clamp(16px,2.6vmin,22px);font-weight:500;line-height:1.35;text-wrap:balance;color:#fff;text-shadow:0 0 4px #000,0 2px 3px #000;animation:ifade .4s ease-out both}
 #zrcap div small{display:block;font-size:17px;font-weight:600;color:var(--warn);letter-spacing:.12em}
 @keyframes zrc{0%{opacity:0;transform:scale(1.08)}10%{opacity:1;transform:none}78%{opacity:1}100%{opacity:0}}
 #zrwcard{left:0;top:0;width:272px;z-index:6;background:rgba(14,12,26,.92);border:1px solid var(--hc);border-top:4px solid var(--hc);border-radius:8px;padding:9px 11px;box-shadow:0 0 24px rgba(0,0,0,.6),0 0 14px color-mix(in srgb,var(--hc) 35%,transparent);font-size:13px;will-change:transform}
@@ -375,7 +377,7 @@ body.touch .stabhint{display:none}
 #endnote{margin:0;color:var(--muted);font-size:15px;text-align:center;min-height:1.2em}
 #endcr{margin:0;text-align:center;font:600 15px var(--mono);color:#ffd36a;letter-spacing:.02em}
 .zlruns{display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--muted)}.zlruns h4{margin:4px 0 2px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg)}.zlruns div{display:flex;justify-content:space-between;gap:10px}.zlruns b{font:600 13px var(--mono);color:#ffd36a}
-body.ended #touch,body.ended #zrcap,body.ended #down,body.ended #lockhint,body.ended #prompt,body.ended #ring{visibility:hidden}
+body.ended #touch,body.ended #zrcap,body.ended #vosub,body.ended #down,body.ended #lockhint,body.ended #prompt,body.ended #ring{visibility:hidden}
 #down{background:rgba(60,8,6,.38);pointer-events:none;z-index:6;flex-direction:column;gap:6px;text-align:center}
 #down h2{margin:0;font-size:46px;letter-spacing:.08em;color:#ffb3ab}
 #down p{margin:0;font-size:18px}
@@ -766,7 +768,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
 <canvas class="hud" id="ring" width="120" height="120" style="width:60px;height:60px" hidden></canvas>
 <div class="hud" id="prompt" hidden></div>
 <canvas class="hud" id="dmgdir" aria-hidden="true"></canvas><div class="hud" id="flash"></div><div class="hud" id="blastfl"></div>
-<div class="hud" id="zrcap" aria-live="polite"></div>
+<div class="hud" id="zrcap" aria-live="polite"></div><div class="hud" id="vosub" aria-live="polite"></div>
 <div class="hud" id="zrwcard" hidden></div>
 <div class="hud" id="zrboss" hidden><b>The Juggernaut</b><div class="zbb"><i id="zrbossF"></i></div><span>Plating turns bullets from the front. Hit it in the back</span></div>
 <div class="overlay" id="zrlocker" hidden role="dialog" aria-label="Locker"><div class="zlpanel"><div class="zlhd"><div><b>Locker</b><span>Permanent upgrades for Zombie Rumble, bought with Credits from runs. They never apply in PvP.</span></div><span id="zrlockcr" class="num"></span></div><div id="zrlocklist"></div><div class="zlruns" id="zrlockruns"></div><div class="zlft"><button class="btn" type="button" id="zrlockx">Close</button></div></div></div>
@@ -9245,6 +9247,8 @@ function announce(k,at){return !!voicePlay(k,at,!VQ_FREE[k]);}
 /* how long a run of lines takes to say, gap seconds apart (words only) */
 function vxSeqLen(keys,gap){let t=0,c=0;for(const k of keys)if(VOICE_G[k]){t+=VOICE_G[k][2]+gap;c++;}return c?t-gap:0;}
 const ZR_PA=['p1','p2','p3'],ZR_PA_GAP=1;
+/* subtitles for the tunnel PA, following Joe's takes: [text, start as a fraction of the clip] */
+const ZR_PA_SUB={p1:[['Draftee.',0],['You are awake.',0.54]],p2:[['These are the rules.',0],['Survive the week and you\'ll be retained.',0.26],['Fall, and you\'ll be reprinted.',0.6]],p3:[['The host worlds are watching.',0]]};
 /* music and rain run through their own filter chains so the Sandbox Sound tab can tune them (volume, pitch, tone, low cut, echo) */
 function musChain(M){const f=actx.createBiquadFilter(),h=actx.createBiquadFilter();f.type='lowpass';f.Q.value=0.5;h.type='highpass';h.Q.value=0.5;
   M.f=f;M.h=h;M.v=actx.createGain();M.w=actx.createGain();M.w.gain.value=0;f.connect(h);h.connect(M.g);M.g.connect(M.v);M.v.connect(AU.master);M.v.connect(M.w);M.w.connect(AU.rev);tuneLoops();}
@@ -12000,13 +12004,13 @@ function zrHud(P){const Z=S.zr;if(!Z)return;const L=Z.left|0;
   if(P){if(ZW.fvK===S.mid&&(P.fv|0)>ZW.fv)xpToast(`+${(P.fv|0)-ZW.fv} Favor`);ZW.fvK=S.mid;ZW.fv=P.fv|0;}
   zrCardsLine(P);zrInterUI(P);zrWatch();}
 /* the cards you hold, under your health */
-function zrHide(){for(const id of rgOn()&&ZB.rbMax?['zrheld','zrint','zrwcard']:['zrheld','zrboss','zrint','zrwcard'])if(!$(id).hidden)$(id).hidden=true;$('zrcap').replaceChildren();}
+function zrHide(){for(const id of rgOn()&&ZB.rbMax?['zrheld','zrint','zrwcard']:['zrheld','zrboss','zrint','zrwcard'])if(!$(id).hidden)$(id).hidden=true;$('zrcap').replaceChildren();vsubClear();}
 function zrCardsLine(P){const el=$('zrheld'),cs=(P&&P.cards)||[],k=cs.join(',')+(TOUCH.on?'t':'')+(innerHeight<520?'s':'');el.hidden=!cs.length;if(el.dataset.k===k)return;el.dataset.k=k;
   const chip=(h,t,d,set,r)=>{const sp=document.createElement('span');sp.className='zrcd'+(set?' set':'');if(r)sp.style.setProperty('--rc',ZRARC[r]);if(set)sp.style.setProperty('--hc',ZHOUSE[h][1]);if(!set)sp.append(zGlyphEl(h));/* h: a card id here */sp.append(t);sp.title=d;return sp;};
   el.replaceChildren(...Object.keys(ZHOUSE).filter(h=>zrSet(P,h)).map(h=>{const n=zrSet(P,h);return chip(h,`${ZHOUSE[h][0]} set ${n>1?'III':'II'}: ${ZSET[h][n-1]}`,`${ZHOUSE[h][0]} set ${n>1?'III':'II'}, sponsored by the house (${n>1?'3':'2'} ${ZHOUSE[h][0]} cards): ${ZSET[h][n-1]}`,true);}),
     ...[...new Set(cs)].filter(id=>ZCARDS[id]).map(id=>{const c=ZCARDS[id],lv=zrLv(P,id);return chip(id,c.n+(lv>1?' '+ZROMAN[lv]:''),`${c.n}${lv>1?' '+ZROMAN[lv]:''} · by ${zBrand(c)} · ${zHouseN(c)} · ${ZRAR[c.r]}: ${zDesc(c,lv)}${c.x?' · Price: '+c.x:''}`,false,c.r);}));
   const max=TOUCH.on?(innerHeight<520?1:6):(innerHeight<520?3:8),kids=[...el.children];if(kids.length>max+1){const more=kids.slice(max);more.forEach(k=>k.remove());const m=document.createElement('span');m.className='zrcd more';m.textContent=`+${more.length} more`;m.title=more.map(k=>k.textContent).join(', ');el.append(m);}}
-function zrBanner(){const Z=S.zr,bn=$('banner');bn.hidden=false;
+function zrBanner(){const Z=S.zr,bn=$('banner');bn.hidden=S.phase==='buy';/* the tunnel wait has no text island: the PA voice and its subtitles carry it */
   if(S.phase==='buy'){$('bannerT').textContent='Monday Night Zombie Rumble';
     $('bannerS').textContent=`Draftee. You are awake, in the tunnel under the ${(MAPS[Z.home]||MAPS.yard).name}. Survive the week and you will be retained. Fall and you will be reprinted. · ${Z.segs} segments, about ${Z.len==='short'?10:25} min · Weapon: ${myW(me.w).name}${Z.carry&&zcMyCarried()?` · Build carried from Week ${(Z.week|0)-1}`:''}`;return;}
   $('bannerT').textContent=Z.won?'Week complete':'Broadcast terminated';
@@ -12015,9 +12019,16 @@ function zrBanner(){const Z=S.zr,bn=$('banner');bn.hidden=false;
 const ZW={k:'',st:{},fv:0,fvK:-1};
 function zrCap(t,sub,v){if(v)announce(v);const el=$('zrcap'),d=document.createElement('div');d.textContent=t;if(sub){const s=document.createElement('small');s.textContent=sub;d.append(s);}
   el.replaceChildren(d);clearTimeout(ZW.capT);ZW.capT=setTimeout(()=>d.remove(),3300);}
+/* voice subtitles: one line at a time at the bottom of the screen, timed to the announcer's lines (they show even before a clip has loaded) */
+const VSUB={T:[]};
+function vsubClear(){for(const t of VSUB.T)clearTimeout(t);VSUB.T=[];const el=$('vosub');if(el)el.replaceChildren();}
+function vsubLines(keys,at,gap,subs){vsubClear();const el=$('vosub');let t=at||0;
+  for(const k of keys){const L=vxLen(k),c=subs[k]||[];c.forEach(([x,f],i)=>{const a=t+f*L,b=i+1<c.length?t+c[i+1][1]*L:t+L+0.5;
+    VSUB.T.push(setTimeout(()=>{const d=document.createElement('div');d.textContent=x;el.replaceChildren(d);},a*1000),setTimeout(()=>{if(el.firstChild&&el.firstChild.textContent===x)el.replaceChildren();},b*1000));});
+    t+=L+gap;}}
 function zrWatch(){const Z=S.zr,k=S.mid+':'+Z.seg+':'+Z.w+':'+Z.ph+':'+S.phase,was=ZW.k,fresh=!was.startsWith(S.mid+':');
   // a partner going down or getting up
-  if(fresh){ZW.st={};if(S.phase==='buy'&&Z.seg===1&&(Z.week||1)===1){introSay(ZR_PA,0.6,ZR_PA_GAP);ZW.paEnd=performance.now()/1000+0.6+vxSeqLen(ZR_PA,ZR_PA_GAP);}else if(S.phase==='buy')ZW.paEnd=0;}for(const p of S.players){const o=ZW.st[p.s];ZW.st[p.s]=p.st;if(!o||S.phase!=='live')continue;
+  if(fresh){ZW.st={};if(S.phase==='buy'&&Z.seg===1&&(Z.week||1)===1){introSay(ZR_PA,0.6,ZR_PA_GAP);vsubLines(ZR_PA,0.6,ZR_PA_GAP,ZR_PA_SUB);ZW.paEnd=performance.now()/1000+0.6+vxSeqLen(ZR_PA,ZR_PA_GAP);}else if(S.phase==='buy')ZW.paEnd=0;}for(const p of S.players){const o=ZW.st[p.s];ZW.st[p.s]=p.st;if(!o||S.phase!=='live')continue;
     if(o==='alive'&&p.st==='down')zrCap('Warrior down',p.name,'r9');else if(o==='down'&&p.st==='alive'&&Z.ph!=='inter')zrCap('Warrior revived',p.name,'r10');}
   if(k===was)return;ZW.k=k;
   if(fresh)return;
