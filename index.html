@@ -6477,6 +6477,9 @@ function craneAt(t){const n=Math.floor(t/CRANE_P),u=t-n*CRANE_P,a=craneSlot(n),b
   if(u<CRANE_HOLD)return{ph:0,a,b,k:0,u,n};if(u<L)return{ph:1,a,b,k:(u-CRANE_HOLD)/CRANE_LIFT,u,n};if(u<M)return{ph:2,a,b,k:(u-L)/CRANE_MOVE,u,n};return{ph:3,a,b,k:(u-M)/(CRANE_P-M),u,n};}
 const POUR_P=40,POUR_WARN=29,POUR_ON=32;
 function pourAt(t){const u=t%POUR_P;return u<POUR_WARN?0:u<POUR_ON?1:2;}/* 0 off, 1 warning (3 s), 2 molten (8 s) */
+/* one crucible pours per cycle, west then east, so half the channel is always a way across the middle (Joe: the full-length pour shut the midfield) */
+function pourSide(t){return Math.floor(t/POUR_P)%2?1:-1;}
+function inPour(x,z,m,t){const P=MF.pour;if(!P||Math.abs(z)>P.z+m)return false;const sx=x*pourSide(t==null?(S&&S.mft)||0:t);return sx>-m&&sx<P.x+m;}
 const THEME={};/* the current map's cyberpunk palette (applyTheme paints the arena with it) */
 function addSolid(x,z,w,d,h){addBox(x,z,w,d,h,1);BOXES[BOXES.length-1].solid=true;return BOXES[BOXES.length-1];}
 const SOLID_H=3.2,WALL_H=8;
@@ -6559,12 +6562,12 @@ const GW=100,GD=40,blocked=new Uint8Array(GW*GD);
 let GRIDV=0;/* bumps whenever the nav grid is rebuilt */
 function rebuildGrid(){GRIDV++;for(let gx=0;gx<GW;gx++)for(let gz=0;gz<GD;gz++){const x=gx-50+0.5,z=gz-20+0.5;let bl=Math.abs(x)>49.2||Math.abs(z)>19.2;
   if(!bl)for(const b of BOXES){if(b.y1<=0.2||b.nonav)continue;if(x>b.x0-0.75&&x<b.x1+0.75&&z>b.z0-0.75&&z<b.z1+0.75){bl=true;break;}}
-  if(!bl&&MF.block&&MF.pour&&Math.abs(x)<MF.pour.x+0.6&&Math.abs(z)<MF.pour.z+0.6)bl=true;
+  if(!bl&&MF.block&&MF.pour&&inPour(x,z,0.6))bl=true;
   if(!bl&&MF.eh&&Math.hypot(x-MF.eh.x,z-MF.eh.z)<2.2)bl=true;/* paths go round the black hole's core */blocked[gx*GD+gz]=bl?1:0;}}
 rebuildGrid();
 const cellOf=(x,z)=>[clamp(Math.floor(x+50),0,GW-1),clamp(Math.floor(z+20),0,GD-1)];
 /* true where only the Foundry pour (warning or molten) blocks the floor */
-function pourCell(x,z){const P=MF.pour;return !!(MF.block&&P&&Math.abs(x)<P.x+0.6&&Math.abs(z)<P.z+0.6);}
+function pourCell(x,z){return !!(MF.block&&MF.pour&&inPour(x,z,0.6));}
 function freeAt(x,z){const c=cellOf(x,z);return !blocked[c[0]*GD+c[1]];}
 function segClear(ax,az,bx,bz){const L=hyp(ax,az,bx,bz),n=Math.ceil(L/0.4);for(let i=1;i<=n;i++){const t=i/n;if(!freeAt(ax+(bx-ax)*t,az+(bz-az)*t))return false;}return true;}
 function nearestFree(gx,gz){if(!blocked[gx*GD+gz])return[gx,gz];for(let r=1;r<6;r++){let best=null,bd=1e9;for(let dx=-r;dx<=r;dx++)for(let dz=-r;dz<=r;dz++){if(Math.max(Math.abs(dx),Math.abs(dz))!==r)continue;const x=gx+dx,z=gz+dz,d=dx*dx+dz*dz;if(x>=0&&z>=0&&x<GW&&z<GD&&!blocked[x*GD+z]&&d<bd){bd=d;best=[x,z];}}if(best)return best;}return[gx,gz];}
@@ -6638,12 +6641,12 @@ function damagePane(i,d){if(!S||S.phase!=='live'||!S.pane||!(S.pane[i]>0)||(MF.p
   if(S.pane[i]<=0){if(!S.paneR)S.paneR=S.pane.map(()=>0);S.paneR[i]=PANE_REGEN;}}
 function mfHost(dt){if(S.mode==='zr'||S.range)zsHost(dt);foHost(dt);ehHost(dt);if(S.range)return;const t=S.mft||0;
   if(MF.pour&&pourAt(t)>0){const P=MF.pour;/* bots on the channel floor head for the nearest bank (escape overrides fighting moves) */
-    for(const p of S.players){if(!p.bot||p.st!=='alive'||Math.abs(p.x)>P.x+0.4||Math.abs(p.z)>P.z+0.4||(p.y||0)>0.3)continue;const m=botMem[p.s];if(!m||m.esc)continue;
-      const sz=p.z>=0?1:-1,opts=[{x:p.x,z:sz*(P.z+1.4)},{x:p.x,z:-sz*(P.z+1.4)},{x:Math.sign(p.x||1)*(P.x+1.4),z:p.z}];
+    const sd=pourSide(t);for(const p of S.players){if(!p.bot||p.st!=='alive'||!inPour(p.x,p.z,0.4,t)||(p.y||0)>0.3)continue;const m=botMem[p.s];if(!m||m.esc)continue;
+      const sz=p.z>=0?1:-1,opts=[{x:p.x,z:sz*(P.z+1.4)},{x:p.x,z:-sz*(P.z+1.4)},{x:-sd*1.6,z:p.z}];
       const o=opts.find(q=>freeAt(q.x,q.z))||opts[2];m.esc={x:o.x,z:o.z,t:3};}}
-  if(MF.pour&&pourAt(t)===2){const P=MF.pour;for(const p of S.players){if(p.st==='dead'||Math.abs(p.x)>P.x+0.3||Math.abs(p.z)>P.z+0.3||(p.y||0)>0.3)continue;envHurt(p,POUR_DPS*dt,'burned in the pour');}
+  if(MF.pour&&pourAt(t)===2){for(const p of S.players){if(p.st==='dead'||!inPour(p.x,p.z,0.3,t)||(p.y||0)>0.3)continue;envHurt(p,POUR_DPS*dt,'burned in the pour');}
     /* Revenants burn too (headliners are too heavy to be hurt by it, but they still walk around it) */
-    if(ZB.list.length&&!zGuest())for(const o of ZB.list.slice()){if(o.st!=='walk'&&o.st!=='rise'||ZTYPES[o.t].boss||Math.abs(o.x)>P.x+0.3||Math.abs(o.z)>P.z+0.3||!o.reg||!o.reg.torso)continue;
+    if(ZB.list.length&&!zGuest())for(const o of ZB.list.slice()){if(o.st!=='walk'&&o.st!=='rise'||ZTYPES[o.t].boss||!inPour(o.x,o.z,0.3,t)||!o.reg||!o.reg.torso)continue;
       o.reg.torso.hp-=POUR_DPS*1.5*dt;o.flash=Math.max(o.flash||0,0.6);if(o.reg.torso.hp<=0)zKill(o,false,null);else o.hp=Math.max(1,Math.round(o.reg.torso.hp));}}
   const R=S.paneR;if(R)for(let i=0;i<R.length;i++){if(!(R[i]>0))continue;R[i]-=dt;if(R[i]>0)continue;R[i]=0;S.pane[i]=PANE_HP;}}
 /* ---------- Zombie Rumble stage changes: each wave the stadium reconfigures the map (Joe's picks, 2026-11-21: Yard Container Drop +
@@ -9816,7 +9819,7 @@ const MOLTEN_VS='varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatri
 const MOLTEN_FS=`varying vec2 vUv;uniform float uT,uA,uF,uS;
 float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
-void main(){vec2 p=vUv*uS;float side=vUv.x<0.5?1.:-1.;float fl=abs(vUv.x-0.5)*2.;
+void main(){if((vUv.x-0.5)*uSd<0.)discard;vec2 p=vUv*uS;float side=vUv.x<0.5?1.:-1.;float fl=abs(vUv.x-0.5)*2.;
   float m=n(p*vec2(0.9,1.4)+vec2(uT*0.9*side,uT*0.15))*0.62+n(p*2.7-vec2(uT*0.4*side,uT*0.3))*0.38;
   vec3 c=mix(vec3(0.35,0.03,0.0),vec3(1.7,0.42,0.04),smoothstep(0.28,0.66,m));c=mix(c,vec3(2.6,1.55,0.45),smoothstep(0.7,0.93,m));
   float a=uA*smoothstep(1.0-uF-0.06,1.0-uF,fl);if(a<0.01)discard;gl_FragColor=vec4(c,a);
@@ -9829,8 +9832,8 @@ function mfPourVis(){const P=MF.pour,g=new THREE.Group();MFG.add(g);
   const bankM=new THREE.MeshBasicMaterial({color:lin(0xff6a12),toneMapped:false,transparent:true,opacity:0.5});const banks=[];
   for(const z of [-P.z,P.z]){const b=new THREE.Mesh(new THREE.BoxGeometry(P.x*2,0.07,0.16),bankM);b.position.set(0,0.04,z);g.add(b);banks.push(b);}
   for(const x of [-P.x,P.x]){const b=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.07,P.z*2),bankM);b.position.set(x,0.04,0);g.add(b);banks.push(b);}
-  const U={uT:{value:0},uA:{value:0},uF:{value:0},uS:{value:new THREE.Vector2(P.x*0.9,P.z*0.9)}};
-  const mm=new THREE.ShaderMaterial({uniforms:U,vertexShader:MOLTEN_VS,fragmentShader:MOLTEN_FS.replace('uniform float uT,uA,uF,uS;','uniform float uT,uA,uF;uniform vec2 uS;'),transparent:true,depthWrite:false,toneMapped:false});
+  const U={uT:{value:0},uA:{value:0},uF:{value:0},uSd:{value:1},uS:{value:new THREE.Vector2(P.x*0.9,P.z*0.9)}};
+  const mm=new THREE.ShaderMaterial({uniforms:U,vertexShader:MOLTEN_VS,fragmentShader:MOLTEN_FS.replace('uniform float uT,uA,uF,uS;','uniform float uT,uA,uF,uSd;uniform vec2 uS;'),transparent:true,depthWrite:false,toneMapped:false});
   const molten=new THREE.Mesh(new THREE.PlaneGeometry(P.x*2,P.z*2),mm);molten.rotation.x=-Math.PI/2;molten.position.y=0.04;molten.renderOrder=1;molten.visible=false;g.add(molten);
   const dark=smat(0x221d19,0.6,0.6),streams=[];
   for(const sx of [-1,1]){const cr=new THREE.Mesh(new THREE.CylinderGeometry(0.95,0.7,1.3,14),dark);cr.position.set(sx*(P.x+0.4),7.4,0);cr.rotation.z=sx*0.5;cr.castShadow=true;g.add(cr);
@@ -10034,10 +10037,10 @@ function mfTick(dt){mlTick(dt);const live=!!S,off=!!(S&&S.range)||RG.stowed,t=mf
   // Foundry pour
   if(MF.pour&&MFV.pour){const V=MFV.pour,P=MF.pour,running=!live||(S.phase==='live'&&!off),ph=running?pourAt(t):0,u=t%POUR_P;V.g.visible=!off;
     V.U.uT.value=now;const warnK=ph===1?0.5+0.5*Math.sin(now*20):0;V.bankM.opacity=ph===0?0.32:ph===1?0.35+0.65*warnK:1;V.floor.material.emissiveIntensity=ph===2?0.5:0.04+0.25*warnK;
-    if(ph===2){const s=u-POUR_ON;V.U.uF.value=clamp(s/0.9,0,1);V.U.uA.value=s>POUR_P-POUR_ON-0.8?clamp((POUR_P-POUR_ON-s)/0.8,0,1):1;V.molten.visible=true;for(const st of V.streams){st.visible=s<POUR_P-POUR_ON-0.6;st.scale.set(1,7.2,1);}}
+    if(ph===2){const s=u-POUR_ON;V.U.uF.value=clamp(s/0.9,0,1);V.U.uA.value=s>POUR_P-POUR_ON-0.8?clamp((POUR_P-POUR_ON-s)/0.8,0,1):1;V.molten.visible=true;const sd=pourSide(t);V.U.uSd.value=sd;V.streams.forEach((st,i)=>{st.visible=(i?1:-1)===sd&&s<POUR_P-POUR_ON-0.6;st.scale.set(1,7.2,1);});}
     else{V.molten.visible=false;for(const st of V.streams)st.visible=false;}
     const blk=ph>0;if(live&&blk!==MF.block){MF.block=blk;nav=true;}
-    if(live&&S.phase==='live'&&!off){if(MFV.pph>=0&&ph!==MFV.pph){if(ph===1){mfSfx('alarm',0,0,0.55);mfCap('Molten pour in 3 seconds: get off the channel floor',3);}else if(ph===2){mfCap('The channel is molten',3);}}MFV.pph=ph;}else MFV.pph=-1;
+    if(live&&S.phase==='live'&&!off){if(MFV.pph>=0&&ph!==MFV.pph){if(ph===1){mfSfx('alarm',0,0,0.55);const hn=pourSide(t)>0?'east':'west';mfCap(`Molten pour in 3 seconds: get off the ${hn} half of the channel`,3);}else if(ph===2){mfCap(`The ${pourSide(t)>0?'east':'west'} half of the channel is molten`,3);}}MFV.pph=ph;}else MFV.pph=-1;
     MFA.lavaK=ph===2?V.U.uA.value:0;}else MFA.lavaK=0;
   // Atrium glass
   for(let i=0;i<MFV.panes.length;i++){const v=MFV.panes[i],b=v.b,hp=off?0:S&&S.pane&&S.pane[i]!=null?S.pane[i]:PANE_HP;
