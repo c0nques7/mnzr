@@ -108,6 +108,7 @@ Because of the file's size, enable compression on your host (Vercel compresses t
 
 - three.js (MIT), https://threejs.org
 - Dash recharge cue: "energy" by freesound_community (Pixabay 90321, Pixabay Content License), trimmed and pitched up.
+- Arena buzz bed (every map): "High energy buzzing ambience" by alex_jauk (Pixabay 195142, Pixabay Content License), looped.
 - Music credits as named in `MATCH_LIST`: loka_music, turtlebeats, echoes_of_lumen, kulakovka, EnergySound, SlimeyFox, fassounds. Check each track's licence before publishing.
 
 ## Known gaps
