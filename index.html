@@ -37,6 +37,7 @@
 .brow .nm{display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--muted);flex:1;min-width:140px}
 #shopStats{display:flex;flex-direction:column;gap:4px}
 #shopGuns{grid-template-columns:repeat(6,minmax(0,1fr))}
+#shop.pick #shopWheel,#shop.pick #shopTest,#shop.pick .btns .chk{display:none}
 #shopWheel{display:grid;grid-template-columns:auto repeat(6,minmax(0,1fr));gap:4px;align-items:center;font-size:12px;color:var(--muted)}
 #shopWheel select{min-width:0;width:100%;font-size:12px;padding:3px 2px}
 #shopGuns .btn.lock{opacity:.6}
@@ -890,7 +891,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
 </div>
 <div class="overlay" id="shop" hidden role="dialog" aria-label="Workshop">
   <div class="setcard shopcard">
-    <div class="hd"><b>Workshop</b><span id="shopLvl"></span></div>
+    <div class="hd"><b id="shopTi">Workshop</b><span id="shopLvl"></span></div>
     <div class="shopgrid">
       <div class="shopview">
         <div class="gtabs" id="shopGuns" role="group" aria-label="Gun"></div>
@@ -903,7 +904,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
       </div>
       <div id="shopSlots"></div>
     </div>
-    <div class="btns"><label class="chk"><input type="checkbox" id="shopAll"> Unlock everything (testing)</label><span class="cap" style="flex:1">The build you pick for each gun is the one you spawn with. Builds save in this browser.</span><button class="btn" type="button" id="shopTest" title="Try this gun and build at the shooting range, then come back here">Test in range</button><button class="btn primary" type="button" id="shopClose">Done</button></div>
+    <div class="btns"><label class="chk"><input type="checkbox" id="shopAll"> Unlock everything (testing)</label><span class="cap" style="flex:1" id="shopCap">The build you pick for each gun is the one you spawn with. Builds save in this browser.</span><button class="btn" type="button" id="shopTest" title="Try this gun and build at the shooting range, then come back here">Test in range</button><button class="btn primary" type="button" id="shopClose">Done</button><button class="btn primary" type="button" id="shopGo" hidden>Start run</button></div>
   </div>
 </div>
 
@@ -9541,7 +9542,7 @@ function lanceRelease(s,cw){me.lanceF=clamp(me.chgT/cw.chg,0,1);me.chgT=0;pullSh
 /* the gun you spawn with: your pick, unless it is locked (or a Zombie Rumble exclusive), then the first gun on your wheel */
 const prefOK=k=>!!W[k]&&!W[k].zr&&!gunLock(k);
 const myPref=()=>prefOK(me.wPref)?me.wPref:wheelKeys()[0];
-function setWeapon(k){if(!W[k]||(!SB.on&&!prefOK(k)))return;me.wPref=k;try{localStorage.setItem('za-w',k);}catch(e){}
+function setWeapon(k){if(!W[k]||(!SB.on&&!prefOK(k))||zrNoWheel())return;me.wPref=k;try{localStorage.setItem('za-w',k);}catch(e){}
   const s=mySlot();const P=s>=0&&S?S.players[s]:null;
   if(S&&(S.phase==='buy'||SB.on)&&P&&P.st==='alive'&&me.w!==k){me.w=k;me.ammo=myW(k).mag;me.reloadT=0;showWeapon(k);blip(520,0.06,0.03,false,undefined,undefined,'ui');}
   lastPickerKey='';}
@@ -9583,11 +9584,12 @@ function makeWheel(host,o){
     const f=W[hov]?hov:W[sel]?sel:'rifle';cn.textContent=W[f].name;cs.textContent=WDESC[f]+' · '+buildOf(f).n;cd.textContent=wStats(f);},
     refresh(){lastKey='';build();}};
 }
+const zrNoWheel=()=>!!(S&&S.mode==='zr'&&!SB.on);/* Zombie Rumble: the gun is picked before the run (shopGo); drops change it */
 const WH={open:false,mode:'',hov:null,vx:0,vy:0,auto:false};
 const wheelUI=makeWheel($('wheelHost'),{keys:true,onHover:k=>{if(!locked)wheelHover(k);},onPick:k=>{WH.hov=k;closeWheel(true);}});
 const deadWheel=makeWheel($('wpick'),{keys:false,selLabel:'next life',onHover:k=>deadWheel.set(me.wPref,k),onPick:k=>{setWeapon(k);deadWheel.set(me.wPref,null);}});
 function wheelHover(k){if(k===WH.hov)return;WH.hov=k;if(k)blip(760,0.03,0.015,false,'ui');if(WH.mode==='start'&&k)setWeapon(k);wheelUI.set(me.wPref,WH.hov);}
-function canHoldWheel(){const s=mySlot();const P=s>=0&&S?S.players[s]:null;return !!(P&&P.st==='alive'&&(SB.on||S.phase==='buy')&&$('pause').hidden&&$('settings').hidden&&$('dead').hidden);}
+function canHoldWheel(){if(zrNoWheel())return false;const s=mySlot();const P=s>=0&&S?S.players[s]:null;return !!(P&&P.st==='alive'&&(SB.on||S.phase==='buy')&&$('pause').hidden&&$('settings').hidden&&$('dead').hidden);}
 function openWheel(mode){if(WH.open&&WH.mode===mode)return;WH.open=true;WH.mode=mode;WH.hov=null;WH.vx=WH.vy=0;mouseDown=false;adsDown=false;
   $('wheelK').innerHTML=PAD.on?(mode==='start'?`Push a stick toward a weapon, then press ${pk('a')} to lock it in`:`Push a stick toward a weapon and let go of ${pk('y')} to equip it · ${pk('b')} cancels`):TOUCH.on?(mode==='start'?'Tap a weapon to lock it in':'Tap a weapon to equip it, or tap outside to close'):mode==='start'?`Move the mouse to a weapon, then click or press ${kbRange(6)} to lock in`:`Point at a weapon and let go of ${kbK('wheel')} to equip`;
   wheelUI.dot.setAttribute('cx',0);wheelUI.dot.setAttribute('cy',0);wheelUI.dot.style.display=locked?'':'none';
@@ -9602,7 +9604,7 @@ function wheelMove(dx,dy){WH.vx+=dx;WH.vy+=dy;const L=Math.hypot(WH.vx,WH.vy);if
   wheelUI.dot.setAttribute('cx',WH.vx.toFixed(1));wheelUI.dot.setAttribute('cy',WH.vy.toFixed(1));
   if(L>28)wheelHover(wheelAt(Math.atan2(WH.vy,WH.vx)*180/Math.PI));}
 function wheelTick(P){
-  if(S.phase==='buy'&&S.round===1){if(!WH.auto&&P&&P.st==='alive'&&$('pause').hidden&&$('settings').hidden){WH.auto=true;if(!(S.mode==='zr'&&S.zr&&S.zr.carry&&P.dropW))openWheel('start');}}/* a carried weapon skips the start pick */
+  if(S.phase==='buy'&&S.round===1){if(!WH.auto&&P&&P.st==='alive'&&$('pause').hidden&&$('settings').hidden){WH.auto=true;if(S.mode!=='zr')openWheel('start');}}/* a carried weapon skips the start pick */
   else{WH.auto=false;if(WH.open&&WH.mode==='start')closeWheel(false);}
   if(WH.open&&WH.mode==='hold'&&!canHoldWheel())closeWheel(false);
   if(WH.open)wheelTitle();}
@@ -11982,7 +11984,7 @@ function lvlUI(){const l=lvlOf(PROG.xp);$('lvlN').textContent='Level '+l.L;$('lv
   const k=W[$('wsel').value]?$('wsel').value:'rifle';$('wbuildcap').textContent=`Build: ${buildOf(k).n} · gun level ${wlvlOf(PROG.wxp[k])}`;}
 
 /* ---------- Workshop: pick parts for each gun, see the change in the stats and on a 3D model ---------- */
-const SHOP={k:'rifle',hov:null,r:null,sc:null,cam:null,piv:null,gun:null,gunKey:'',yaw:Math.PI/2-0.45,pitch:0.12,drag:null,raf:0};
+const SHOP={pick:'',k:'rifle',hov:null,r:null,sc:null,cam:null,piv:null,gun:null,gunKey:'',yaw:Math.PI/2-0.45,pitch:0.12,drag:null,raf:0};
 const aimTime=w=>Math.log(10)/(15*w.ads);
 const zoomX=w=>{const f=OPT.fov;return Math.tan(f*Math.PI/360)/Math.tan((f-24*(f/78)*w.zoom)*Math.PI/360);};
 /* [label, value, display, bar 0..1, higher is better] */
@@ -11995,9 +11997,14 @@ const SHOP_ROWS=[
   ['Magazine',w=>w.mag,w=>w.mag+' rounds',w=>w.mag/60,true],
   ['Reload',w=>w.reload,w=>w.reload.toFixed(2)+' s',w=>(3.8-w.reload)/3.2,false],
   ['Aim zoom',w=>zoomX(w),w=>zoomX(w).toFixed(2)+'×',w=>(zoomX(w)-1)/1.6,true]];
-function shopOpen(k0){progLoad();SHOP.k=PVPK.includes(k0)?k0:PVPK.includes($('wsel').value)?$('wsel').value:'rifle';SHOP.hov=null;$('menu').hidden=true;$('shop').hidden=false;shopInit();shopUI();
+function shopOpen(k0,pick){progLoad();SHOP.pick=pick||'';SHOP.k=PVPK.includes(k0)?k0:PVPK.includes($('wsel').value)?$('wsel').value:'rifle';if(SHOP.pick&&gunLock(SHOP.k))SHOP.k=wheelKeys()[0];SHOP.hov=null;if(!SHOP.pick)$('menu').hidden=true;else $('mapscr').hidden=true;$('shop').hidden=false;
+  const pk=!!SHOP.pick,cy=pk&&MATCH.zrCarry?zcCarryFor(zcSel()):null;$('shop').classList.toggle('pick',pk);$('shopTi').textContent=pk?'Choose your weapon':'Workshop';$('shopGo').hidden=!pk;$('shopClose').textContent=pk?'Back':'Done';$('shopClose').classList.toggle('primary',!pk);
+  $('shopCap').textContent=pk?(cy&&cy.dw?`You carry the ${W[cy.dw].name} from Week ${cy.from||cy.w-1}, so you start with it. Your pick here is the gun you fall back to.`:'Pick a gun and its build for this run. You keep it until you take a weapon drop.'):'The build you pick for each gun is the one you spawn with. Builds save in this browser.';shopInit();shopUI();
   if(!SHOP.raf)SHOP.raf=requestAnimationFrame(shopFrame);blip(660,0.05,0.03,false,'ui');}
-function shopClose(){$('shop').hidden=true;$('menu').hidden=false;cancelAnimationFrame(SHOP.raf);SHOP.raf=0;rebuildVW();lvlUI();blip(520,0.05,0.03,false,'ui');}
+function shopClose(go){const pk=SHOP.pick;SHOP.pick='';$('shop').hidden=true;$('shop').classList.remove('pick');if(!pk)$('menu').hidden=false;else if(go!==true)$('mapscr').hidden=false;cancelAnimationFrame(SHOP.raf);SHOP.raf=0;rebuildVW();lvlUI();blip(520,0.05,0.03,false,'ui');}
+/* Zombie Rumble has no weapon wheel: after the map screen this Workshop view picks the gun (and build) for the run, then starts it */
+function shopGo(){const k=SHOP.k,go=SHOP.pick;if(!go||gunLock(k))return;$('wsel').value=k;me.wPref=k;try{localStorage.setItem('za-w',k);}catch(e){}lvlUI();shopClose(true);
+  if(go==='online'){if(!$('joinbtn').disabled){$('msgo').disabled=true;$('joinbtn').click();}}else $('practice').click();}
 function shopInit(){if(SHOP.r)return;
   const cv=$('shopCv');let r;try{r=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});}catch(e){return;}
   r.setPixelRatio(Math.min(2,devicePixelRatio||1));r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.1;r.outputColorSpace=THREE.SRGBColorSpace;
@@ -12047,7 +12054,7 @@ function shopUI(){const k=SHOP.k,b=buildOf(k),mk=(t,c,x)=>{const n=document.crea
     c.addEventListener('pointerenter',()=>{SHOP.hov={sl:'glow',id:g.id};});c.addEventListener('pointerleave',()=>{SHOP.hov=null;});
     c.addEventListener('click',()=>{if(glowLock(g))return;b.g=g.id;progSave();shopUI();});gc.append(c);}
   gr.append(gc);sl.append(gr);
-  $('shopAll').checked=PROG.all;{const tb=$('shopTest'),gl=gunLock(k);tb.disabled=!!gl;tb.title=gl?`${W[k].name} unlocks at ${gl}`:`Try the ${W[k].name} (${b.n}) at the shooting range, then come back here`;}shopStats();}
+  $('shopAll').checked=PROG.all;{const tb=$('shopTest'),gl=gunLock(k);tb.disabled=!!gl;$('shopGo').disabled=!!gl;$('shopGo').title=gl?`${W[k].name} unlocks at ${gl}`:'';tb.title=gl?`${W[k].name} unlocks at ${gl}`:`Try the ${W[k].name} (${b.n}) at the shooting range, then come back here`;}shopStats();}
 function shopStats(){const k=SHOP.k,cur=modW(k,effParts(k)),nx=modW(k,shopParts()),el=$('shopStats'),mk=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n;};
   el.replaceChildren();const w0=wOf(k);el.append(mk('div','fixed',w0.chg?`${dmgTxt(w0.tap)} tap · ${dmgTxt(w0.dmg)} charged · ${dmgTxt(w0.head)} charged headshot · full charge in ${w0.chg} s, pierces (parts never change these)`:
     `${w0.pel?w0.pel+' pellets × ':''}${dmgTxt(w0.dmg)} damage · ${dmgTxt(w0.head)} headshot · ${w0.burst?w0.burst+'-round bursts, '+Math.round(60/w0.cd)+' a minute':Math.round(60/w0.cd)+' rpm'}${w0.akimbo?' · hip fire only':''} (parts never change these)`));
@@ -12061,8 +12068,8 @@ $('shopbtn').addEventListener('click',()=>shopOpen());
 function shopTest(){const k=SHOP.k;if(gunLock(k))return;$('shop').hidden=true;cancelAnimationFrame(SHOP.raf);SHOP.raf=0;rebuildVW();
   SB.on=true;SB.test=k;SB.mode='range';SB.tab='range';if(DEVMODE){sbLoad();devLoad();buildSB();}
   tuneApply();startSolo();$('pleave').textContent='Back to Workshop';}
-$('shopTest').addEventListener('click',shopTest);
-$('shopClose').addEventListener('click',shopClose);
+$('shopTest').addEventListener('click',shopTest);$('shopGo').addEventListener('click',shopGo);
+$('shopClose').addEventListener('click',()=>shopClose());
 $('shopName').addEventListener('input',e=>{const b=buildOf(SHOP.k);b.n=e.target.value.replace(/[^\w .'+-]/g,'').slice(0,18)||b.n;progSave();const on=$('shopBuilds').querySelector('.on');if(on)on.textContent=b.n;});
 $('shopName').addEventListener('change',()=>shopUI());
 $('shopReset').addEventListener('click',()=>{const b=buildOf(SHOP.k);b.p=defParts(SHOP.k);b.g='';progSave();shopUI();});
@@ -12072,7 +12079,7 @@ $('wsel').addEventListener('change',lvlUI);
 /* respawn screen: pick which saved build of the next-life gun you come back with */
 let wbKey='';
 function wbuildsTick(){if($('dead').hidden){wbKey='';return;}const k=me.wPref,bs=PROG.builds[k]||[];const key=k+'|'+PROG.sel[k]+'|'+bs.map(b=>b.n).join(',');if(key===wbKey)return;wbKey=key;
-  const el=$('wbuilds');el.replaceChildren();el.hidden=bs.length<2;bs.forEach((b,i)=>{const bt=document.createElement('button');bt.type='button';bt.className='btn'+(i===PROG.sel[k]?' on':'');bt.textContent=b.n;
+  const el=$('wbuilds');el.replaceChildren();el.hidden=bs.length<2||zrNoWheel();bs.forEach((b,i)=>{const bt=document.createElement('button');bt.type='button';bt.className='btn'+(i===PROG.sel[k]?' on':'');bt.textContent=b.n;
     bt.addEventListener('click',()=>{PROG.sel[k]=i;progSave();rebuildVW();deadWheel.refresh();deadWheel.set(me.wPref,null);blip(700,0.04,0.025,false,'ui');});el.append(bt);});}
 progLoad();rebuildVW();lvlUI();
 
@@ -12150,7 +12157,7 @@ function msSync(){const on=MS.go==='online';$('msgo').disabled=on&&$('joinbtn').
 new MutationObserver(()=>{if(MS.open)msSync();}).observe($('netstatus'),{childList:true,characterData:true,subtree:true});
 document.querySelectorAll('.msgo').forEach(b=>b.addEventListener('click',()=>msOpen(b.dataset.go)));
 $('msback').addEventListener('click',()=>{msClose();if(!$('mpanel').hidden)dioShow($('modesel').value);const b=document.querySelector(`.msgo[data-go="${MS.go}"]`);if(b)b.focus({preventScroll:true});});
-$('msgo').addEventListener('click',()=>{if(MS.go==='online'){if(!$('joinbtn').disabled){$('msgo').disabled=true;$('joinbtn').click();}}else $('practice').click();});
+$('msgo').addEventListener('click',()=>{if($('modesel').value==='zr'){if(MS.go==='online'&&$('joinbtn').disabled)return;shopOpen(me.wPref,MS.go==='online'?'online':'solo');return;}if(MS.go==='online'){if(!$('joinbtn').disabled){$('msgo').disabled=true;$('joinbtn').click();}}else $('practice').click();});
 window.addEventListener('keydown',e=>{if(!MS.open||$('menu').hidden||!$('settings').hidden)return;
   if(e.code==='Escape'||e.code==='Backspace'){e.preventDefault();e.stopImmediatePropagation();$('msback').click();}
   else if(/^(ArrowLeft|KeyA)$/.test(e.code)){e.preventDefault();e.stopImmediatePropagation();mapStep(-1);MAPEL.querySelector('[aria-checked=true]').focus({preventScroll:true});}
@@ -13378,7 +13385,7 @@ function hud(dt){
   if(me.wantLock&&!dead){me.wantLock=false;autoLock();}
   if(dead){
     if(locked)document.exitPointerLock();
-    $('picker').hidden=dm;
+    $('picker').hidden=dm;$('wpick').hidden=!!zr;$('deadK').hidden=!!zr;
     if(dm){$('deadT').textContent=zr?'Out of the fight':'Respawning';$('deadS').textContent=zr?(S.zr&&(S.zr.ph==='break'||S.zr.ph==='inter')?'Back in a moment':'You come back beside your partner when this wave is cleared, if they live through it'):`Back in ${Math.max(0,Math.ceil(P.deadT))}s, away from the enemy · ${P.k|0} kills, ${P.d|0} deaths`;
       const key='dm'+me.wPref+PAD.on;if(key!==lastPickerKey){lastPickerKey=key;$('deadK').innerHTML=PAD.on?`${pk('dpad')} to a weapon, ${pk('a')} picks it.`:`Press ${kbRange(6)} or click to pick a weapon.`;deadWheel.refresh();deadWheel.set(me.wPref,null);}}
     else{
