@@ -7488,7 +7488,11 @@ function grainCanvas(size,base,amt,draw){const c=document.createElement('canvas'
   const img=g.getImageData(0,0,size,size),d=img.data;for(let i=0;i<d.length;i+=4){const n=(Math.random()-.5)*amt;d[i]+=n;d[i+1]+=n;d[i+2]+=n;}g.putImageData(img,0,0);if(draw)draw(g,size);return c;}
 function lineCanvas(size,draw){const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,size,size);draw(g,size);return c;}
 const ANISO=[];
-/* a map change throws away cover and wall materials: free their textures too, or every map change left ~20 on the GPU (phones slowed down late in a Zombie Rumble run) */
+/* A map change throws away cover and wall materials: free their textures or every switch leaves ~20 on the GPU (phones
+   slowed down late in a Zombie Rumble run). The material objects themselves are deliberately NOT disposed — Three.js
+   destroys a compiled shader program when its last material goes away, so disposing here makes the next render of that
+   arena recompile its shaders (~0.2–1 s freeze). The old materials are unreferenced after a switch and get garbage
+   collected; the program cache is a fixed set of shader configurations, so keeping them alive does not grow over time. */
 function texFree(m){if(!m)return;for(const k of ['map','emissiveMap']){const t=m[k];if(!t)continue;t.dispose();const i=ANISO.indexOf(t);if(i>=0)ANISO.splice(i,1);}}
 function tex(c,rx,ry){const t=new THREE.CanvasTexture(c);ANISO.push(t);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rx||1,ry||1);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());return t;}
 const floorC=grainCanvas(512,'#3a3c48',14,(g,s)=>{g.strokeStyle='rgba(0,0,0,.5)';g.lineWidth=4;g.strokeRect(2,2,s-4,s-4);g.beginPath();g.moveTo(s/2,0);g.lineTo(s/2,s);g.moveTo(0,s/2);g.lineTo(s,s/2);g.stroke();});
@@ -7548,7 +7552,7 @@ function band(L,w,d,y,h,o){const hw=w/2+o,hd=d/2+o;L.push([w+2*o,h,0.03,0,y,hd-0
 const SOLID_G=new THREE.Group(),solidEdgeM=new THREE.LineBasicMaterial({color:lin(NEON.vi),toneMapped:false});scene.add(SOLID_G);
 /* (re)build the solid meshes for the current BOXES; returns the old materials so setMap can drop them from the day/night lists */
 function buildSolids(){const old=[];
-  for(const o of [...SOLID_G.children]){SOLID_G.remove(o);if(o.isGroup){for(const c of o.children)c.geometry.dispose();continue;}o.geometry.dispose();if(o.material!==solidEdgeM){old.push(o.material);const k=wallMats.indexOf(o.material);if(k>=0)wallMats.splice(k,1);texFree(o.material);o.material.dispose();}}
+  for(const o of [...SOLID_G.children]){SOLID_G.remove(o);if(o.isGroup){for(const c of o.children)c.geometry.dispose();continue;}o.geometry.dispose();if(o.material!==solidEdgeM){old.push(o.material);const k=wallMats.indexOf(o.material);if(k>=0)wallMats.splice(k,1);texFree(o.material);/* keep the material: its shader program stays cached for the next map */}}
   for(const b of BOXES){if(!b.solid)continue;if(b.reactor||b.cage){b.vis=[];b.h0=b.h0||b.y1;continue;}const h=b.h0||b.y1,mesh=wallMesh(b,h,SOLID_G);mesh.userData.noMerge=true;
     const e=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(b.x1-b.x0,h,b.z1-b.z0)),solidEdgeM);e.position.set((b.x0+b.x1)/2,h/2,(b.z0+b.z1)/2);SOLID_G.add(e);
     // structure dressing: plinth, top cap, corner guards and ribs every ~2 m on the long faces
@@ -9906,7 +9910,7 @@ function setCover(ci,g){const b=COVER[ci];g={...cGeo(b),...g};g.w=Math.max(0.3,g
   if(S&&S.cover){if(hpCh||S.cover[ci]>b.max)S.cover[ci]=S.cover[ci]>0?b.max:0;}
   const hp=S&&S.cover?S.cover[ci]:b.max;b.stage=coverStage(b,hp);b.y1=coverHeight(b,b.stage);
   DEV.pend.add(ci);if(!DEV.raf)DEV.raf=requestAnimationFrame(devFlush);}
-function devFlush(){DEV.raf=0;for(const ci of DEV.pend){const o=coverVis[ci];scene.remove(o.g);o.g.traverse(n=>{if(n.geometry)n.geometry.dispose();});try{o.mat.dispose();}catch(e){}
+function devFlush(){DEV.raf=0;for(const ci of DEV.pend){const o=coverVis[ci];scene.remove(o.g);o.g.traverse(n=>{if(n.geometry)n.geometry.dispose();});texFree(o.mat);
     const v=makeCoverVis(COVER[ci]);mergeChildren(v.g);coverVis[ci]=v;}
   DEV.pend.clear();rebuildGrid();rgRestow();renderer.shadowMap.needsUpdate=true;coverTick();devHL();}
 function coverEq(a,b){return ['x','z','w','d','h','hp'].every(k=>Math.abs(a[k]-b[k])<1e-6);}
@@ -9937,7 +9941,7 @@ function devLoad(){let d={};try{d=JSON.parse(localStorage.getItem('za-dev')||'{}
    guest's state names another map, and from the menu picker so the flyover behind the menu shows the map. Range props survive. ---------- */
 function setMap(id){if(!MAPS[id])id='yard';if(id===MAP.id)return false;
   const keep=BOXES.filter(b=>b.rgc);
-  for(const v of coverVis){scene.remove(v.g);v.g.traverse(n=>{if(n.geometry)n.geometry.dispose();});try{texFree(v.mat);v.mat.dispose();}catch(e){}emiBase.delete(v.mat);}
+  for(const v of coverVis){scene.remove(v.g);v.g.traverse(n=>{if(n.geometry)n.geometry.dispose();});texFree(v.mat);emiBase.delete(v.mat);}
   buildBoxes(id);BOXES.push(...keep);
   coverVis.length=0;for(const b of COVER){const v=makeCoverVis(b);mergeChildren(v.g);coverVis.push(v);}
   for(const m of buildSolids())emiBase.delete(m);
@@ -9955,7 +9959,7 @@ function setMap(id){if(!MAPS[id])id='yard';if(id===MAP.id)return false;
 const MFG=new THREE.Group();scene.add(MFG);
 const MFV={crane:null,pour:null,panes:[],acid:[],flares:[],slot:-2,cph:-1,cn:-1,pph:-1,block:false,cap:'',capT:0,pane:[]};
 const mfEase=k=>k<0.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
-function mfClear(){for(const o of [...MFG.children]){MFG.remove(o);o.traverse(n=>{if(n.geometry)n.geometry.dispose();const ms=n.material?(Array.isArray(n.material)?n.material:[n.material]):[];for(const m of ms){if(m.map)m.map.dispose();m.dispose();}});}
+function mfClear(){for(const o of [...MFG.children]){MFG.remove(o);o.traverse(n=>{if(n.geometry)n.geometry.dispose();const ms=n.material?(Array.isArray(n.material)?n.material:[n.material]):[];for(const m of ms)texFree(m);});}
   MFV.crane=MFV.pour=null;MFV.fo=null;MFV.eh=null;MFV.panes.length=0;MFV.acid.length=0;MFV.slot=-2;MFV.cph=-1;MFV.cn=-1;MFV.pph=-1;MFV.pane.length=0;MFV.capT=0;}
 function mfCanvas(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t;}
 function mfGlow(){return mfCanvas(64,64,(g,w,h)=>{const r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(0.35,'rgba(255,255,255,.45)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,w,h);});}
@@ -14195,12 +14199,12 @@ function mergeChildren(root){const nodes=[];root.traverse(n=>nodes.push(n));let 
   return saved;}
 mergeChildren(scene);
 refreshZoneLook('atk');
-/* setMap() rebuilds the wall, cover and map-feature materials on every switch and disposes the old ones. Three.js drops a
-   compiled shader program when its last material is disposed, so compiling only the arena you start on just moves the
-   stall: the first render of every other arena blocks ~0.2–1 s on new programs (menu map tours, ZR stage changes, the
-   first frame after Play). Walk every arena before the first frame, compile it, and render it once — the real render also
-   warms the post-processing passes and GPU buffers that compileAsync alone misses. Disposal is suppressed for the walk so
-   the programs stay cached when the arena changes. All of this happens behind a progress screen, off the gameplay clock. */
+/* setMap() rebuilds the wall, cover and map-feature materials on every switch. Shader programs are cached by the renderer
+   (fix #2 keeps the old materials alive so they are not destroyed), but a program is only created the first time its
+   material is drawn. Compiling only the arena you start on just moves the stall: the first render of every other arena
+   blocks ~0.2–1 s on new programs (menu map tours, ZR stage changes, the first frame after Play). Walk every arena before
+   the first frame, compile it, and render it once — the real render also warms the post-processing passes and GPU buffers
+   that compileAsync alone misses. All of this runs behind a progress screen, off the gameplay clock. */
 function warmUI(step,label){
   let el=document.getElementById('mapwarm');
   if(step<0){if(el)el.remove();return;}
@@ -14214,23 +14218,18 @@ function warmUI(step,label){
 }
 warmUI(0,'Compiling shaders…');
 (async function prewarmMaps(){
-  const start=MAP.id,dispose=THREE.Material.prototype.dispose;
+  const start=MAP.id;
   let step=0;
-  THREE.Material.prototype.dispose=function(){};/* keep every program cached while we visit the arenas */
-  try{
-    for(const id of MAP_IDS){
-      try{
-        setMap(id);
-        renderScene();
-        await renderer.compileAsync(scene,camera);
-      }catch(e){}
-      warmUI(++step,id);
-    }
-    if(MAP.id!==start){try{setMap(start);}catch(e){}}
-    try{renderScene();await renderer.compileAsync(scene,camera);}catch(e){}
-  }finally{
-    THREE.Material.prototype.dispose=dispose;
+  for(const id of MAP_IDS){
+    try{
+      setMap(id);
+      renderScene();
+      await renderer.compileAsync(scene,camera);
+    }catch(e){}
+    warmUI(++step,id);
   }
+  if(MAP.id!==start){try{setMap(start);}catch(e){}}
+  try{renderScene();await renderer.compileAsync(scene,camera);}catch(e){}
   warmUI(-1);
   requestAnimationFrame(frame);
 })();
