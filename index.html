@@ -7327,6 +7327,7 @@ const NEON={cy:0x27e6ff,mg:0xff2bd6,am:0xffb020,vi:0x8a5cff};
 const FOGC=lin(0x1a0d2e);
 const scene=new THREE.Scene();scene.background=FOGC;scene.fog=new THREE.Fog(FOGC,45,190);
 const camera=new THREE.PerspectiveCamera(78,1,0.03,500);camera.rotation.order='YXZ';
+function camNear(v){if(Math.abs(camera.near-v)>1e-4){camera.near=v;camera.updateProjectionMatrix();}}/* the map screen views from ~100 m: a 3 cm near plane left too little depth precision and the floor markings flickered */
 /* sky: night with a magenta horizon, stars, skyline (or a clear day sky with a sun, see applyTod) */
 const SKY=(function(){const geo=new THREE.SphereGeometry(300,32,16),pos=geo.attributes.position;
   const grad=(top,mid,hor)=>{const cols=[];for(let i=0;i<pos.count;i++){const y=pos.getY(i)/300;const c=y>0.1?mid.clone().lerp(top,Math.min(1,(y-0.1)/0.5)):hor.clone().lerp(mid,clamp((y+0.04)/0.14,0,1));cols.push(c.r,c.g,c.b);}return new Float32Array(cols);};
@@ -12182,7 +12183,7 @@ $('mszin').addEventListener('click',()=>isoZoom(1.5));$('mszout').addEventListen
 function readMenu(){const mv=SB.on?SB.mode:$('modesel').value;MATCH.range=SB.on&&mv==='range';if(MATCH.range){MATCH.mode='dm';MATCH.size=4;}else if(mv==='zr'){MATCH.mode='zr';MATCH.size=1;MATCH.zrWeek=zcSel();MATCH.zrLen=$('zrlen').value==='0'?'short':'full';MATCH.zrCarry=$('zrcarry').value!=='0';}else if(!/^dm[124]$/.test(mv)){MATCH.mode='zone';MATCH.size=2;}else{MATCH.mode='dm';MATCH.size=+mv.slice(2);}
   if(SB.on&&SB.test&&W[SB.test]){me.wPref=SB.test;me.w=myPref();showWeapon(me.w);me.ammo=myW(me.w).mag;}/* Workshop range test: that gun, without changing the saved menu pick */
   else if(W[$('wsel').value]){me.wPref=$('wsel').value;me.w=myPref();showWeapon(me.w);me.ammo=myW(me.w).mag;try{localStorage.setItem('za-w',me.wPref);}catch(e){}}me.name=($('nick').value||'Player').replace(/[^\w .'-]/g,'').slice(0,16)||'Player';me.teamPref=+$('teampref').value;diffMul=+$('diff').value;try{localStorage.setItem('za-name',me.name);}catch(e){}}
-function enterGame(){dioHide();if(MS.open){MS.open=false;isoScene(false);TOD.cur='';}$('mapscr').hidden=true;$('menu').classList.remove('mapon');$('menu').hidden=true;for(const id of ['topbar','mini','vitals','ammo','cross','netpill'])$(id).hidden=false;requestLock();blip(660,0.05,0.03,false,'ui');}
+function enterGame(){dioHide();camNear(0.03);if(MS.open){MS.open=false;isoScene(false);TOD.cur='';}$('mapscr').hidden=true;$('menu').classList.remove('mapon');$('menu').hidden=true;for(const id of ['topbar','mini','vitals','ammo','cross','netpill'])$(id).hidden=false;requestLock();blip(660,0.05,0.03,false,'ui');}
 function startSolo(){readMenu();net.mode='solo';net.myPeer='local';net.host=true;net.hostPeer='local';S=null;newMatch();S.diff=diffMul;
   const p=S.players[me.teamPref===1?1:0];p.bot=false;p.peer='local';p.name=me.name;
   if(S.range)rgHome(p);else if(S.mode==='zr')zrHome(p);else if(S.mode==='dm')dmHome(p);else{const role=roleOf(p.team,S.round);spawnAt(p,homeZ(role),role);p.hp=100;}enterGame();}
@@ -12191,7 +12192,7 @@ function startSolo(){readMenu();net.mode='solo';net.myPeer='local';net.host=true
    says whether a match is already running (then it joins that match as soon as the host's state arrives), and anyone can press
    Start match to host one (bots fill empty slots). If the room can't be reached from this device it says so and offers bots. */
 const LOB={t:0,tick:0};
-function lobbyOpen(){net.inLobby=true;LOB.t=performance.now();LOB.tick=0;dioHide();if(MS.open){MS.open=false;isoScene(false);TOD.cur='';}
+function lobbyOpen(){net.inLobby=true;LOB.t=performance.now();LOB.tick=0;dioHide();camNear(0.03);if(MS.open){MS.open=false;isoScene(false);TOD.cur='';}
   $('mapscr').hidden=true;$('menu').classList.remove('mapon');$('menu').hidden=true;
   $('lobMode').textContent=modeName(MATCH.mode,MATCH.size)+' · code '+net.code;$('lobby').hidden=false;lobbyTick(1);$('lobStart').focus({preventScroll:true});}
 function lobbyGone(){return !net.room||(typeof net.room.connected==='function'&&!net.room.connected())||!net.myPeer;}
@@ -13555,9 +13556,9 @@ function isoView(dt){ISO.t+=dt;const port=camera.aspect<1.05,fov=port?60:50;if(c
   // zoom: ISO.zt is the wanted zoom (wheel, pinch, keys, buttons), ISO.z eases to it; the view can be dragged around while zoomed in
   ISO.z+=(ISO.zt-ISO.z)*(1-Math.exp(-dt*10));isoClamp();const lx=ISO.px,lz=ISO.pz,ly2=ly*(1/ISO.z);
   isoTgt.copy(dir).multiplyScalar(d/ISO.z);isoTgt.x+=lx;isoTgt.z+=lz;isoTgt.y+=ly2;const k=ISO.on?1-Math.exp(-dt*6):1;ISO.on=true;camera.position.lerp(isoTgt,k);isoLook.lerp(isoTmp.set(lx,ly2,lz),k);camera.lookAt(isoLook);
-  scene.fog.near=d*1.6;scene.fog.far=d*3.5;vm.visible=false;
+  camNear(clamp(d/ISO.z*0.3,0.03,40));scene.fog.near=d*1.6;scene.fog.far=d*3.5;vm.visible=false;
   const fe=$('flyfade');ISO.fade=Math.max(0,ISO.fade-dt*2.5);fe.style.opacity=(ISO.fade*0.85).toFixed(3);}
-function flyover(dt){if(INTRO.on){introView();return;}if(MS.open){isoView(dt);return;}if(ISO.on){ISO.on=false;flyLs.copy(isoLook);$('flyfade').style.opacity=0;}if(DIO.on){if($('menu').hidden)dioHide();else{dioView(dt);return;}}const u0=flyU;flyU=(flyU+dt/FLY_LOOP)%1;showTick(dt,u0,flyU);FLY_POS.getPoint(flyU,flyP);FLY_LOOK.getPoint(flyU,flyL);
+function flyover(dt){if(INTRO.on){introView();return;}if(MS.open){isoView(dt);return;}if(ISO.on){ISO.on=false;camNear(0.03);flyLs.copy(isoLook);$('flyfade').style.opacity=0;}if(DIO.on){if($('menu').hidden)dioHide();else{dioView(dt);return;}}const u0=flyU;flyU=(flyU+dt/FLY_LOOP)%1;showTick(dt,u0,flyU);FLY_POS.getPoint(flyU,flyP);FLY_LOOK.getPoint(flyU,flyL);
   flyLs.lerp(flyL,1-Math.exp(-dt*1.5));camera.position.copy(flyP);camera.lookAt(flyLs);
   if(Math.abs(camera.fov-62)>0.05){camera.fov=62;camera.updateProjectionMatrix();}vm.visible=false;}
 
