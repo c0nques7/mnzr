@@ -11205,7 +11205,7 @@ const ZWHITE=new THREE.Color(1.6,1.6,1.6),ZDIS0=2.4,ZDIS=1.4;/* corpses lie for 
 function zPose(z,dt){const R=ZR,T=ZTYPES[z.t],s=zSize(z),lb=zLimbs(z),crawl=lb.legs===0,limp=lb.legs===1;
   z.ph+=dt*(z.spd*(crawl?4.5:z.t==='sprint'&&!limp?1.55:2.6)+0.6);const ph=z.ph,sw=Math.min(1,z.spd/(crawl?0.5:1.2));
   R.root.position.set(z.x,z.y||0,z.z);R.root.rotation.set(0,z.yaw,0);R.root.scale.setScalar(s);
-  let rise=0;if(z.st==='rise')rise=z.riseT/0.7;R.model.position.set(0,-1.9*rise*rise,0);R.model.rotation.set(0,0,0);
+  R.model.position.set(0,0,0);/* rising: built bottom-up under a scan line in zRender (same look as cover rebuilding) */R.model.rotation.set(0,0,0);
   const sprint=(z.t==='sprint'||z.chg>0)&&!limp,fl=z.flinch;
   R.hips.rotation.set(0,Math.sin(ph)*0.12*sw,Math.sin(ph)*0.07*sw+Math.sin(z.seed)*0.05);R.hips.position.y=0.95-Math.abs(Math.sin(ph))*0.04*sw-(sprint?0.06:0);
   R.spine.rotation.set(T.lean+fl*0.45-z.atkK*0.25-(z.chg>0?0.55:0)+(z.chW>0?0.25:0),-Math.sin(ph)*0.1*sw,Math.sin(z.seed*1.7)*0.08);
@@ -11250,6 +11250,10 @@ function zRender(dt){
   const R=ZR,L=ZB.list,bm=R.body,gm=R.glowM,BA=bm.instanceMatrix.array,BC=bm.instanceColor.array,GA=gm.instanceMatrix.array,GC=gm.instanceColor.array,W=R.v;
   let nb=0,ng=0,bi=0;
   for(const z of L){zPose(z,dt);z.flash=Math.max(0,z.flash-dt*6);const f=z.flash,e=z.pm;
+    /* spawn-in: voxels appear from the floor up below a scan line, the band at the line lit in the type's eye colour, sparks off the line (like cover rebuilding) */
+    let scanY=1e9,sR=0,sG=0,sB=0,band=0;if(z.st==='rise'){if(!z.rise0)z.rise0=Math.max(0.3,z.riseT);const rk=clamp(1-z.riseT/z.rise0,0,1),s=zSize(z),ec=R.c.set(ZTYPES[z.t].eye);
+      band=0.26*s;scanY=(z.y||0)+(rk*rk*(3-2*rk))*(2.0*s+band)-0.02;sR=ec.r*1.7;sG=ec.g*1.7;sB=ec.b*1.7;
+      if(dt>0&&Math.random()<dt*24){const a=Math.random()*Math.PI*2,rr=0.3*s;spawnSparks(z.x+Math.cos(a)*rr,scanY,z.z+Math.sin(a)*rr,ZTYPES[z.t].eye,1,0,-0.3,0);}}
     const dis=z.st==='dead'&&z.deadT>ZDIS0?(z.deadT-ZDIS0)/ZDIS:-1,eyeK=z.st==='dead'?Math.max(0,1-z.deadT*1.5):1;
     for(let p=0;p<R.parts.length;p++){if(!z.cnt[p])continue;const P=R.parts[p],v=z.vox[p],col=z.col[p],o=p*16,off=P.off;
       const ax=e[o]/P.nx,ay=e[o+1]/P.nx,az=e[o+2]/P.nx,bx=e[o+4]/P.ny,by=e[o+5]/P.ny,bz=e[o+6]/P.ny,cx=e[o+8]/P.nz,cy=e[o+9]/P.nz,cz=e[o+10]/P.nz;
@@ -11264,9 +11268,11 @@ function zRender(dt){
       for(let k=0;k<vn;k++){const i=vl[k],x=off[i*3],y=off[i*3+1],w=off[i*3+2];
         if(P.glow?ng>=R.NG:nb>=R.NB)break;
         const tx=e[o]*x+e[o+4]*y+e[o+8]*w+e[o+12],ty=e[o+1]*x+e[o+5]*y+e[o+9]*w+e[o+13],tz=e[o+2]*x+e[o+6]*y+e[o+10]*w+e[o+14];
+        if(ty>scanY)continue;
         const j=P.glow?ng++:nb++,m=j*16;
         A[m]=ax;A[m+1]=ay;A[m+2]=az;A[m+3]=0;A[m+4]=bx;A[m+5]=by;A[m+6]=bz;A[m+7]=0;A[m+8]=cx;A[m+9]=cy;A[m+10]=cz;A[m+11]=0;A[m+12]=tx;A[m+13]=ty;A[m+14]=tz;A[m+15]=1;
         let r=col[i*3],g=col[i*3+1],b=col[i*3+2];if(P.glow){const gk=eyeK*(p===R.PI.sac?(z.sw>0?1.8+0.5*Math.sin(zClk()*30):0.45):p===R.PI.bsac?0.75+0.35*Math.sin(zClk()*3+z.seed)+(z.sw>0?0.6:0):1);r*=gk;g*=gk;b*=gk;}else if(f>0){const q=f*0.6;r+=(1.6-r)*q;g+=(1.6-g)*q;b+=(1.6-b)*q;}
+        if(ty>scanY-band){const q=1-(scanY-ty)/band*0.6;r+=(sR-r)*q;g+=(sG-g)*q;b+=(sB-b)*q;}
         C[j*3]=r;C[j*3+1]=g;C[j*3+2]=b;}}
     if(z.st!=='dead'||z.deadT<ZDIS0+0.3){R.m.makeTranslation(z.x,0.02,z.z);R.blob.setMatrixAt(bi++,R.m);}}
   bm.count=nb;gm.count=ng;zUpd(bm,nb);zUpd(gm,ng);zAcidDraw(dt);zShellDraw(dt);zRangeBossBar();
