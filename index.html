@@ -903,7 +903,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
       </div>
       <div id="shopSlots"></div>
     </div>
-    <div class="btns"><label class="chk"><input type="checkbox" id="shopAll"> Unlock everything (testing)</label><span class="cap" style="flex:1">The build you pick for each gun is the one you spawn with. Builds save in this browser.</span><button class="btn primary" type="button" id="shopClose">Done</button></div>
+    <div class="btns"><label class="chk"><input type="checkbox" id="shopAll"> Unlock everything (testing)</label><span class="cap" style="flex:1">The build you pick for each gun is the one you spawn with. Builds save in this browser.</span><button class="btn" type="button" id="shopTest" title="Try this gun and build at the shooting range, then come back here">Test in range</button><button class="btn primary" type="button" id="shopClose">Done</button></div>
   </div>
 </div>
 
@@ -9469,7 +9469,7 @@ function kbInput(code,down,repeat){
     else if(a==='reload')startReload();
     else if(a==='jump')me.jumpBuf=0.14;
     else if(a==='dash')me.dashBuf=0.12;
-    else if(a==='tune'){if(SB.on)toggleSB();}
+    else if(a==='tune'){if(SB.on&&(DEVMODE||!SB.test))toggleSB();}
     else if(a==='settings')toggleSettings();
     else if(a==='track')mmSkip();
     else if(/^w[1-6]$/.test(a)){const zi=+a[1]-1;const wk=wheelKeys()[zi];if(WH.open){WH.hov=wk;closeWheel(true);}else if(S&&S.phase==='buy'){setWeapon(wk);}else choosePick(zi);}}
@@ -9611,7 +9611,7 @@ function choosePick(zi){const s=mySlot();if(s<0||!S||S.players[s].st!=='dead')re
 
 /* ---------- sandbox (solo test range) ---------- */
 /* the sandbox always opens at the shooting range (see RG); the Game mode select switches to the arena modes for the session */
-const SB={on:false,timer:false,tickets:true,bots:'on',god:false,ammo:false,names:false,tab:'range',mode:'range'};
+const SB={test:'',on:false,timer:false,tickets:true,bots:'on',god:false,ammo:false,names:false,tab:'range',mode:'range'};
 const CFG0={...CFG},ZHP0=[...ZHP];
 const SB_KNOBS=[
  ['Gunplay',[['dmg','Rifle body damage',5,100,1],['head','Rifle head damage',5,200,1],['fireCd','Rifle seconds between shots',0.03,0.5,0.01],['mag','Rifle magazine',1,100,1],['reload','Rifle reload (s)',0.3,5,0.1]]],
@@ -11995,7 +11995,7 @@ const SHOP_ROWS=[
   ['Magazine',w=>w.mag,w=>w.mag+' rounds',w=>w.mag/60,true],
   ['Reload',w=>w.reload,w=>w.reload.toFixed(2)+' s',w=>(3.8-w.reload)/3.2,false],
   ['Aim zoom',w=>zoomX(w),w=>zoomX(w).toFixed(2)+'×',w=>(zoomX(w)-1)/1.6,true]];
-function shopOpen(){progLoad();SHOP.k=PVPK.includes($('wsel').value)?$('wsel').value:'rifle';SHOP.hov=null;$('menu').hidden=true;$('shop').hidden=false;shopInit();shopUI();
+function shopOpen(k0){progLoad();SHOP.k=PVPK.includes(k0)?k0:PVPK.includes($('wsel').value)?$('wsel').value:'rifle';SHOP.hov=null;$('menu').hidden=true;$('shop').hidden=false;shopInit();shopUI();
   if(!SHOP.raf)SHOP.raf=requestAnimationFrame(shopFrame);blip(660,0.05,0.03,false,'ui');}
 function shopClose(){$('shop').hidden=true;$('menu').hidden=false;cancelAnimationFrame(SHOP.raf);SHOP.raf=0;rebuildVW();lvlUI();blip(520,0.05,0.03,false,'ui');}
 function shopInit(){if(SHOP.r)return;
@@ -12047,7 +12047,7 @@ function shopUI(){const k=SHOP.k,b=buildOf(k),mk=(t,c,x)=>{const n=document.crea
     c.addEventListener('pointerenter',()=>{SHOP.hov={sl:'glow',id:g.id};});c.addEventListener('pointerleave',()=>{SHOP.hov=null;});
     c.addEventListener('click',()=>{if(glowLock(g))return;b.g=g.id;progSave();shopUI();});gc.append(c);}
   gr.append(gc);sl.append(gr);
-  $('shopAll').checked=PROG.all;shopStats();}
+  $('shopAll').checked=PROG.all;{const tb=$('shopTest'),gl=gunLock(k);tb.disabled=!!gl;tb.title=gl?`${W[k].name} unlocks at ${gl}`:`Try the ${W[k].name} (${b.n}) at the shooting range, then come back here`;}shopStats();}
 function shopStats(){const k=SHOP.k,cur=modW(k,effParts(k)),nx=modW(k,shopParts()),el=$('shopStats'),mk=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n;};
   el.replaceChildren();const w0=wOf(k);el.append(mk('div','fixed',w0.chg?`${dmgTxt(w0.tap)} tap · ${dmgTxt(w0.dmg)} charged · ${dmgTxt(w0.head)} charged headshot · full charge in ${w0.chg} s, pierces (parts never change these)`:
     `${w0.pel?w0.pel+' pellets × ':''}${dmgTxt(w0.dmg)} damage · ${dmgTxt(w0.head)} headshot · ${w0.burst?w0.burst+'-round bursts, '+Math.round(60/w0.cd)+' a minute':Math.round(60/w0.cd)+' rpm'}${w0.akimbo?' · hip fire only':''} (parts never change these)`));
@@ -12056,7 +12056,12 @@ function shopStats(){const k=SHOP.k,cur=modW(k,effParts(k)),nx=modW(k,shopParts(
     const fa=clamp(bar(cur),0.03,1),fb=clamp(bar(nx),0.03,1);f.style.width=(Math.min(fa,fb)*100)+'%';g.style.left=(Math.min(fa,fb)*100)+'%';g.style.width=(Math.abs(fb-fa)*100)+'%';br.append(f,g);
     row.append(br,mk('b','',txt(nx)));el.append(row);}
   const hv=SHOP.hov&&SHOP.hov.sl!=='glow'?partBy(SHOP.hov.sl,SHOP.hov.id):null;const gl=gunLock(k);$('shopHint').textContent=hv?`${hv.n}: ${hv.d}.`+(nx.supp&&!cur.supp?' Enemies hear you less and see no flash.':''):(gl?`${W[k].name} unlocks at ${gl}. You can set up its builds now. `:'')+`${W[k].name} · ${buildOf(k).n}. Hover a part to compare, click to fit it. Drag the gun to turn it.`;}
-$('shopbtn').addEventListener('click',shopOpen);
+$('shopbtn').addEventListener('click',()=>shopOpen());
+/* Test in range: drop into the shooting range with the Workshop's gun and build; Leave (now "Back to Workshop") comes straight back here */
+function shopTest(){const k=SHOP.k;if(gunLock(k))return;$('shop').hidden=true;cancelAnimationFrame(SHOP.raf);SHOP.raf=0;rebuildVW();
+  SB.on=true;SB.test=k;SB.mode='range';SB.tab='range';if(DEVMODE){sbLoad();devLoad();buildSB();}
+  tuneApply();startSolo();$('pleave').textContent='Back to Workshop';}
+$('shopTest').addEventListener('click',shopTest);
 $('shopClose').addEventListener('click',shopClose);
 $('shopName').addEventListener('input',e=>{const b=buildOf(SHOP.k);b.n=e.target.value.replace(/[^\w .'+-]/g,'').slice(0,18)||b.n;progSave();const on=$('shopBuilds').querySelector('.on');if(on)on.textContent=b.n;});
 $('shopName').addEventListener('change',()=>shopUI());
@@ -12165,7 +12170,8 @@ $('mszin').addEventListener('click',()=>isoZoom(1.5));$('mszout').addEventListen
     else isoPan(dx,dy);});
   const up=e=>{pts.delete(e.pointerId);pinch=0;if(!pts.size)M.classList.remove('drag');};M.addEventListener('pointerup',up);M.addEventListener('pointercancel',up);}
 function readMenu(){const mv=SB.on?SB.mode:$('modesel').value;MATCH.range=SB.on&&mv==='range';if(MATCH.range){MATCH.mode='dm';MATCH.size=4;}else if(mv==='zr'){MATCH.mode='zr';MATCH.size=1;MATCH.zrWeek=zcSel();MATCH.zrLen=$('zrlen').value==='0'?'short':'full';MATCH.zrCarry=$('zrcarry').value!=='0';}else if(!/^dm[124]$/.test(mv)){MATCH.mode='zone';MATCH.size=2;}else{MATCH.mode='dm';MATCH.size=+mv.slice(2);}
-  if(W[$('wsel').value]){me.wPref=$('wsel').value;me.w=myPref();showWeapon(me.w);me.ammo=myW(me.w).mag;try{localStorage.setItem('za-w',me.wPref);}catch(e){}}me.name=($('nick').value||'Player').replace(/[^\w .'-]/g,'').slice(0,16)||'Player';me.teamPref=+$('teampref').value;diffMul=+$('diff').value;try{localStorage.setItem('za-name',me.name);}catch(e){}}
+  if(SB.on&&SB.test&&W[SB.test]){me.wPref=SB.test;me.w=myPref();showWeapon(me.w);me.ammo=myW(me.w).mag;}/* Workshop range test: that gun, without changing the saved menu pick */
+  else if(W[$('wsel').value]){me.wPref=$('wsel').value;me.w=myPref();showWeapon(me.w);me.ammo=myW(me.w).mag;try{localStorage.setItem('za-w',me.wPref);}catch(e){}}me.name=($('nick').value||'Player').replace(/[^\w .'-]/g,'').slice(0,16)||'Player';me.teamPref=+$('teampref').value;diffMul=+$('diff').value;try{localStorage.setItem('za-name',me.name);}catch(e){}}
 function enterGame(){dioHide();if(MS.open){MS.open=false;isoScene(false);TOD.cur='';}$('mapscr').hidden=true;$('menu').classList.remove('mapon');$('menu').hidden=true;for(const id of ['topbar','mini','vitals','ammo','cross','netpill'])$(id).hidden=false;requestLock();blip(660,0.05,0.03,false,'ui');}
 function startSolo(){readMenu();net.mode='solo';net.myPeer='local';net.host=true;net.hostPeer='local';S=null;newMatch();S.diff=diffMul;
   const p=S.players[me.teamPref===1?1:0];p.bot=false;p.peer='local';p.name=me.name;
@@ -12404,7 +12410,8 @@ function leaveMatch(){endHide();net.inLobby=false;$('lobby').hidden=true;xpFlush
   $('feed').replaceChildren();$('feed').dataset.k='';$('confirm').style.opacity=0;$('flash').style.opacity=0;$('hitmark').style.opacity=0;
   for(const a of avatars)a.g.visible=false;
   if(locked)document.exitPointerLock();
-  $('menu').hidden=false;$('joinbtn').disabled=!roomNS;applyGfx();}
+  $('menu').hidden=false;$('joinbtn').disabled=!roomNS;applyGfx();
+  const tk=SB.test;SB.test='';$('pleave').textContent='Leave match';if(tk)shopOpen(tk);}
 $('presume').addEventListener('click',()=>{closePause();autoLock(true);});
 $('pnext').addEventListener('click',()=>{mmSkip();$('pnowT').textContent='…';});
 $('psettings').addEventListener('click',()=>toggleSettings(true));
@@ -12451,7 +12458,7 @@ function tPress(a,el,down){
   else if(a==='ads')adsDown=!adsDown;
   else if(a==='menu'){touchRelease();openPause();}
   else if(a==='wheel'){if(canHoldWheel()){touchRelease();openWheel('hold');}}
-  else if(a==='tune'){if(SB.on){touchRelease();toggleSB();}}}
+  else if(a==='tune'){if(SB.on&&(DEVMODE||!SB.test)){touchRelease();toggleSB();}}}
 function tStart(e){TOUCH.seen=true;if(!TOUCH.on)touchApply();e.preventDefault();if(TE.on)return;
   const r=TL.getBoundingClientRect();
   for(const t of e.changedTouches){const x=t.clientX-r.left,y=t.clientY-r.top;const el=t.target&&t.target.closest?t.target.closest('.tb'):null;
@@ -13317,7 +13324,7 @@ function hud(dt){
   else if(S.phase==='buy')obj='Get ready. Round starts in '+Math.ceil(S.t);
   else if(S.armed)obj=role==='atk'?`Charge armed at ${S.armed.site}. Keep defenders off it.`:`Charge armed at ${S.armed.site}. Defuse it!`;
   else if(role==='atk')obj='Push in and arm the charge at A or B';else if(role==='def')obj='Hold sites A and B until time runs out';
-  if(S.range)obj=S.armed?`Charge armed at ${S.armed.site}. Hold ${kbN('use')} at the site to defuse, or let it blow`:`Press ${kbN('tune')} to spawn dummies, targets, bots and cover · bomb sites A and B are ${Math.round(SITES.A.x-RG_START.x)} m out`;
+  if(S.range&&SB.test&&!DEVMODE)obj=`Shoot the targets and dummies to try the ${W[SB.test].name}. Esc, then Back to Workshop`;else if(S.range)obj=S.armed?`Charge armed at ${S.armed.site}. Hold ${kbN('use')} at the site to defuse, or let it blow`:`Press ${kbN('tune')} to spawn dummies, targets, bots and cover · bomb sites A and B are ${Math.round(SITES.A.x-RG_START.x)} m out`;
   $('objective').textContent=obj;
   const C=S.center||{own:-1,cap:-1,p:0};
   const cTxt=C.cap>=0&&C.p>0?`${C.cap===myTeam?'you are':TEAMN[C.cap]+' is'} taking the center ${Math.round(C.p*100)}%`:C.own<0?'center neutral':C.own===myTeam?`you hold the center (+${CENTER_HP} HP spawn)`:`${TEAMN[C.own]} holds the center`;
@@ -13396,7 +13403,7 @@ function hud(dt){
   $('lockmode').textContent=dragMode?'mouse capture is blocked here, so drag with the mouse button held (or use arrow keys) to look':'click or press any key to take back the mouse · Esc opens the menu';
   // net pill
   let np='';
-  if(net.mode==='solo')np=SB.on&&S.range?'Shooting range · T opens the spawn tools':SB.on?`Sandbox · bots ${SB.bots==='on'?'fighting':SB.bots} · T opens the dev overlay`:`Practice · ${modeName(S.mode,S.size)} · you and ${S.players.length-1} bot${S.players.length>2?'s':''}`;
+  if(net.mode==='solo')np=SB.on&&S.range&&SB.test?`Testing ${W[SB.test].name} · ${buildOf(SB.test).n} · Esc, then Back to Workshop`:SB.on&&S.range?'Shooting range · T opens the spawn tools':SB.on?`Sandbox · bots ${SB.bots==='on'?'fighting':SB.bots} · T opens the dev overlay`:`Practice · ${modeName(S.mode,S.size)} · you and ${S.players.length-1} bot${S.players.length>2?'s':''}`;
   else{const humans=S.players.filter(p=>!p.bot).length;np=`Online · match ${net.code} · ${humans} player${humans===1?'':'s'}, ${S.players.length-humans} bot${S.players.length-humans===1?'':'s'}`+(net.host?' · you are hosting':'')+(s<0?' · spectating (match full)':'');}
   $('netpill').textContent=np;$('netpill').style.visibility=S.phase==='live'&&!SB.on&&s>=0?'hidden':'';
   drawMini(P,myTeam,role);
