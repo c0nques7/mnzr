@@ -8591,7 +8591,7 @@ const GSPEC={
   hc:{pistol:true,rev:true,bl:0.2,br:0.012,sight:'iron',lh:[-0.03,-0.085,0.37],vy:0.035},
   bc:{rw:0.058,rl:0.3,gl:0.24,gw:0.064,gh:0.07,bl:0.12,br:0.012,hg:'tri',mag:'box',mw:0.034,mh:0.15,md:0.064,mrot:0.08,stock:'std',sight:'holo'},
   asg:{rw:0.07,rl:0.32,gl:0.2,gw:0.07,gh:0.07,bl:0.26,br:0.02,hg:'slab',mag:'box',mw:0.06,mh:0.12,md:0.11,mrot:0.05,stock:'block',sight:'iron'},
-  mp:{pistol:true,twin:true,bl:0.07,br:0.009,sight:'nolas',lh:[-0.235,-0.06,0.4],vy:0.05},
+  mp:{pistol:true,twin:true,bl:0.07,br:0.009,sight:'nolas',lh:[-0.235,-0.06,0.4],vy:0.05,hx:0.1175},
   lance:{rw:0.06,rl:0.38,gl:0.32,gw:0.052,gh:0.056,bl:0.3,br:0.014,hg:'coil',mag:'cell',stock:'thumb',sight:'holo'},
   arc:{rw:0.07,rl:0.28,gl:0.16,gw:0.08,gh:0.08,bl:0.05,br:0.02,hg:'prong',mag:'cell',stock:'stub',sight:'iron'},
   gl:{rw:0.07,rl:0.26,gl:0.18,gw:0.07,gh:0.07,bl:0.2,br:0.034,hg:'tube',mag:'drum',stock:'std',sight:'iron'}};
@@ -8957,9 +8957,26 @@ const BEAMP=[];for(let i=0;i<8;i++){const m=new THREE.Mesh(new THREE.BoxGeometry
 function beam(ax,ay,az,bx,by,bz,color,r){const b=BEAMP.reduce((a,c)=>a.t<c.t?a:c),L=Math.hypot(bx-ax,by-ay,bz-az);if(L<0.05)return;
   b.m.position.set((ax+bx)/2,(ay+by)/2,(az+bz)/2);b.m.lookAt(bx,by,bz);b.m.scale.set(r,r,L);b.m.material.color.setHex(color,THREE.LinearSRGBColorSpace);b.m.visible=true;b.t=0.3;b.r=r;}
 /* a jagged electric arc made of tracer segments */
-function arcBolt(ax,ay,az,bx,by,bz){const N=5,L=Math.hypot(bx-ax,by-ay,bz-az),j=Math.min(0.35,L*0.06);let px=ax,py=ay,pz=az;
-  for(let i=1;i<=N;i++){const f=i/N,e=i<N?j:0;const x=ax+(bx-ax)*f+(Math.random()-.5)*2*e,y=ay+(by-ay)*f+(Math.random()-.5)*2*e,z=az+(bz-az)*f+(Math.random()-.5)*2*e;
-    tracer(px,py,pz,x,y,z,Math.random()<0.5?0x9ff3ff:0xffffff);px=x;py=y;pz=z;}}
+/* Arc Caster (Joe: more dramatic): thick additive segments, a white-hot core inside a wide cyan halo, side forks, and a flash
+   where it lands. Fixed pools, no shader compiles mid-match. Each bolt flickers: it is re-drawn with new kinks twice before it fades. */
+const ARCP=[];{const geo=new THREE.BoxGeometry(1,1,1);for(let i=0;i<120;i++){const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+  m.visible=false;m.frustumCulled=false;scene.add(m);ARCP.push({m,t:0,t0:1,r:0,o:1});}}
+const ARCF=[];{const geo=new THREE.SphereGeometry(1,12,8);for(let i=0;i<8;i++){const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:raw(0x9ff3ff),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+  m.visible=false;m.frustumCulled=false;scene.add(m);ARCF.push({m,t:0});}}
+const ARCQ=[];
+function arcSeg(ax,ay,az,bx,by,bz,color,r,o,t){const L=Math.hypot(bx-ax,by-ay,bz-az);if(L<0.02)return;const b=ARCP.reduce((a,c)=>a.t<c.t?a:c);
+  b.m.position.set((ax+bx)/2,(ay+by)/2,(az+bz)/2);b.m.lookAt(bx,by,bz);b.m.scale.set(r,r,L+r);b.m.material.color.setHex(color,THREE.LinearSRGBColorSpace);b.m.material.opacity=o;b.m.visible=true;b.t=b.t0=t;b.r=r;b.o=o;}
+function arcPath(ax,ay,az,bx,by,bz,N,j,t,w){let px=ax,py=ay,pz=az;const pts=[];
+  for(let i=1;i<=N;i++){const f=i/N,e=i<N?j*Math.sin(Math.PI*f)*1.4:0;const x=ax+(bx-ax)*f+(Math.random()-.5)*2*e,y=ay+(by-ay)*f+(Math.random()-.5)*2*e,z=az+(bz-az)*f+(Math.random()-.5)*2*e;
+    arcSeg(px,py,pz,x,y,z,0x3fd8ff,0.07*w,0.32,t);arcSeg(px,py,pz,x,y,z,0xe8fdff,0.016*w,0.95,t);pts.push([x,y,z]);px=x;py=y;pz=z;}
+  return pts;}
+function arcBolt(ax,ay,az,bx,by,bz,again){const L=Math.hypot(bx-ax,by-ay,bz-az),N=Math.max(4,Math.min(10,Math.round(L*1.6))),j=Math.min(0.45,0.08+L*0.05),t=0.11;
+  const pts=arcPath(ax,ay,az,bx,by,bz,N,j,t,1);
+  // forks: short dying branches off the main line
+  for(let k=0;k<2;k++){const p=pts[1+Math.floor(Math.random()*Math.max(1,pts.length-2))];if(!p)break;const fl=Math.min(1.2,0.3+L*0.12);
+    arcPath(p[0],p[1],p[2],p[0]+(Math.random()-.5)*2*fl,p[1]+(Math.random()-.3)*fl,p[2]+(Math.random()-.5)*2*fl,3,fl*0.25,t*0.8,0.6);}
+  const f=ARCF.reduce((a,c)=>a.t<c.t?a:c);f.m.position.set(bx,by,bz);f.m.visible=true;f.t=0.14;
+  if(!again){spawnSparks(bx,by,bz,0x9ff3ff,5,0,0,0);ARCQ.push({ax,ay,az,bx,by,bz,n:2,d:0.045});}}
 const GLS=[];{const geo=new THREE.SphereGeometry(0.07,10,8),mat=new THREE.MeshBasicMaterial({color:raw(0xffe14d),toneMapped:false});
   for(let i=0;i<12;i++){const m=new THREE.Mesh(geo,mat);m.visible=false;scene.add(m);GLS.push({m,on:false});}}
 const GLFX=[];for(let i=0;i<3;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),new THREE.MeshBasicMaterial({color:raw(0xffd27a),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
@@ -8992,6 +9009,12 @@ function glBoom(g,x,y,z){const w=g.w||wOf('gl'),R=w.splash||4;
       if(d<=R&&losPts(x,y+0.2,z,it.x,1,it.z))RG.acc.set(it,{dmg:Math.round(w.dmg*(1-0.75*d/R)),head:false,x:it.x,y:1.2,z:it.z,ring:0,dist:d});}if(RG.acc.size)rgDeliver();else{RG.acc=null;rgReadout();}}
   for(let i=0;i<S.players.length;i++){const p=S.players[i];if(i===s||p.st==='dead'||p.team===mt)continue;const d=Math.hypot(p.x-x,p.y+1-y,p.z-z);
     if(d>R||!losPts(x,y+0.2,z,p.x,p.y+1,p.z))continue;const dmg=Math.round(w.dmg*(1-0.75*d/R));sendHit(i,dmg,false);lastHit[i]=performance.now();dmgNum(p.x,p.y+1.2,p.z,dmg,false);any=true;}
+  // area damage to the arena (Joe): cover pieces and glass panes inside the blast take a hit each, if the blast can reach them
+  for(const b of BOXES){if(b.ci==null&&b.pane==null)continue;if(b.pane!=null&&b.y1<=0.05)continue;if(b.ci!=null&&S.cover&&!(S.cover[b.ci]>0))continue;
+    const cx=clamp(x,b.x0,b.x1),cz=clamp(z,b.z0,b.z1),cyy=clamp(y,b.y0||0,Math.max(b.y1,0.3)),bd=Math.hypot(cx-x,cyy-y,cz-z);if(bd>R)continue;
+    const dm=Math.round(w.dmg*(1-0.5*bd/R));/* the host applies the blast's own damage; a guest's hit is applied by the host with its weapon numbers */
+    if(b.pane!=null){const l=bd||1;if(net.host)damagePane(b.pane,dm);else sendPane(b.pane);paneHitFx(b,cx,cyy,cz,(cx-x)/l,(cyy-y)/l,(cz-z)/l);}
+    else{if(net.host)damageCover(b.ci,dm);else sendCover(b.ci);spawnSparks(cx,cyy,cz,NEON.am,4,0,-1,0);}}
   if(any){hitT=0.16;$('hitmark').classList.remove('head','kill');hitCue('hit');}}
 function tracer(ax,ay,az,bx,by,bz,color){const tr=tracers.reduce((a,b)=>a.t<b.t?a:b),pos=tr.l.geometry.attributes.position;pos.setXYZ(0,ax,ay,az);pos.setXYZ(1,bx,by,bz);pos.needsUpdate=true;
   tr.l.material.color.setHex(color,THREE.LinearSRGBColorSpace);tr.l.material.opacity=0.85;tr.l.visible=true;tr.t=0.09;}
@@ -13305,7 +13328,7 @@ function localTick(dt){
   const ix=Math.sin(me.idleT*0.85)*0.004*still*hs*RM,iy=Math.sin(me.idleT*1.7+0.5)*0.003*still*hs*RM;/* breathing: a slow figure of eight */
   const kz=me.kP*0.45*(1-0.45*a),kr=(me.kUp*0.045+me.kP*0.22)*(1-0.65*a),sl=me.slK*h;
   {const lh=(GSPEC[me.w]||GSPEC.rifle).lh;vArmL.position.set((lh?lh[0]:0)-0.05*hand,(lh?lh[1]:0)-0.34*hand,(lh?lh[2]:0)+0.1*hand);}vArmL.rotation.x=-0.5*hand;
-  vg.position.set(0.23*h+bx+sk*0.05-me.swayX*0.012*hs+ix+me.roll*0.25*h*RM-rlE*0.035-sl*0.03-btE*0.015,
+  vg.position.set(((GSPEC[me.w]||GSPEC.rifle).hx??0.23)*h+bx+sk*0.05-me.swayX*0.012*hs+ix+me.roll*0.25*h*RM-rlE*0.035-sl*0.03-btE*0.015,
     -0.215+((GSPEC[me.w]||GSPEC.rifle).vy||0)*(1-a)+(0.215-vRifle.sightY)*a-by-rlE*0.075+rlY-sk*0.07-me.land*0.4*RM-mh*0.22+me.swayY*0.008*hs+iy-me.vyLag*0.0035*(1-0.8*a)*RM-0.01*adsT-sl*0.025-btE*0.02-dr*dr*0.3,
     -0.5+kz+rlZ+btZ);
   vg.rotation.set(kr-sk*0.3+rlE*0.22+rlP+me.swayY*0.03*hs+iy*1.5-me.vyLag*0.008*(1-0.8*a)*RM-dr*0.8,
@@ -13597,6 +13620,9 @@ function hud(dt){
   for(const p of sparks){if(p.t<=0)continue;p.t-=dt;if(p.t<=0){p.m.visible=false;continue;}p.vy-=14*dt;p.m.position.x+=p.vx*dt;p.m.position.y=Math.max(0.02,p.m.position.y+p.vy*dt);p.m.position.z+=p.vz*dt;p.m.material.opacity=Math.min(1,p.t*5);}
   feelHud(dt);
   for(const t of tracers){if(t.t<=0)continue;t.t-=dt;t.l.material.opacity=Math.max(0,t.t/0.09);if(t.t<=0)t.l.visible=false;}
+  for(const b of ARCP){if(b.t<=0)continue;b.t-=dt;const k=Math.max(0,b.t/b.t0);b.m.material.opacity=b.o*k*(0.7+0.3*Math.random());if(b.t<=0)b.m.visible=false;}
+  for(const f of ARCF){if(f.t<=0)continue;f.t-=dt;const k=Math.max(0,f.t/0.14);f.m.scale.setScalar(0.12+0.3*(1-k));f.m.material.opacity=0.8*k;if(f.t<=0)f.m.visible=false;}
+  for(let i=ARCQ.length-1;i>=0;i--){const q=ARCQ[i];q.d-=dt;if(q.d>0)continue;arcBolt(q.ax,q.ay,q.az,q.bx,q.by,q.bz,true);if(--q.n<=0)ARCQ.splice(i,1);else q.d=0.045;}
   for(const b of BEAMP){if(b.t<=0)continue;b.t-=dt;const k=Math.max(0,b.t/0.3);b.m.material.opacity=0.9*k;b.m.scale.x=b.m.scale.y=b.r*(0.35+0.65*k);if(b.t<=0)b.m.visible=false;}
   glTick(dt);
   hudT-=dt;if(hudT>0)return;hudT=1/15;
