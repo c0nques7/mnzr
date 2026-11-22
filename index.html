@@ -14330,10 +14330,14 @@ warmUI(0,'Compiling shaders…');
   let me=null,baseline='',busy=false;
   const serial=()=>{const d={};for(const k of KEYS){try{const v=localStorage.getItem(k);if(v!==null)d[k]=v;}catch(e){}}return JSON.stringify(d);};
   const hasLocal=()=>{try{return KEYS.some(k=>localStorage.getItem(k)!==null);}catch(e){return false;}};
+  /* Cloud snapshots are a flat key map; exported files wrap that map in {v:1,data:{...}}. Accept both. */
+  const dataOf=s=>(s&&s.v===1&&s.data&&typeof s.data==='object'&&!Array.isArray(s.data))?s.data:s;
+  const canon=d=>{const o={};for(const k of KEYS)if(d&&typeof d[k]==='string')o[k]=d[k];return JSON.stringify(o);};
   function apply(s){
-    if(!s||s.v!==1||!s.data||typeof s.data!=='object'||Array.isArray(s.data))throw new Error('That is not an mnzr save file');
+    const d=dataOf(s);
+    if(!d||typeof d!=='object'||Array.isArray(d))throw new Error('That is not an mnzr save file');
     let n=0;
-    for(const k of KEYS)if(typeof s.data[k]==='string'&&s.data[k].length<2e6){try{localStorage.setItem(k,s.data[k]);n++;}catch(e){}}
+    for(const k of KEYS)if(typeof d[k]==='string'&&d[k].length<2e6){try{localStorage.setItem(k,d[k]);n++;}catch(e){}}
     if(!n)throw new Error('Save has no mnzr progress in it');
     return n;
   }
@@ -14376,7 +14380,7 @@ warmUI(0,'Compiling shaders…');
     paint();status('Reading cloud save…');
     let cloud;
     try{cloud=await api('/api/save');}catch(e){status('Cloud save unavailable: '+e.message);return;}
-    const local=serial();
+    const local=JSON.parse(serial());
     if(!cloud.save){
       if(hasLocal()){
         const v=await ask('Import local save?',me.email,'This browser has progress that is not in your cloud save. Upload it now?',
@@ -14384,12 +14388,12 @@ warmUI(0,'Compiling shaders…');
         if(v==='up')await upload();
       }
     }else{
-      const remote=JSON.stringify(cloud.save.data||{});
-      if(remote!==local){
+      const remote=dataOf(cloud.save);
+      if(canon(remote)!==canon(local)){
         const v=await ask('Cloud save found',cloud.at?new Date(cloud.at).toLocaleString():'',
           'Your cloud save differs from this browser. Which one should this device use?',
           [{label:'Use cloud save',v:'cloud',primary:true},{label:'Keep this device',v:'local'}]);
-        if(v==='cloud'){try{apply(cloud.save);status('Cloud save restored · reloading…');setTimeout(()=>location.reload(),400);return;}
+        if(v==='cloud'){try{apply(cloud.save);baseline=serial();status('Cloud save restored · reloading…');setTimeout(()=>location.reload(),400);return;}
           catch(e){status('Could not apply cloud save: '+e.message);}}
         else if(v==='local')await upload();
       }
