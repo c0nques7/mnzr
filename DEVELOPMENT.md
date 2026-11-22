@@ -168,7 +168,8 @@ to three named builds per gun. The equipped build is the one you spawn with, and
 Parts are side-grades: they never change damage or fire rate, every gain costs something (range against handling, recoil
 against mobility, capacity against reload), and the product of all parts stays inside a fixed band (`MW_BAND`). The suppressor
 hides your muzzle flash and makes your shots quieter for other players online too. "Unlock everything (testing)" in the
-Workshop opens all parts. Progress saves in the browser under `za-prog`.
+Workshop opens all parts. Progress saves in the browser under `za-prog`. Before a Week 2+ Zombie Rumble run the Workshop also
+asks whether to **start with the carried gun** or pick a different one; Favor cards still carry over either way.
 
 ## Sandbox
 

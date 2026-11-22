@@ -716,6 +716,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
 @media (max-width:820px){.shopgrid{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}}
 .shopview{min-height:0;overflow:hidden;gap:7px}
 .shopview .gtabs{gap:5px;flex:none}.shopview .gtabs .btn{padding:5px 8px;font-size:13px;min-height:0;min-width:0}.shopview .gtabs .btn>*{max-width:100%;overflow-wrap:anywhere}.shopview .gtabs small{font-size:10px}
+.carrysel{display:flex;align-items:center;gap:5px;flex:none}.carrysel>span{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);white-space:nowrap}.carrysel .btn{flex:1 1 0;min-width:0;min-height:30px;padding:4px 7px;font-size:12px;line-height:1.05}
 #shopCv{flex:1 1 0;min-height:56px;height:auto;aspect-ratio:auto}
 .shopview .brow{flex:none;flex-wrap:nowrap;gap:5px}.shopview .brow .btn{font-size:13px;padding:5px 8px;min-width:0;white-space:normal;line-height:1.1}
 #shopBuilds .btn{flex:1 1 0}
@@ -947,6 +948,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
     <div class="hd"><b id="shopTi">Workshop</b><span id="shopLvl"></span></div>
     <div class="shopgrid">
       <div class="shopview">
+        <div class="carrysel" id="shopCarry" role="radiogroup" aria-label="Starting weapon" hidden><span>Start with</span><button class="btn on" type="button" role="radio" data-v="carry" id="shopCarryBtn" aria-checked="true">Carried weapon</button><button class="btn" type="button" role="radio" data-v="pick" id="shopPickBtn" aria-checked="false">Pick a different gun</button></div>
         <div class="gtabs" id="shopGuns" role="group" aria-label="Gun"></div>
         <canvas id="shopCv" aria-label="Gun preview, drag to turn"></canvas>
         <div id="shopWheel" role="group" aria-label="Weapon wheel loadout"></div>
@@ -6698,7 +6700,7 @@ const botMem={};
 let diffMul=1;
 /* match type, picked on the main menu: 'zone' (2v2 attack/defense) or 'dm' (deathmatch: 1v1, or 2v2 / 4v4 teams). Online, the room name
    carries the mode, so everyone in a room plays the host's S.mode. */
-const MATCH={mode:'zone',size:2,range:false,map:MAP.id};
+const MATCH={mode:'zone',size:2,range:false,map:MAP.id,zrStart:null};
 const DM_KILLS=n=>n===1?CFG.dmKills1:n===4?CFG.dmKills4:CFG.dmKills2;
 const modeName=(m,n)=>m==='zr'?'Zombie Rumble':m==='dm'?(n===1?'Deathmatch 1v1':`Team deathmatch ${n}v${n}`):'Zone 2v2';
 function mkPlayer(s,prev){return{s,team:s%2,bot:prev?prev.bot:true,peer:prev?prev.peer:null,name:prev?prev.name:BOTN[s],hp:100,st:'alive',x:0,y:0,z:0,yaw:0,pitch:0,dhp:0,downT:0,deadT:0,ak:null,at:-1,ap:0,sp:0,spx:0,spz:0,spyaw:0,sh:0,use:false,give:false,pick:-1,lastZ:-1,w:'rifle',wr:0,prot:0,k:0,d:0,xs:newXS()};}
@@ -7259,7 +7261,7 @@ function relayRooms(){
   else notes.textContent='Online play needs a browser with WebSockets. Play works anywhere.';
 })();
 
-function myPresence(){return{n:me.name,p:[+me.x.toFixed(2),+me.y.toFixed(2),+me.z.toFixed(2)],yw:+viewYaw().toFixed(3),pt:+viewPitch().toFixed(3),c:me.crouch||me.slideT>0?1:0,l:+((me.leanOff||0)/0.55).toFixed(2),wr:me.wr,u:me.use,k:me.pick,g:me.give,sh:me.sh,tm:me.teamPref,w:me.w,r:me.reloadT>0?1:0,sx:myW(me.w).supp?1:0,cg:me.chgT>0?Math.round(clamp(me.chgT/(myW(me.w).chg||1),0,1)*9):0,ls:myW(me.w).las?1:0,ds:(me.dashSeq|0)%1000,sl:me.slideT>0?1:0,lk:lkMine(),cy:zcCarryCode(),h:net.host&&net.mode==='online'?net.hostSince:0,hb:Math.floor(performance.now()/1000)%100,lb:net.inLobby?1:0};}
+function myPresence(){return{n:me.name,p:[+me.x.toFixed(2),+me.y.toFixed(2),+me.z.toFixed(2)],yw:+viewYaw().toFixed(3),pt:+viewPitch().toFixed(3),c:me.crouch||me.slideT>0?1:0,l:+((me.leanOff||0)/0.55).toFixed(2),wr:me.wr,u:me.use,k:me.pick,g:me.give,sh:me.sh,tm:me.teamPref,w:me.w,r:me.reloadT>0?1:0,sx:myW(me.w).supp?1:0,cg:me.chgT>0?Math.round(clamp(me.chgT/(myW(me.w).chg||1),0,1)*9):0,ls:myW(me.w).las?1:0,ds:(me.dashSeq|0)%1000,sl:me.slideT>0?1:0,lk:lkMine(),cy:zcCarryCode(),zu:MATCH.zrStart&&!MATCH.zrStart.carry?1:0,h:net.host&&net.mode==='online'?net.hostSince:0,hb:Math.floor(performance.now()/1000)%100,lb:net.inLobby?1:0};}
 function peerList(){
   if(net.mode==='solo')return[{peer:'local',presence:myPresence(),isMe:true}];
   if(!net.room)return[];
@@ -11490,10 +11492,12 @@ function zcWeek(n){return ZCAMP.w[n]||(ZCAMP.w[n]={c:0,runs:0,best:{}});}
 function zcOpen(n){return n===1||!!(ZCAMP.w[n-1]&&ZCAMP.w[n-1].c);}
 function zcPlayable(n){return zcOpen(n)&&!!(ZWEEKS[n]&&ZWEEKS[n].built);}
 function zcSel(){return zcPlayable(ZCAMP.sel)?ZCAMP.sel:1;}
-/* carrying a build between weeks: clearing a week saves your Favor cards (with their levels) and your weapon, special drop
-   included, in ZCAMP.carry {w: the week it is for, c: card ids, dw: weapon, sw: special weapon, bots: [{s,c}] (host only)}.
-   A carried run hands them back while you wait in the tunnel. A wipe keeps the save, so you can retry that week with it;
-   clearing that week replaces it with the bigger build for the week after. Favor itself still starts fresh every week. */
+/* carrying a build between weeks: clearing a week saves your Favor cards (with their levels) and the gun you finished with,
+   special drop included, in ZCAMP.carry {w: the week it is for, c: card ids, dw: weapon, sw: special weapon, bots: [{s,c}] (host only)}.
+   A carried run hands the cards back while you wait in the tunnel. The Workshop asks whether to start with that gun or a
+   different one; only an explicit pick replaces the saved gun (MATCH.zrStart), while continuing straight from the end screen
+   keeps the gun you were using. A wipe keeps the save, so you can retry that week with it; clearing that week replaces it
+   with the bigger build for the week after. Favor itself still starts fresh every week. */
 function zcCarryCards(c){const out=[],n={};for(const id of Array.isArray(c)?c:[]){if(!ZCARDS[id]||(n[id]|0)>=zCap(id)||out.length>=40)continue;n[id]=(n[id]|0)+1;out.push(id);}return out;}
 function zcCarrySw(sw){return sw&&W[sw.k]&&ZSW[sw.r|0]&&(sw.r|0)>0?{k:sw.k,r:sw.r|0,s:sw.s|0}:null;}
 function zcCarrySave(Z){const s=mySlot(),P=s>=0&&S?S.players[s]:null;if(!P)return;const sw=zcCarrySw(P.sw),dw=sw?sw.k:P.dropW&&W[P.dropW]?P.dropW:W[me.w]?me.w:null;
@@ -11508,16 +11512,21 @@ function zcMyCarried(){const s=mySlot(),P=s>=0&&S?S.players[s]:null;return !!P&&
 function zcCarryFor(n){const C=ZCAMP.carry;return C&&C.w===n?C:null;}
 /* host, during the tunnel wait of a carried run: each player gets their own saved build once (guests' come from presence) */
 function zrCarryTick(){const Z=S.zr;if(!Z||!Z.carry)return;Z.cyd=Z.cyd||{};const C=zcCarryFor(Z.week|0);
-  for(const p of S.players){const key=p.bot?'b'+p.s:'h'+(p.peer||p.s);if(Z.cyd[key])continue;let cy=null;
+  for(const p of S.players){const key=p.bot?'b'+p.s:'h'+(p.peer||p.s);if(Z.cyd[key])continue;const pr=p.bot?null:presenceOf(p.peer);let cy=null;
     if(p.bot){const b=C&&Array.isArray(C.bots)?C.bots.find(o=>o.s===p.s):null;cy=b?{c:zcCarryCards(b.c)}:null;}
     else if(p.s===mySlot())cy=C;
-    else{const pr=presenceOf(p.peer);if(!pr)continue;const g=zcCarryParse(pr.cy);cy=g&&g.w===(Z.week|0)?g:null;}
+    else{if(!pr)continue;const g=zcCarryParse(pr.cy);cy=g&&g.w===(Z.week|0)?g:null;}
     Z.cyd[key]=1;if(!cy)continue;p.cards=zcCarryCards(cy.c);
-    if(!p.bot){const sw=zcCarrySw(cy.sw);p.sw=sw;p.dropW=sw?sw.k:cy.dw&&W[cy.dw]?cy.dw:null;}
-    const nc=new Set(p.cards).size;if(nc||p.dropW)feed(`${p.name} carries ${nc} card${nc===1?'':'s'}${p.dropW?' and the '+W[p.dropW].name:''} from Week ${(Z.week|0)-1}`);}}
+    /* only an explicit Workshop "pick a different gun" choice replaces the saved gun; a straight continue keeps it */
+    let pick=null;
+    if(!p.bot){const mine=p.s===mySlot(),choice=mine?MATCH.zrStart:(pr&&pr.zu?{carry:false,pick:pr.w}:null),k=choice&&!choice.carry?choice.pick:null;if(W[k]&&!W[k].zr)pick=k;}
+    const sw=zcCarrySw(cy.sw),saved=sw?sw.k:cy.dw&&W[cy.dw]?cy.dw:null;
+    if(!p.bot){p.sw=pick?null:sw;p.dropW=pick||saved;}
+    const nc=new Set(p.cards).size,carried=pick?null:p.dropW;
+    if(nc||carried)feed(`${p.name} carries ${nc} card${nc===1?'':'s'}${carried?' and the '+W[carried].name:''} from Week ${(Z.week|0)-1}`);}}
 /* the end screen: a cleared week whose next week is built can go straight on with the same build */
 function zrCanContinue(){const Z=S&&S.mode==='zr'&&S.zr;if(!Z||!Z.won||S.range||SB.on)return false;const n=(Z.week||1)+1;return !!(ZWEEKS[n]&&ZWEEKS[n].built);}
-function zcAdvance(){const n=((S&&S.zr&&S.zr.week)||1)+1;if(!ZWEEKS[n])return;MATCH.zrWeek=n;MATCH.zrCarry=true;ZCAMP.sel=n;zcSave();
+function zcAdvance(){const n=((S&&S.zr&&S.zr.week)||1)+1;if(!ZWEEKS[n])return;MATCH.zrWeek=n;MATCH.zrCarry=true;MATCH.zrStart=null;ZCAMP.sel=n;zcSave();
   $('zrcarry').value='1';try{localStorage.setItem('za-zrcarry','1');}catch(e){}segSync();zcUI();modeCap();}
 /* a run ended: every client that played it records it */
 function zcRecord(Z,secs){const w=zcWeek(Z.week||1),was=!!w.c;w.runs=(w.runs|0)+1;if(Z.won){w.c=1;zcCarrySave(Z);const k=Z.len==='short'?'short':'full';if(!(w.best[k]>0)||secs<w.best[k])w.best[k]=Math.round(secs);}
@@ -12258,13 +12267,30 @@ const SHOP_ROWS=[
   ['Magazine',w=>w.mag,w=>w.mag+' rounds',w=>w.mag/60,true],
   ['Reload',w=>w.reload,w=>w.reload.toFixed(2)+' s',w=>(3.8-w.reload)/3.2,false],
   ['Aim zoom',w=>zoomX(w),w=>zoomX(w).toFixed(2)+'×',w=>(zoomX(w)-1)/1.6,true]];
-function shopOpen(k0,pick){progLoad();SHOP.pick=pick||'';SHOP.k=PVPK.includes(k0)?k0:PVPK.includes($('wsel').value)?$('wsel').value:'rifle';if(SHOP.pick&&gunLock(SHOP.k))SHOP.k=wheelKeys()[0];SHOP.hov=null;if(!SHOP.pick)$('menu').hidden=true;else $('mapscr').hidden=true;$('shop').hidden=false;
-  const pk=!!SHOP.pick,cy=pk&&MATCH.zrCarry?zcCarryFor(zcSel()):null;$('shop').classList.toggle('pick',pk);$('shopTi').textContent=pk?'Choose your weapon':'Workshop';$('shopGo').hidden=!pk;$('shopClose').textContent=pk?'Back':'Done';$('shopClose').classList.toggle('primary',!pk);
-  $('shopCap').textContent=pk?(cy&&cy.dw?`You carry the ${W[cy.dw].name} from Week ${cy.from||cy.w-1}, so you start with it. Your pick here is the gun you fall back to.`:'Pick a gun and its build for this run. You keep it until you take a weapon drop.'):'The build you pick for each gun is the one you spawn with. Builds save in this browser.';shopInit();shopUI();
+function shopOpen(k0,pick){progLoad();MATCH.zrStart=null;SHOP.pick=pick||'';SHOP.k=PVPK.includes(k0)?k0:PVPK.includes($('wsel').value)?$('wsel').value:'rifle';if(SHOP.pick&&gunLock(SHOP.k))SHOP.k=wheelKeys()[0];SHOP.hov=null;if(!SHOP.pick)$('menu').hidden=true;else $('mapscr').hidden=true;$('shop').hidden=false;
+  const pk=!!SHOP.pick,cy=pk&&$('zrcarry').value!=='0'?zcCarryFor(zcSel()):null,sw=cy&&zcCarrySw(cy.sw);
+  SHOP.carry=sw?sw.k:cy&&W[cy.dw]?cy.dw:null;SHOP.mode=SHOP.carry?'carry':'pick';
+  if(SHOP.mode==='carry'&&PVPK.includes(SHOP.carry)&&!gunLock(SHOP.carry))SHOP.k=SHOP.carry;/* show the carried gun's own build when it is a normal gun */
+  $('shop').classList.toggle('pick',pk);$('shopTi').textContent=pk?'Choose your weapon':'Workshop';$('shopGo').hidden=!pk;$('shopClose').textContent=pk?'Back':'Done';$('shopClose').classList.toggle('primary',!pk);
+  shopCarryUI();shopInit();shopUI();
   if(!SHOP.raf)SHOP.raf=requestAnimationFrame(shopFrame);blip(660,0.05,0.03,false,'ui');}
+/* the pre-run picker offers the gun carried from last week or any other gun; SHOP.mode drives the choice and the caption */
+function shopCarryUI(){const el=$('shopCarry'),show=!!SHOP.pick&&!!SHOP.carry;el.hidden=!show;
+  if(show){$('shopCarryBtn').textContent='Carried '+W[SHOP.carry].name;
+    for(const id of ['shopCarryBtn','shopPickBtn']){const b=$(id),on=b.dataset.v===SHOP.mode;b.classList.toggle('on',on);b.setAttribute('aria-checked',on?'true':'false');}}
+  const cy=SHOP.pick&&$('zrcarry').value!=='0'?zcCarryFor(zcSel()):null,cn=cy?new Set(cy.c||[]).size:0,week=cy?(cy.from||cy.w-1):0,extra=cn?`You carry ${cn} Favor card${cn===1?'':'s'} from Week ${week}. `:'';
+  const csw=cy&&zcCarrySw(cy.sw),cname=SHOP.carry?(csw?`${ZSW[csw.r]} ${W[csw.k].name}`:W[SHOP.carry].name):'';
+  $('shopCap').textContent=!SHOP.pick?'The build you pick for each gun is the one you spawn with. Builds save in this browser.'
+    :!SHOP.carry?extra+'Pick the gun and build you start with; you keep them until you take a weapon drop.'
+    :SHOP.mode==='carry'?(extra+`You'll start with the ${cname}; pick a different gun to change that.`)
+    :(extra+'Pick the gun and build you start with; you keep them until you take a weapon drop.');}
 function shopClose(go){const pk=SHOP.pick;SHOP.pick='';$('shop').hidden=true;$('shop').classList.remove('pick');if(!pk)$('menu').hidden=false;else if(go!==true)$('mapscr').hidden=false;cancelAnimationFrame(SHOP.raf);SHOP.raf=0;rebuildVW();lvlUI();blip(520,0.05,0.03,false,'ui');}
 /* Zombie Rumble has no weapon wheel: after the map screen this Workshop view picks the gun (and build) for the run, then starts it */
-function shopGo(){const k=SHOP.k,go=SHOP.pick;if(!go||gunLock(k))return;$('wsel').value=k;me.wPref=k;try{localStorage.setItem('za-w',k);}catch(e){}lvlUI();shopClose(true);
+function shopGo(){const k=SHOP.k,go=SHOP.pick;if(!go)return;const carried=!!SHOP.carry&&SHOP.mode==='carry';if(!carried&&gunLock(k))return;
+  MATCH.zrStart=carried?{carry:true,pick:SHOP.carry}:{carry:false,pick:k};/* the choice that zrCarryTick honours; a straight continue leaves this null */
+  const pref=carried&&PVPK.includes(SHOP.carry)&&!gunLock(SHOP.carry)?SHOP.carry:k;
+  $('wsel').value=pref;me.wPref=pref;if(!carried)try{localStorage.setItem('za-w',pref);}catch(e){}
+  lvlUI();shopClose(true);
   if(go==='online'){if(!$('joinbtn').disabled){$('msgo').disabled=true;$('joinbtn').click();}}else $('practice').click();}
 function shopInit(){if(SHOP.r)return;
   const cv=$('shopCv');let r;try{r=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});}catch(e){return;}
@@ -12289,7 +12315,7 @@ function shopUI(){const k=SHOP.k,b=buildOf(k),mk=(t,c,x)=>{const n=document.crea
   // gun tabs
   const gt=$('shopGuns');gt.replaceChildren();for(const g of PVPK){const wl=wlvlOf(PROG.wxp[g]),gl=gunLock(g),bt=mk('button','btn'+(g===k?' on':'')+(gl?' lock':''));bt.type='button';bt.setAttribute('aria-pressed',g===k);
     bt.append(mk('b','',W[g].short||W[g].name),mk('em','glv',gl?'🔒':'Lv '+wl),mk('small','',gl?'🔒 '+gl.replace(/^Level /,'Lv '):wl>=WMAXL?'Level 10 · max':`Level ${wl} · ${PROG.wxp[g]%WL_XP} / ${WL_XP}`));if(gl)bt.title=`${W[g].name}: unlocks at ${gl}`;
-    bt.addEventListener('click',()=>{SHOP.k=g;SHOP.hov=null;shopUI();});gt.append(bt);}
+    bt.addEventListener('click',()=>{if(gunLock(g)&&SHOP.carry&&g!==SHOP.carry)return;SHOP.hov=null;if(SHOP.carry)SHOP.mode=g===SHOP.carry?'carry':'pick';SHOP.k=SHOP.mode==='carry'&&gunLock(g)?(wheelKeys().find(k=>k!==SHOP.carry)||'rifle'):g;shopCarryUI();shopUI();});gt.append(bt);}
   // wheel loadout: six selects; picking a gun that is already on the wheel swaps the two
   const wh=$('shopWheel');wh.replaceChildren(mk('span','','Wheel'));const wk=wheelKeys();
   wk.forEach((cur,i)=>{const se=mk('select');se.setAttribute('aria-label','Wheel slot '+(i+1)+', key '+(i+1));
@@ -12330,6 +12356,8 @@ function shopTest(){const k=SHOP.k;if(gunLock(k))return;$('shop').hidden=true;ca
   SB.on=true;SB.test=k;SB.mode='range';SB.tab='range';if(DEVMODE){sbLoad();devLoad();buildSB();}
   tuneApply();startSolo();$('pleave').textContent='Back to Workshop';}
 $('shopTest').addEventListener('click',shopTest);$('shopGo').addEventListener('click',shopGo);
+$('shopCarryBtn').addEventListener('click',()=>{if(!SHOP.carry)return;SHOP.mode='carry';if(PVPK.includes(SHOP.carry)&&!gunLock(SHOP.carry))SHOP.k=SHOP.carry;shopCarryUI();shopUI();blip(980,0.022,0.012,false,'ui');});
+$('shopPickBtn').addEventListener('click',()=>{if(!SHOP.carry)return;SHOP.mode='pick';if(SHOP.k===SHOP.carry)SHOP.k=wheelKeys().find(k=>k!==SHOP.carry)||PVPK.find(k=>!gunLock(k)&&k!==SHOP.carry)||SHOP.k;shopCarryUI();shopUI();blip(980,0.022,0.012,false,'ui');});
 $('shopClose').addEventListener('click',()=>shopClose());
 $('shopName').addEventListener('input',e=>{const b=buildOf(SHOP.k);b.n=e.target.value.replace(/[^\w .'+-]/g,'').slice(0,18)||b.n;progSave();const on=$('shopBuilds').querySelector('.on');if(on)on.textContent=b.n;});
 $('shopName').addEventListener('change',()=>shopUI());
@@ -12351,7 +12379,7 @@ function nickSave(){const v=nickClean($('nick').value);$('nick').value=v;me.name
 $('nick').addEventListener('change',nickSave);$('nick').addEventListener('blur',nickSave);
 $('nick').addEventListener('keydown',e=>{if(e.code==='Enter'||e.key==='Enter'){e.preventDefault();e.stopPropagation();$('nick').blur();}});
 $('nickEd').addEventListener('click',()=>{const i=$('nick');i.focus();i.select();});
-try{const n=localStorage.getItem('za-name');if(n){$('nick').value=nickClean(n);me.name=$('nick').value;}const wv=localStorage.getItem('za-w');if(W[wv]&&PVPK.includes(wv))$('wsel').value=wv;}catch(e){}
+try{const n=localStorage.getItem('za-name');if(n){$('nick').value=nickClean(n);me.name=$('nick').value;}const wv=localStorage.getItem('za-w');if(W[wv]&&PVPK.includes(wv))$('wsel').value=wv;me.wPref=$('wsel').value;}catch(e){}
 if(matchMedia('(pointer:coarse)').matches)$('touchnote').hidden=false;
 lvlUI();
 const MODECAP={zone:'Attack and defend sites A and B',
@@ -12486,7 +12514,7 @@ $('mszin').addEventListener('click',()=>isoZoom(1.5));$('mszout').addEventListen
     if(pts.size>=2){const [a,b]=[...pts.values()],d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch>0&&d>0)isoZoom(d/pinch,(a.x+b.x)/2,(a.y+b.y)/2);pinch=d;}
     else isoPan(dx,dy);});
   const up=e=>{pts.delete(e.pointerId);pinch=0;if(!pts.size)M.classList.remove('drag');};M.addEventListener('pointerup',up);M.addEventListener('pointercancel',up);}
-function readMenu(){const mv=SB.on?SB.mode:$('modesel').value;MATCH.range=SB.on&&mv==='range';if(MATCH.range){MATCH.mode='dm';MATCH.size=4;}else if(mv==='zr'){MATCH.mode='zr';MATCH.size=1;MATCH.zrWeek=zcSel();MATCH.zrLen=$('zrlen').value==='0'?'short':'full';MATCH.zrCarry=$('zrcarry').value!=='0';}else if(!/^dm[124]$/.test(mv)){MATCH.mode='zone';MATCH.size=2;}else{MATCH.mode='dm';MATCH.size=+mv.slice(2);}
+function readMenu(){const mv=SB.on?SB.mode:$('modesel').value;MATCH.range=SB.on&&mv==='range';if(mv!=='zr')MATCH.zrStart=null;if(MATCH.range){MATCH.mode='dm';MATCH.size=4;}else if(mv==='zr'){MATCH.mode='zr';MATCH.size=1;MATCH.zrWeek=zcSel();MATCH.zrLen=$('zrlen').value==='0'?'short':'full';MATCH.zrCarry=$('zrcarry').value!=='0';}else if(!/^dm[124]$/.test(mv)){MATCH.mode='zone';MATCH.size=2;}else{MATCH.mode='dm';MATCH.size=+mv.slice(2);}
   if(SB.on&&SB.test&&W[SB.test]){me.wPref=SB.test;me.w=myPref();showWeapon(me.w);me.ammo=myW(me.w).mag;}/* Workshop range test: that gun, without changing the saved menu pick */
   else if(W[$('wsel').value]){me.wPref=$('wsel').value;me.w=myPref();showWeapon(me.w);me.ammo=myW(me.w).mag;try{localStorage.setItem('za-w',me.wPref);}catch(e){}}me.name=($('nick').value||'Player').replace(/[^\w .'-]/g,'').slice(0,16)||'Player';me.teamPref=+$('teampref').value;diffMul=+$('diff').value;try{localStorage.setItem('za-name',me.name);}catch(e){}}
 function enterGame(){dioHide();camNear(0.03);if(MS.open){MS.open=false;isoScene(false);TOD.cur='';}$('mapscr').hidden=true;$('menu').classList.remove('mapon');$('menu').hidden=true;for(const id of ['topbar','mini','vitals','ammo','cross','netpill'])$(id).hidden=false;requestLock();blip(660,0.05,0.03,false,'ui');}
