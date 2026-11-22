@@ -10,6 +10,7 @@ node_modules/
 dist/
 .env
 .env.*
+.dev.vars
 npm-debug.log*
 
 # Local screenshots and scratch output

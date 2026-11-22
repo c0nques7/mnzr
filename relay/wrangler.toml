@@ -11,3 +11,21 @@ class_name = "Room"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Room"]
+
+# Google sign-in and cloud saves. These are the account-level namespace IDs. If deploying from the
+# dashboard instead of Wrangler, also bind them on the Worker as SESSIONS and SAVES (same names).
+# The client ID is public; the client secret is a secret:
+#   npx wrangler secret put GOOGLE_CLIENT_SECRET
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "f8aa0a0ad53c4ab3951cdef25d343bc8"
+
+[[kv_namespaces]]
+binding = "SAVES"
+id = "4a1d386d6b7a4c27817b1a5c834ea80f"
+
+[vars]
+# Where the game sends the user after Google sign-in. Overridden by the ?app= parameter on /auth/google.
+APP_ORIGIN = "https://mnzr.lol"
+# Google OAuth Web application client ID (public value, safe in the repo).
+GOOGLE_CLIENT_ID = "554813270755-ijj69372qqkh5qehgursuncsi35cdrro.apps.googleusercontent.com"
