@@ -178,6 +178,8 @@ body:not(.zrmode) #zrsb{display:none}
 #ammonum{font-size:40px;font-weight:700;line-height:.9}
 #ammosub{font-size:13px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
 #cross{left:50%;top:50%;width:0;height:0;transition:opacity .12s}
+#rlring{left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;transform:rotate(-90deg)}#rlring svg{display:block}
+#rlring circle{fill:none;stroke-width:3}#rlring .bg{stroke:rgba(0,0,0,.45)}#rlring .fg{stroke:var(--accent);stroke-linecap:round;stroke-dasharray:100;filter:drop-shadow(0 0 2px rgba(0,0,0,.8))}
 #cross i{position:absolute;background:var(--accent);box-shadow:0 0 2px rgba(0,0,0,.9)}
 #cross .d{width:2px;height:2px;left:-1px;top:-1px}
 #cross .v{width:2px;height:9px;left:-1px;top:-4.5px}
@@ -720,7 +722,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
   <div id="zoneline"></div>
 </div>
 <div class="hud" id="ammo" hidden><div id="ammonum" class="num">24</div><div id="ammosub">Rifle · R to reload</div></div></div>
-<div class="hud" id="cross" hidden><i class="d"></i><i class="v" id="chT"></i><i class="v" id="chB"></i><i class="h" id="chL"></i><i class="h" id="chR"></i></div>
+<div class="hud" id="rlring" hidden aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44"><circle cx="22" cy="22" r="17" class="bg"/><circle cx="22" cy="22" r="17" class="fg" id="rlfg" pathLength="100"/></svg></div><div class="hud" id="cross" hidden><i class="d"></i><i class="v" id="chT"></i><i class="v" id="chB"></i><i class="h" id="chL"></i><i class="h" id="chR"></i></div>
 <div class="hud" id="dmg"></div>
 <div class="hud" id="confirm"></div>
 <div class="hud" id="rgread" hidden></div>
@@ -9579,7 +9581,7 @@ function grabMouse(gesture){if(locked||TOUCH.on)return;if(gesture)grabGesture=tr
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===canvas;if(locked){lockFails=0;dragMode=false;grabGesture=false;clearTimeout(grabTimer);}else lastExit=performance.now();});
 document.addEventListener('pointerlockerror',lockFailed);
 
-function startReload(){const w=myW(me.w);if(me.reloadT>0||me.ammo===w.mag||(w.heat&&me.ammo>0))return;me.rlEmpty=me.ammo===0;me.boltT=0;me.chgT=0;me.bq=0;me.reloadT=w.reload;if(!w.heat)reloadSound(me.reloadT,me.ammo===0);}
+function startReload(){const w=myW(me.w);if(me.reloadT>0||me.ammo===w.mag||(w.heat&&me.ammo>0))return;me.rlEmpty=me.ammo===0;me.boltT=0;me.chgT=0;me.bq=0;me.reloadT=me.reloadMax=w.reload;if(!w.heat)reloadSound(me.reloadT,me.ammo===0);}
 /* one round leaves the gun: ammo, recoil, the shot itself */
 function pullShot(s,cw,inBurst){
   if(me.sinceShot>0.28)me.burst=0;
@@ -12465,7 +12467,7 @@ function closePause(){if($('pause').hidden)return;$('pause').hidden=true;toggleS
 function leaveMatch(){endHide();net.inLobby=false;$('lobby').hidden=true;xpFlush();bigCountOff();closeWheel(false);WH.auto=false;$('pause').hidden=true;toggleSettings(false);toggleSB(false);
   if(net.room){try{net.room.leave().catch(()=>{});}catch(e){}}
   net.mode='none';net.room=null;net.host=false;net.hostPeer=null;net.myPeer=null;rgClear();RG.init=false;RG.shots=RG.hits=0;RG.read='';S=null;zrHide();rgSync();setMap(MATCH.map);tuneApply();SB.on=false;me.sp=-1;me.round=0;me.mid=0;coverTick();
-  for(const id of ['topbar','mini','vitals','ammo','cross','netpill','banner','prompt','ring','lockhint','down','dead','fps'])$(id).hidden=true;
+  for(const id of ['topbar','mini','vitals','ammo','cross','rlring','netpill','banner','prompt','ring','lockhint','down','dead','fps'])$(id).hidden=true;
   $('feed').replaceChildren();$('feed').dataset.k='';$('confirm').style.opacity=0;$('flash').style.opacity=0;$('hitmark').style.opacity=0;
   for(const a of avatars)a.g.visible=false;
   if(locked)document.exitPointerLock();
@@ -13166,6 +13168,7 @@ function feelHud(dt){
   const s=mySlot(),P=s>=0?S.players[s]:null,alive=P&&P.st==='alive';
   const gap=3+me.spread*(innerHeight/2)/Math.tan(camera.fov*Math.PI/360);
   chEl[0].style.transform=`translateY(${-(gap+4.5)}px)`;chEl[1].style.transform=`translateY(${gap+4.5}px)`;chEl[2].style.transform=`translateX(${-(gap+4.5)}px)`;chEl[3].style.transform=`translateX(${gap+4.5}px)`;
+  {const rl=alive&&me.reloadT>0&&me.reloadMax>0;$('rlring').hidden=!rl;if(rl)$('rlfg').style.strokeDashoffset=(100*me.reloadT/me.reloadMax).toFixed(1);}/* reload progress ring around the crosshair */
   $('cross').style.opacity=!alive?0:me.sprintK>0.5||me.reloadT>0?0.3:1;for(const e of chEl)e.style.opacity=1-me.ads;
   confirmT-=dt;$('confirm').style.opacity=confirmT>0?1:0;if(confirmT<=0)$('confirm').classList.remove('multi');
   const now=performance.now();
