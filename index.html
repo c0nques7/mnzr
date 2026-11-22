@@ -609,6 +609,7 @@ input,select{font:inherit;font-size:16px;color:var(--fg);background:#0b0f12;bord
 .bclr:hover,.bclr:focus-visible{color:var(--bad);background:rgba(255,255,255,.08);outline:none}
 .bslot.clash{border-color:var(--warn);color:var(--warn)}.bslot.cap{border-color:var(--accent);color:var(--accent);animation:bcap 1s ease-in-out infinite}
 @keyframes bcap{50%{background:rgba(95,242,255,.16)}}
+#setS:not(.adv) .sadv,#setS:not(.adv) .vxrow{display:none}#setS .sgrp.sadv h4{margin:10px 0 2px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}#setS .sgrp.sadv>.btn{margin-top:8px}
 #setS .vxrow{display:flex;flex-wrap:wrap;gap:8px}#setS .vxrow .btn{font-size:14px;padding:7px 12px}
 #setC .tlayrow{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}#setC .tlayrow .btn{font-size:14px;padding:7px 12px;white-space:nowrap}
 #tebar #teSz{min-width:52px;font-family:var(--mono);color:var(--fg)}
@@ -7347,16 +7348,16 @@ const TOUCH={on:false,mx:0,my:0,run:false};
 
 /* ---------- settings (graphics, sound, controls), saved per browser ---------- */
 const OPT0={preset:'high',res:1,autoRes:true,shadows:2,bloom:1,fxaa:true,film:0.6,rain:true,tod:'night',particles:1,marks:true,crowd:1,fog:1,bright:1,fov:78,shake:1,fps:false,lights:true,mblur:0.35,ao:false,refl:false,beams:false,smaa:false,aniso:false,
-  vMaster:0.8,vWeapons:0.9,vFx:0.9,vSteps:0.8,vUi:0.8,vAmb:0.6,vMap:0.6,vRain:0,vMusic:0.6,vMatch:0.5,reverb:0.4,vVoice:1.3,vxPitch:-1,vxRobot:0.24,vxEcho:1,vxVerb:1,vxBass:1.25,vxGrit:1.2,sens:1,adsSens:1,invertY:false,touch:'auto',tSens:1,tAdsSens:1,tSize:1,tFire2:true,tDblFire:true,tAutoRun:true,dmgDir:'arc',pSens:1,pAdsSens:0.85,pDead:0.12,pCurve:1.8,pBoost:true,pAssist:true,pAutoRun:false,pRumble:true};
+  vMaster:0.8,vWeapons:0.9,vFx:0.9,vSteps:0.8,vUi:0.8,vAmb:0.6,vMap:0.6,vRain:0,vMusic:0.6,vMatch:0.5,reverb:0.4,vVoice:1.3,vxPitch:-1,vxRobot:0.24,vxEcho:1,vxVerb:1,vxBass:1.25,vxGrit:1.2,sens:1,adsSens:1,invertY:false,touch:'auto',tSens:1,tAdsSens:1,tSize:1,tFire2:true,tDblFire:true,tAutoRun:true,dmgDir:'arc',pSens:1,pAdsSens:0.85,pDead:0.12,pCurve:1.8,pBoost:true,pAssist:true,pAutoRun:false,pRumble:true,sndAdv:false,sv:{}};
 const PRESETS={low:{mblur:0,res:0.75,shadows:0,bloom:0,fxaa:false,film:0,rain:false,particles:0.5,marks:false,crowd:0.35,ao:false,refl:false,beams:false,smaa:false,aniso:false},
   medium:{mblur:0.35,res:1,shadows:1,bloom:1,fxaa:true,film:0.4,rain:true,particles:1,marks:true,crowd:0.7,ao:false,refl:false,beams:false,smaa:false,aniso:false},
   high:{mblur:0.35,res:1,shadows:2,bloom:1,fxaa:true,film:0.6,rain:true,particles:1,marks:true,crowd:1,ao:false,refl:false,beams:false,smaa:false,aniso:false},
   ultra:{mblur:0.35,res:1.25,shadows:3,bloom:1,fxaa:true,film:0.6,rain:true,particles:2,marks:true,crowd:1,ao:false,refl:false,beams:false,smaa:false,aniso:false},
   // Max is for high-end GPUs only; nothing below it pays for these effects (each is off and costs nothing when off)
   max:{mblur:0.35,res:1.25,shadows:4,bloom:1,fxaa:true,film:0.6,rain:true,particles:2,marks:true,crowd:1,ao:true,refl:true,beams:true,smaa:true,aniso:true}};
-const OPT=Object.assign({},OPT0);
+const OPT=Object.assign({},OPT0,{sv:{}});
 (function(){try{const d=JSON.parse(localStorage.getItem('za-opt')||'null');
-  if(d){for(const k in OPT0)if(typeof d[k]===typeof OPT0[k])OPT[k]=d[k];if(d.mblur===undefined&&d.preset==='low')OPT.mblur=0;}
+  if(d){for(const k in OPT0)if(typeof d[k]===typeof OPT0[k])OPT[k]=d[k];OPT.sv={...(OPT.sv&&typeof OPT.sv==='object'?OPT.sv:{})};if(d.mblur===undefined&&d.preset==='low')OPT.mblur=0;}
   else{if(localStorage.getItem('za-gfx')==='0')Object.assign(OPT,PRESETS.low,{preset:'low'});const sv=parseFloat(localStorage.getItem('za-sens'));if(sv>=0.3&&sv<=3)OPT.sens=sv;}}catch(e){}})();
 function saveOpt(){try{localStorage.setItem('za-opt',JSON.stringify(OPT));}catch(e){}}
 
@@ -9184,7 +9185,7 @@ async function devMusic(k){if(!audioInit())return;const [M,mp3,lvl,opt]=MUS_SRC[
 function tuneLoops(){if(!actx)return;const t=actx.currentTime,R=TUNE.rain;
   if(AU.rainG){const test=t<(AU.rainTestT||0);AU.rainG.gain.setTargetAtTime((OPT.rain||test?0.08*(test?Math.max(0.6,OPT.vRain):OPT.vRain):0)*R.vol,t,0.15);
     AU.rainLp.frequency.value=Math.max(300,R.lp);AU.rainHp.frequency.value=Math.max(10,R.hp);AU.rainSrc.playbackRate.value=R.pitch;}
-  for(const M of [MU,WM,MM,DEVMUS]){if(!M||!M.f)continue;const T=TUNE[M.tk];M.f.frequency.value=Math.max(300,T.lp);M.h.frequency.value=Math.max(10,T.hp);M.v.gain.value=T.vol;M.w.gain.value=T.wet;if(M.src)M.src.playbackRate.value=T.pitch;}}
+  for(const M of [MU,WM,MM,DEVMUS]){if(!M||!M.f)continue;const T=TUNE[M.tk];M.f.frequency.value=Math.max(300,T.lp);M.h.frequency.value=Math.max(10,T.hp);M.v.gain.value=T.vol*svOf(M.tk);M.w.gain.value=T.wet;if(M.src)M.src.playbackRate.value=T.pitch;}}
 setInterval(()=>{musicTick();matchMusicTick();shopMusicTick();tuneLoops();},120);
 document.addEventListener('pointerdown',audioWake,true);document.addEventListener('keydown',audioWake,true);
 /* one-shot voice: o={f,f1,dur,vol,noise,type,q,wave,bus,pan,at,atk} */
@@ -9197,7 +9198,8 @@ const TUNE_D={boltCatch:{vol:1.31},boltSlam:{pitch:1.06},click:{vol:1.01},steps:
 const tuneDef=k=>({...TUNE_N,...(TUNE_D[k]||{})});
 const TUNE={};for(const k of SND_KEYS)TUNE[k]=tuneDef(k);
 let SNDTK=null;
-function tuned(o){const T=o.tk&&TUNE[o.tk];if(!T)return o;return{...o,vol:o.vol*T.vol,rate:(o.rate||1)*T.pitch,lp:Math.min(o.lp||20000,T.lp),hp:Math.max(o.hp||0,T.hp)||0,wet:(o.wet||0)+T.wet};}
+function svOf(k){const v=OPT.sv&&OPT.sv[k];return typeof v==='number'&&isFinite(v)?clamp(v,0,1.5):1;}/* Settings > Sound > Advanced: the player's own volume per sound */
+function tuned(o){const T=o.tk&&TUNE[o.tk];if(!T)return o;return{...o,vol:o.vol*T.vol*svOf(o.tk),rate:(o.rate||1)*T.pitch,lp:Math.min(o.lp||20000,T.lp),hp:Math.max(o.hp||0,T.hp)||0,wet:(o.wet||0)+T.wet};}
 function snd(o){if(!audioInit())return;o=tuned({...o,tk:o.tk||SNDTK||(o.bus==='ui'?'ui':null)});if(o.rate&&o.rate!==1){o.f*=o.rate;if(o.f1)o.f1*=o.rate;}try{
   const t=actx.currentTime+(o.at||0),dur=o.dur,g=actx.createGain(),vol=Math.max(0.0002,o.vol);
   if(o.atk){g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+o.atk);}else g.gain.setValueAtTime(vol,t);
@@ -12410,6 +12412,7 @@ const SET=[
   ['g','aniso','High-end: 16x texture filtering','chk'],
   ['g','fps','Show frame rate','chk'],
   ['g','dmgDir','Damage direction indicator','sel',[['arc','Arcs around the crosshair'],['edge','Glow at the screen edge'],['both','Both'],['off','Off']]],
+  ['s','sndAdv','Advanced: fine-tune the announcer voice and set the volume of each sound','chk'],
   ['s','vMaster','Master volume','rng',0,1,0.05,pct],
   ['s','vWeapons','Weapons','rng',0,1,0.05,pct],
   ['s','vFx','Impacts, explosions, charge beeps','rng',0,1,0.05,pct],
@@ -12446,8 +12449,9 @@ const SET=[
   ['c','pAssist','Controller: aim assist (your aim slows over enemies)','chk'],
   ['c','pAutoRun','Controller: sprint when the left stick is pushed all the way forward','chk'],
   ['c','pRumble','Controller vibration','chk']];
-const setEls={};
-function applyOpt(){applyGfx();audioApply();saveOpt();touchApply();vxPrep();}
+const setEls={};const SND_ADV=new Set(['reverb','vxPitch','vxRobot','vxEcho','vxVerb','vxBass','vxGrit']);
+function applyOpt(){applyGfx();audioApply();saveOpt();touchApply();vxPrep();$('setS').classList.toggle('adv',!!OPT.sndAdv);}
+function svSync(){for(const el of document.querySelectorAll('#setS input[data-sv]')){const v=svOf(el.dataset.sv);el.value=String(v);el.previousElementSibling.textContent=pct(v);}$('setS').classList.toggle('adv',!!OPT.sndAdv);}
 function syncSettings(){for(const d of SET){const el=setEls[d[1]];if(!el)continue;const v=OPT[d[1]];if(d[3]==='chk')el.inp.checked=!!v;else{el.inp.value=String(v);if(el.out)el.out.textContent=d[7](v);}}}
 (function(){const mk=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;};
   const PANE={g:$('setG'),s:$('setS'),c:$('setC')},SUBHEAD={ao:'High-end',sens:'Mouse',touch:'Touch',pSens:'Controller',vVoice:'Announcer voice'};
@@ -12456,12 +12460,19 @@ function syncSettings(){for(const d of SET){const el=setEls[d[1]];if(!el)continu
     if(type==='chk'){inp=mk('input');inp.type='checkbox';row.append(inp,mk('span',null,label));}
     else if(type==='sel'){inp=mk('select');for(const o of d[4]){const op=mk('option',null,o[1]);op.value=String(o[0]);inp.append(op);}row.append(mk('span',null,label),mk('span'),inp);}
     else{inp=mk('input');inp.type='range';inp.min=d[4];inp.max=d[5];inp.step=d[6];out=mk('output');row.append(mk('span',null,label),out,inp);}
-    setEls[key]={inp,out};host.append(row);
+    setEls[key]={inp,out};host.append(row);if(SND_ADV.has(key))row.classList.add('sadv');
     inp.addEventListener(type==='rng'?'input':'change',()=>{
       if(key==='preset'){if(PRESETS[inp.value])Object.assign(OPT,PRESETS[inp.value]);OPT.preset=inp.value;}
       else{OPT[key]=type==='chk'?inp.checked:type==='sel'?(isNaN(+inp.value)?inp.value:+inp.value):+inp.value;if(key in PRESETS.high)OPT.preset='custom';}
       applyOpt();syncSettings();});}
   syncSettings();
+  /* Advanced sound: one slider per sound (same names as the Sandbox sound list); the category sliders above still apply on top */
+  {const g=mk('div','sgrp sadv');g.append(mk('h3',null,'Each sound'),mk('p','cap','Volume of each sound on top of the sliders above. 100% is the default.'));let grp='';
+    for(const k of SND_KEYS){const I=SND_INFO[k];if(!I||/^(music|crowd$|rain$)/.test(k))continue;if(I[1]!==grp){grp=I[1];g.append(mk('h4',null,grp));}
+      const row=mk('label','srow'),inp=mk('input'),out=mk('output');inp.type='range';inp.min=0;inp.max=1.5;inp.step=0.05;inp.dataset.sv=k;row.append(mk('span',null,I[0]),out,inp);g.append(row);
+      inp.addEventListener('input',()=>{const v=+inp.value;if(Math.abs(v-1)<0.001)delete OPT.sv[k];else OPT.sv[k]=v;out.textContent=pct(v);saveOpt();tuneLoops();});}
+    const rb=mk('button','btn',"Reset each sound to 100%");rb.type='button';rb.addEventListener('click',()=>{OPT.sv={};saveOpt();svSync();tuneLoops();});g.append(rb);PANE.s.append(g);}
+  svSync();
   {const ps=document.createElement('div');ps.className='cap padstat';ps.id='padstat';setEls.pSens.inp.closest('.sgrp').querySelector('h3').after(ps);}
   const TABS=[...document.querySelectorAll('#settings .stab')];
   setTab(OPT_TAB());
@@ -12472,7 +12483,7 @@ function syncSettings(){for(const d of SET){const el=setEls[d[1]];if(!el)continu
     e.preventDefault();e.stopPropagation();setTab(stepTab(e.code==='KeyE'?1:-1),true);},true);
   $('setbtn').addEventListener('click',()=>toggleSettings(true));
   $('setclose').addEventListener('click',()=>toggleSettings(false));
-  $('setreset').addEventListener('click',()=>{Object.assign(OPT,OPT0);applyOpt();syncSettings();});
+  $('setreset').addEventListener('click',()=>{Object.assign(OPT,OPT0,{sv:{}});applyOpt();syncSettings();svSync();});
   $('settest').addEventListener('click',()=>{shotSound('rifle');stepSound(false,1);sting('win',0.35);});
 })();
 /* settings tabs: Graphics / Sound / Controls; the last tab used is remembered in this browser */
