@@ -7448,6 +7448,21 @@ const lowC=grainCanvas(256,'#474b5a',18,(g,s)=>{g.strokeStyle='rgba(0,0,0,.55)';
 const lowE=lineCanvas(256,(g,s)=>{g.fillStyle='#fff';g.fillRect(14,s*0.485,s-28,s*0.03);for(let x=20;x<s-20;x+=28)g.fillRect(x,s*0.8,14,4);});
 const highC=grainCanvas(256,'#2e3140',14,(g,s)=>{for(let x=8;x<s;x+=21){g.fillStyle='rgba(255,255,255,.05)';g.fillRect(x,0,6,s);g.fillStyle='rgba(0,0,0,.3)';g.fillRect(x+6,0,4,s);}g.strokeStyle='rgba(0,0,0,.6)';g.lineWidth=10;g.strokeRect(5,5,s-10,s-10);});
 const highE=lineCanvas(256,(g,s)=>{g.fillStyle='#fff';g.fillRect(16,s*0.2,s-32,4);g.fillRect(16,s*0.2+10,(s-32)*0.4,3);g.font='bold 26px monospace';g.fillText('ZA//'+(10+Math.floor(Math.random()*89)),18,s-26);g.fillRect(s-44,s-46,24,24);});
+/* cover variety (Joe, review board): three looks per height, picked per piece from its position, so the same piece looks the same for everyone.
+   Low: armour panel, supply crate, hazard barrier. High: ribbed slab, cargo container, server stack. Collision and breaking are unchanged. */
+const lowC2=grainCanvas(256,'#5a4a3a',22,(g,s)=>{for(let y=0;y<s;y+=32){g.fillStyle='rgba(0,0,0,.4)';g.fillRect(0,y,s,3);g.fillStyle='rgba(255,255,255,.05)';g.fillRect(0,y+3,s,2);}
+  g.strokeStyle='rgba(0,0,0,.55)';g.lineWidth=14;g.beginPath();g.moveTo(12,12);g.lineTo(s-12,s-12);g.moveTo(s-12,12);g.lineTo(12,s-12);g.stroke();g.lineWidth=12;g.strokeRect(6,6,s-12,s-12);});
+const lowE2=lineCanvas(256,(g,s)=>{g.fillStyle='#fff';for(const [x,y] of [[10,10],[s-34,10],[10,s-34],[s-34,s-34]]){g.fillRect(x,y,24,4);g.fillRect(x,y,4,24);}g.fillRect(s*0.5-22,s*0.5-3,44,6);});
+const lowC3=grainCanvas(256,'#55585e',26,(g,s)=>{g.save();g.beginPath();g.rect(0,s*0.18,s,s*0.26);g.clip();for(let x=-s;x<s*2;x+=44){g.fillStyle='rgba(240,190,30,.75)';g.beginPath();g.moveTo(x,s*0.18);g.lineTo(x+22,s*0.18);g.lineTo(x-14,s*0.44);g.lineTo(x-36,s*0.44);g.fill();}g.restore();
+  g.fillStyle='rgba(0,0,0,.35)';g.fillRect(0,s*0.86,s,s*0.14);g.strokeStyle='rgba(0,0,0,.4)';g.lineWidth=6;g.strokeRect(3,3,s-6,s-6);});
+const lowE3=lineCanvas(256,(g,s)=>{g.fillStyle='#fff';for(let x=18;x<s-30;x+=40){g.beginPath();g.moveTo(x,s*0.62);g.lineTo(x+14,s*0.68);g.lineTo(x,s*0.74);g.lineTo(x+6,s*0.68);g.fill();}g.fillRect(14,s*0.84,s-28,3);});
+const highC2=grainCanvas(256,'#3a2c3c',16,(g,s)=>{for(let x=0;x<s;x+=12){g.fillStyle='rgba(255,255,255,.07)';g.fillRect(x,0,4,s);g.fillStyle='rgba(0,0,0,.35)';g.fillRect(x+5,0,3,s);}
+  g.fillStyle='rgba(0,0,0,.5)';g.fillRect(s*0.47,0,s*0.06,s);for(const y of [s*0.12,s*0.88]){g.fillRect(0,y-5,s,10);}g.strokeStyle='rgba(0,0,0,.65)';g.lineWidth=12;g.strokeRect(6,6,s-12,s-12);});
+const highE2=lineCanvas(256,(g,s)=>{g.fillStyle='#fff';g.font='bold 30px monospace';g.fillText('CRG',20,s*0.5);g.font='bold 18px monospace';g.fillText((1000+Math.floor(Math.random()*8999))+'-'+'XKQ'[Math.floor(Math.random()*3)],20,s*0.5+26);g.fillRect(s*0.62,s*0.2,6,s*0.6);g.fillRect(s*0.72,s*0.2,6,s*0.6);});
+const highC3=grainCanvas(256,'#23262e',12,(g,s)=>{for(let y=10;y<s;y+=24){g.fillStyle='rgba(0,0,0,.55)';g.fillRect(10,y,s-20,14);g.fillStyle='rgba(255,255,255,.06)';g.fillRect(10,y+14,s-20,2);}g.strokeStyle='rgba(0,0,0,.7)';g.lineWidth=10;g.strokeRect(5,5,s-10,s-10);});
+const highE3=lineCanvas(256,(g,s)=>{for(let y=10;y<s;y+=24)for(let x=18;x<s-20;x+=14){if(Math.random()<0.55){g.fillStyle=Math.random()<0.8?'#fff':'#888';g.fillRect(x,y+5,5,4);}}});
+function coverSkin(b,high){const cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,i=((Math.round(cx*3.7+cz*5.3+(b.x1-b.x0)*11)%3)+3)%3;
+  return high?[[highC,highE],[highC2,highE2],[highC3,highE3]][i]:[[lowC,lowE],[lowC2,lowE2],[lowC3,lowE3]][i];}
 const wallC=grainCanvas(512,'#262836',12,(g,s)=>{g.fillStyle='rgba(0,0,0,.4)';for(let x=0;x<s;x+=128)g.fillRect(x,0,5,s);g.fillRect(0,s*0.62,s,8);});
 const wallE=lineCanvas(512,(g,s)=>{g.fillStyle='#fff';g.fillRect(0,s*0.62+1,s,5);for(let x=20;x<s;x+=128){g.fillRect(x,s*0.3,40,3);g.fillRect(x,s*0.3+8,22,3);}});
 const floorMats=[],floorMeshes=[];
@@ -7672,7 +7687,7 @@ function holoGeo(w,H,d){const p=[],x=w/2+0.015,z=d/2+0.015,s=(...a)=>p.push(...a
 function makeCoverVis(b){const w=b.x1-b.x0,d=b.z1-b.z0,H=b.h0,hh=coverHeight(b,1),high=H>=1.5,neon=high?THEME.high:THEME.low,nk=neon,rp=Math.max(1,Math.round(Math.max(w,d)/2.4));
   const cap=Math.min(high?0.4:0.2,(H-hh)*0.6),cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,R=Math.random;
   const clip=new THREE.Plane(new THREE.Vector3(0,-1,0),99),clipW=new THREE.Plane(new THREE.Vector3(0,-1,0),99);
-  const mat=new THREE.MeshStandardMaterial({map:tex(high?highC:lowC,rp,1),emissive:lin(neon),emissiveMap:tex(high?highE:lowE,rp,1),emissiveIntensity:1.1,roughness:0.55,metalness:0.35,clippingPlanes:[clip]});
+  const sk=coverSkin(b,high),mat=new THREE.MeshStandardMaterial({map:tex(sk[0],rp,1),emissive:lin(neon),emissiveMap:tex(sk[1],rp,1),emissiveIntensity:1.1,roughness:0.55,metalness:0.35,clippingPlanes:[clip]});
   const g=new THREE.Group();g.position.set(cx,0,cz);scene.add(g);
   const part=(geo,m,shadow)=>{const o=new THREE.Mesh(geo,m);o.castShadow=o.receiveShadow=!!shadow;o.userData.noMerge=true;o.visible=false;g.add(o);return o;};
   const full=part(new THREE.BoxGeometry(w,1,d),mat,1);full.scale.y=H;full.position.y=H/2;
