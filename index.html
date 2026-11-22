@@ -6396,7 +6396,7 @@ const TEAMN=['Blue','Orange'];
 const BOTN=['Bot Ash','Bot Rook','Bot Vex','Bot Juno','Bot Kade','Bot Nyx','Bot Orin','Bot Sable'];
 const CFG={roundTime:75,buy:3,post:6,overT:10,multiT:5,fuse:25,arm:5,defuse:7,revive:2.5,bleed:8,respawn:4,tickets:4,downHP:30,winScore:4,killHeal:25,block:15,dmg:25,head:50,fireCd:0.12,mag:24,reload:1.8,buy1:8,speed:6,sprint:9.5,crawl:1.8,jump:5,grav:19,wallRun:1.3,wallGrav:0.22,wallKick:7,grab:2.3,dash:22,dashT:0.16,dashN:2,dashCd:3.5,regenMin:5,regenMax:10,spawnProt:3,dmTime:600,dmRespawn:3,dmKills1:15,dmKills2:30,dmKills4:50};
 /* Revenant stats (Zombie Rumble): health, walking speed (m/s) and damage per swing for each type, and how close they swing from */
-Object.assign(CFG,{zShHp:60,zShSpd:1.6,zShDmg:20,zSpHp:40,zSpSpd:6.2,zSpDmg:12,zReach:1.25,zCrHp:35,zCrSpd:1.5,zCrDmg:10,zBlHp:150,zBlSpd:1.25,zBlDmg:45,zBlR:3.6,zrBreak:10,zJgHp:2400,zJgSpd:1.5,zJgDmg:40,zJgChg:11,zJgChgDmg:50,zSpiHp:80,zSpiSpd:1.9,zSpiDmg:12,zSpiGlob:15,zSpiCd:3.4,zShieldHp:100,zMaHp:2600,zMaSpd:1.7,zMaDmg:30,zMaRegrow:12,zSpiWind:0.75,zAcidDps:12,zAcidT:4,zAcidR:1.5,zrRevHP:50,zrBleed:15});
+Object.assign(CFG,{zShHp:60,zShSpd:1.6,zShDmg:20,zSpHp:40,zSpSpd:6.2,zSpDmg:12,zReach:1.25,zCrHp:35,zCrSpd:1.5,zCrDmg:10,zBlHp:150,zBlSpd:1.25,zBlDmg:45,zBlR:3.6,zrBreak:10,zJgHp:2400,zJgSpd:1.5,zJgDmg:40,zJgChg:11,zJgChgDmg:50,zSpiHp:80,zSpiSpd:1.9,zSpiDmg:12,zSpiGlob:15,zSpiCd:3.4,zShieldHp:100,zMaHp:2600,zMaSpd:1.7,zMaDmg:30,zMaRegrow:12,zMaWallCd:9,zMaWallT:7,zMaWallDps:25,zMaWallHit:15,zSpiWind:0.75,zAcidDps:12,zAcidT:4,zAcidR:1.5,zrRevHP:50,zrBleed:15});
 Object.assign(CFG,{radIn:12,radOut:5,radDecon:45,radHurt:5,radBoost:1.25,radMut:8});
 Object.assign(CFG,{ehPullP:1.8,ehPullZ:2.6,ehPullG:9,ehBossDps:120});/* Event Horizon: the black hole's pull at its core (m/s, falling off to nothing at 14 m) on players and on Revenants, its pull on acid globs (m/s per s), and what it does a second to a headliner that won't go in whole *//* Fallout radiation: meter fill per s in a hot zone, drain outside / in a decon shower, burn per s when full, damage boost over half, Revenant mutation time */
 const SITES={A:{x:22,z:-9},B:{x:22,z:9}};
@@ -6567,11 +6567,13 @@ let rayHitBox=null,rayNoPane=false,raySkip=null;/* raySkip: one box a shot ignor
 function rayWorld(ox,oy,oz,dx,dy,dz,maxT){let best=maxT;rayHitBox=null;for(const b of BOXES){if(b===raySkip)continue;let bb=b;
   if(b.ptl){if(rayNoPane)continue;bb=b.pb||(b.pb={y0:0});bb.x0=b.x0;bb.x1=b.x1;bb.z0=b.z0;bb.z1=b.z1;bb.y1=b.h0;}/* an open portal pane: no collision, but shots still meet it */
   else if(b.y1<=0.01||(rayNoPane&&b.pane!=null))continue;const t=rayBox(ox,oy,oz,dx,dy,dz,bb,best);if(t>=0&&t<best){best=t;rayHitBox=b;}}if(oy+dy*best<0&&dy<0){const tg=-oy/dy;if(tg<best){best=tg;rayHitBox=null;}}
-  if(dy>0&&oy<ROOF_Y){const tr=(ROOF_Y-oy)/dy;if(tr<best){best=tr;rayHitBox=ROOF_HIT;}}return best;}
+  if(dy>0&&oy<ROOF_Y){const tr=(ROOF_Y-oy)/dy;if(tr<best){best=tr;rayHitBox=ROOF_HIT;}}
+  if(!rayNoWall&&(ZB.walls.length||(S&&S.zac&&S.zac.w))){const tw=zWallRay(ox,oy,oz,dx,dy,dz,best);if(tw>=0&&tw<best){best=tw;rayHitBox=ACID_HIT;}}return best;}
+let rayNoWall=false;const ACID_HIT={acid:1};
 /* destructible cover: full, damaged (half height), rubble. Rubble rebuilds itself after CFG.regenMin..regenMax seconds (S.regen holds the countdown per cover) */
 const coverStage=(b,hp)=>hp<=0?2:hp<=b.max/2?1:0;
 const coverHeight=(b,st)=>st===2?0:st===1?(b.h0>=1.5?1.25:0.6):b.h0;
-function losPts(ax,ay,az,bx,by,bz){const dx=bx-ax,dy=by-ay,dz=bz-az,L=Math.hypot(dx,dy,dz);if(L<1e-3)return true;const t=rayWorld(ax,ay,az,dx/L,dy/L,dz/L,L);return t>=L-0.05;}
+function losPts(ax,ay,az,bx,by,bz){const dx=bx-ax,dy=by-ay,dz=bz-az,L=Math.hypot(dx,dy,dz);if(L<1e-3)return true;rayNoWall=true;const t=rayWorld(ax,ay,az,dx/L,dy/L,dz/L,L);rayNoWall=false;return t>=L-0.05;}/* acid walls are see-through */
 function losSee(ax,ay,az,bx,by,bz){rayNoPane=true;const r=losPts(ax,ay,az,bx,by,bz);rayNoPane=false;return r;}
 /* the glass pane a shot from a to b would hit first, or -1 */
 function paneBetween(ax,ay,az,bx,by,bz){if(!MF.panes.length)return -1;const dx=bx-ax,dy=by-ay,dz=bz-az,L=Math.hypot(dx,dy,dz);if(L<1e-3)return -1;const t=rayWorld(ax,ay,az,dx/L,dy/L,dz/L,L);return t<L-0.05&&rayHitBox&&rayHitBox.pane!=null?rayHitBox.pane:-1;}
@@ -10674,7 +10676,7 @@ function buildRange(el,mk){
    - Damage: head, body and each limb take damage on their own, lose pixels where they are hit and fall off at zero (see bullets).
      Corpses lie for a moment and then dissolve into pixels.
    Stats are CFG keys (z*), tuned on the Range tab, saved and exported like every other rule. */
-const ZB={globs:[],pools:[],gid:0,list:[],id:0,acc:null,dist:new Float32Array(GW*GD),distT:0,hunt:true,endless:false,horde:10,kills:0,spawnT:0,cap:40,grid:0};
+const ZB={walls:[],globs:[],pools:[],gid:0,list:[],id:0,acc:null,dist:new Float32Array(GW*GD),distT:0,hunt:true,endless:false,horde:10,kills:0,spawnT:0,cap:40,grid:0};
 const ZTYPES={
   sham:{name:'Shambler',hp:'zShHp',spd:'zShSpd',dmg:'zShDmg',wind:0.55,cd:1.1,lean:-0.22,tint:0x8e9a8a,eye:0x7dffb0,size:1},
   sprint:{name:'Sprinter',hp:'zSpHp',spd:'zSpSpd',dmg:'zSpDmg',wind:0.32,cd:0.75,lean:-0.55,tint:0xa7928a,eye:0xff5a3c,size:0.96},
@@ -10898,9 +10900,9 @@ function zSpawn(t,x,z,yaw,elite,mod){if(mod)elite=true;if(ZB.list.length>=ZB.cap
 /* once a run (or match) is over the floor clears: every Revenant still standing dissolves where it is (no kill credit), acid and drops go */
 function zOverClear(dt){const L=ZB.list;for(const z of L)if(z.st!=='dead'){z.st='dead';z.hp=0;z.wind=0;z.deadT=ZDIS0-0.4;z.esc=null;}
   for(const z of L)z.deadT+=dt;for(let i=L.length-1;i>=0;i--)if(L[i].deadT>ZDIS0+ZDIS+0.1)L.splice(i,1);
-  ZB.globs.length=0;ZB.pools.length=0;if(S.zac)S.zac=undefined;if(S.zr&&S.zr.drops&&S.zr.drops.length)S.zr.drops.length=0;}
+  ZB.globs.length=0;ZB.pools.length=0;ZB.walls.length=0;if(S.zac)S.zac=undefined;if(S.zr&&S.zr.drops&&S.zr.drops.length)S.zr.drops.length=0;}
 function zRemove(z){const i=ZB.list.indexOf(z);if(i>=0)ZB.list.splice(i,1);}
-function zClear(){ZB.list.length=0;ZB.acc=null;ZB.globs.length=0;ZB.pools.length=0;if(S)S.zac=undefined;}
+function zClear(){ZB.list.length=0;ZB.acc=null;ZB.globs.length=0;ZB.pools.length=0;ZB.walls.length=0;if(S)S.zac=undefined;}
 function zHurt(p,dmg,z,burst){if(!p||p.st!=='alive')return;if(SB.on&&SB.god&&!p.bot)return;if(p.prot>0)return;
   if(S.mode==='zr'){dmg*=1-zrV(p,'ts');if(zrHas(p,'ex'))dmg*=1.25;if(p.rcN)dmg*=1+0.1*p.rcN;dmg*=1-0.04*zlv(p,'t');if(zrAct('glass'))dmg*=1.25;if(zrSet(p,'med'))dmg*=0.9;if(burst)dmg*=1-zrV(p,'bp');if(burst&&zrSet(p,'ark'))dmg*=0.75;dmg=Math.round(dmg);}
   p.hp-=dmg;p.ak=null;p.ap=0;
@@ -11013,6 +11015,7 @@ function zMatriTick(z,tg,td,dt){const g=z.gen|0;z.scd=(z.scd==null?2:z.scd)-dt;z
     for(let i=0;i<n&&live+i<6;i++){if(S.mode==='zr'&&S.zr)zrRise('spit');else{const a=Math.random()*6.283,x=z.x+Math.cos(a)*6,zz=z.z+Math.sin(a)*6;zSpawn('spit',x,zz,a);}}
     if(S.mode!=='zr'||!S.zr)feed('The Matriarch screams for her Spitters');}
   if(zLimbs(z).legs<1)return false;
+  z.wcd=(z.wcd==null?4+g*2:z.wcd)-dt;if(g<2&&z.wcd<=0&&td>4&&td<26){z.wcd=CFG.zMaWallCd*(g?1.5:1)*(0.85+Math.random()*0.3);zAcidWall(z,tg);}
   if(z.scd<=0&&td>3&&td<24){z.losT=(z.losT||0)-dt;if(z.losT<=0){z.losT=0.25;z.los=losPts(z.x,1.6*zSize(z),z.z,tg.x,(tg.y||0)+1.2,tg.z);}
     if(z.los){z.sw=CFG.zSpiWind*1.1;zVoice(z,'zSnarl',1);return true;}}
   return false;}
@@ -11072,8 +11075,34 @@ function zSpitFire(z,tg,off){if(ZB.globs.length>=ZAC_MAXG)ZB.globs.shift();const
 function zAcidPool(x,z){if(!freeAt(x,z)){const c=nearestFree(...cellOf(x,z));if(!c)return;x=c[0]-50+0.5;z=c[1]-20+0.5;}
   const near=ZB.pools.find(q=>hyp(q.x,q.z,x,z)<0.9);if(near){near.t=CFG.zAcidT;near.r=Math.min(CFG.zAcidR*1.45,near.r+0.25);return;}
   if(ZB.pools.length>=ZAC_MAXP)ZB.pools.shift();ZB.pools.push({x,z,r:CFG.zAcidR,t:CFG.zAcidT});}
+/* the Matriarch's acid walls (Joe, review board): she raises a short wall of acid between herself and her target. It stops bullets
+   (rayWorld, bot shots), burns anyone standing in it (zMaWallDps), splashes whoever is beside it as it rises (zMaWallHit), and
+   collapses into pools after zMaWallT s. Revenants and her own acid globs go straight through. Host list ZB.walls; guests read S.zac.w. */
+const ZWALL_H=2.3,ZWALL_D=0.36,ZWALL_MAX=4;
+function zAcidWall(z,tg){const g=z.gen|0,L=g?3.2:4.4,dx=tg.x-z.x,dz=tg.z-z.z,d=Math.hypot(dx,dz)||1,ux=dx/d,uz=dz/d,k=Math.min(3.2,d*0.4);
+  let x=z.x+ux*k,zz=z.z+uz*k;if(!freeAt(x,zz)){const c=nearestFree(...cellOf(x,zz));if(!c)return;x=c[0]-50+0.5;zz=c[1]-20+0.5;}
+  if(ZB.walls.length>=ZWALL_MAX)ZB.walls.shift();const w={x,z:zz,a:Math.atan2(uz,ux)+Math.PI/2,L,t:CFG.zMaWallT,T:CFG.zMaWallT,hit:false};ZB.walls.push(w);
+  zVoice(z,'zSnarl',1.15);}
+function zWallList(){return zGuest()?((S&&S.zac&&S.zac.w)||[]).map(q=>({x:q[0],z:q[1],a:q[2],L:q[3],t:q[4],T:q[5]||CFG.zMaWallT})):ZB.walls;}
+function zWallH(w){const up=clamp((w.T-w.t)/0.4,0,1),dn=clamp(w.t/0.5,0,1);return ZWALL_H*Math.min(up,dn);}
+const ZWB={x0:0,x1:0,y0:0,y1:0,z0:0,z1:0};
+/* nearest acid wall a ray meets before maxT (-1 for none) */
+function zWallRay(ox,oy,oz,dx,dy,dz,maxT){let best=-1;const W=zWallList();if(!W.length)return -1;
+  for(const w of W){const h=zWallH(w);if(h<0.3)continue;const c=Math.cos(w.a),sn=Math.sin(w.a),rx=ox-w.x,rz=oz-w.z;
+    const lx=rx*c+rz*sn,lz=-rx*sn+rz*c,ldx=dx*c+dz*sn,ldz=-dx*sn+dz*c;ZWB.x0=-w.L/2;ZWB.x1=w.L/2;ZWB.z0=-ZWALL_D/2;ZWB.z1=ZWALL_D/2;ZWB.y1=h;
+    const t=rayBox(lx,oy,lz,ldx,dy,ldz,ZWB,best>=0?best:maxT);if(t>=0&&t<(best>=0?best:maxT))best=t;}
+  return best;}
+function zWallNear(w,x,z,m){const c=Math.cos(w.a),sn=Math.sin(w.a),rx=x-w.x,rz=z-w.z,lx=rx*c+rz*sn,lz=-rx*sn+rz*c;return Math.abs(lx)<w.L/2+m&&Math.abs(lz)<ZWALL_D/2+m;}
+function zWallTick(dt){const W=ZB.walls;
+  for(let i=W.length-1;i>=0;i--){const w=W[i];w.t-=dt;
+    if(w.t<=0){const c=Math.cos(w.a),sn=Math.sin(w.a);for(const f of [-0.28,0.28])zAcidPool(w.x+c*w.L*f,w.z+sn*w.L*f);W.splice(i,1);continue;}
+    if(!w.hit&&w.T-w.t>0.25){w.hit=true;for(const p of S.players)if(p.st==='alive'&&(p.y||0)<1.5&&zWallNear(w,p.x,p.z,1.6))zHurt(p,CFG.zMaWallHit,{id:'acid',x:w.x,z:w.z,t:'matri'});}
+    if(zWallH(w)<0.5)continue;
+    for(const p of S.players){if(p.st!=='alive'||(p.y||0)>zWallH(w)||!zWallNear(w,p.x,p.z,0.35))continue;
+      p.awA=(p.awA||0)+CFG.zMaWallDps*dt;if(p.awA>=1){const d=Math.floor(p.awA);p.awA-=d;zHurt(p,d,{id:'acid',x:w.x,z:w.z,t:'matri'});}
+      if(p.bot){const m=botMem[p.s];if(m&&!m.esc){const c=Math.cos(w.a),sn=Math.sin(w.a),side=((p.x-w.x)*-sn+(p.z-w.z)*c)>=0?1:-1,ex=p.x-sn*side*1.4,ez=p.z+c*side*1.4;if(freeAt(ex,ez))m.esc={x:ex,z:ez,t:1.2};}}}}}
 function zAcidSplash(x,y,z){for(let i=0;i<10;i++)zPix(x,Math.max(0.1,y),z,(Math.random()-.5)*3,1+Math.random()*2,(Math.random()-.5)*3,0.05,0.5,1,0.2,true,0.5+Math.random()*0.4);}
-function zAcidTick(dt){const G=ZB.globs,P=ZB.pools;if(!G.length&&!P.length){if(S&&S.zac)S.zac=undefined;return;}
+function zAcidTick(dt){const G=ZB.globs,P=ZB.pools;if(ZB.walls.length)zWallTick(dt);if(!G.length&&!P.length&&!ZB.walls.length){if(S&&S.zac)S.zac=undefined;return;}
   for(let i=G.length-1;i>=0;i--){const g=G[i],px=g.x,pz=g.z;g.t+=dt;g.vy-=ZAC_G*dt;g.x+=g.vx*dt;g.y+=g.vy*dt;g.z+=g.vz*dt;let done=false;
     if(MF.eh){const q=ehPull(g.x,g.z,CFG.ehPullG);if(q){g.vx+=q.x*dt;g.vz+=q.z*dt;if(q.d<MF.eh.r*0.7&&g.y<5){G.splice(i,1);continue;}}}/* the black hole bends acid globs in and eats them */
     for(const p of S.players){if(p.st!=='alive')continue;const py=p.y||0;if(Math.abs(p.x-g.x)<0.55&&Math.abs(p.z-g.z)<0.55&&g.y>py&&g.y<py+1.9){zHurt(p,CFG.zSpiGlob,g.src);zAcidPool(p.x,p.z);done=true;break;}}
@@ -11087,7 +11116,8 @@ function zAcidTick(dt){const G=ZB.globs,P=ZB.pools;if(!G.length&&!P.length){if(S
       // bots step out of acid, away from the middle of the pool
       if(p.bot){const m=botMem[p.s];if(m&&!m.esc){const l=hyp(p.x,p.z,q.x,q.z)||1,ux=(p.x-q.x)/l||1,uz=(p.z-q.z)/l,ex=q.x+ux*(q.r+1),ez=q.z+uz*(q.r+1);if(freeAt(ex,ez))m.esc={x:ex,z:ez,t:1.5};}}}}
   const r1=v=>Math.round(v*10)/10;
-  S.zac={p:P.map(q=>[r1(q.x),r1(q.z),r1(q.r),r1(q.t)]),g:G.map(g=>[g.id,r1(g.x),r1(g.y),r1(g.z),r1(g.vx),r1(g.vy),r1(g.vz)])};}
+  S.zac={p:P.map(q=>[r1(q.x),r1(q.z),r1(q.r),r1(q.t)]),g:G.map(g=>[g.id,r1(g.x),r1(g.y),r1(g.z),r1(g.vx),r1(g.vy),r1(g.vz)])};
+  if(ZB.walls.length)S.zac.w=ZB.walls.map(w=>[r1(w.x),r1(w.z),Math.round(w.a*100)/100,r1(w.L),r1(w.t),r1(w.T)]);}
 const ZAC=(function(){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),gr=g.createRadialGradient(64,64,0,64,64,64);
   gr.addColorStop(0,'rgba(170,255,90,0.95)');gr.addColorStop(0.55,'rgba(110,230,50,0.75)');gr.addColorStop(0.8,'rgba(70,190,30,0.45)');gr.addColorStop(1,'rgba(40,120,20,0)');g.fillStyle=gr;g.fillRect(0,0,128,128);
   for(let i=0;i<40;i++){const a=Math.random()*6.28,r=Math.random()*44;g.fillStyle='rgba(220,255,160,'+(0.2+Math.random()*0.4)+')';g.beginPath();g.arc(64+Math.cos(a)*r,64+Math.sin(a)*r,1+Math.random()*3,0,6.28);g.fill();}
@@ -11095,7 +11125,15 @@ const ZAC=(function(){const c=document.createElement('canvas');c.width=c.height=
   const pool=new THREE.InstancedMesh(new THREE.PlaneGeometry(2,2).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({map:tex,color:0x8cff55,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,polygonOffset:true,polygonOffsetFactor:-2}),ZAC_MAXP);
   const glob=new THREE.InstancedMesh(new THREE.SphereGeometry(0.15,10,8),new THREE.MeshBasicMaterial({color:0x9dff3c}),ZAC_MAXG);
   pool.count=0;glob.count=0;pool.frustumCulled=false;glob.frustumCulled=false;pool.renderOrder=2;scene.add(pool);scene.add(glob);
-  return{pool,glob,m:new THREE.Matrix4(),q:new THREE.Quaternion(),v:new THREE.Vector3(),sc:new THREE.Vector3()};})();
+  /* acid wall: a sheet of falling acid, the same texture stretched and scrolled down */
+  const wc=document.createElement('canvas');wc.width=64;wc.height=128;const wg=wc.getContext('2d');{const lg=wg.createLinearGradient(0,0,0,128);lg.addColorStop(0,'rgba(140,255,80,.55)');lg.addColorStop(1,'rgba(60,200,30,.8)');wg.fillStyle=lg;wg.fillRect(0,0,64,128);
+    for(let i=0;i<26;i++){const x=Math.random()*64,w=1+Math.random()*3,y=Math.random()*128,l=20+Math.random()*70;wg.fillStyle='rgba(220,255,150,'+(0.25+Math.random()*0.5)+')';wg.fillRect(x,y,w,l);wg.fillRect(x,y-128,w,l);}
+    for(let i=0;i<30;i++){wg.fillStyle='rgba(20,80,10,'+(0.2+Math.random()*0.3)+')';wg.fillRect(Math.random()*64,Math.random()*128,2+Math.random()*4,4+Math.random()*14);}}
+  const wt=new THREE.CanvasTexture(wc);wt.wrapS=wt.wrapT=THREE.RepeatWrapping;wt.repeat.set(2,1);
+  const wall=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1).translate(0,0.5,0),new THREE.MeshBasicMaterial({map:wt,color:0x7dff45,transparent:true,opacity:0.8,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false}),ZWALL_MAX);
+  const core=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1).translate(0,0.5,0),new THREE.MeshBasicMaterial({color:0x1d4a0c,transparent:true,opacity:0.55,depthWrite:false}),ZWALL_MAX);
+  wall.count=core.count=0;wall.frustumCulled=core.frustumCulled=false;wall.renderOrder=3;scene.add(core);scene.add(wall);
+  return{pool,glob,wall,core,wt,m:new THREE.Matrix4(),q:new THREE.Quaternion(),v:new THREE.Vector3(),sc:new THREE.Vector3()};})();
 function zAcidDraw(dt){const A=ZAC,gu=zGuest(),src=gu?(S&&S.zac)||null:null;
   const P=gu?(src?src.p||[]:[]):ZB.pools.map(q=>[q.x,q.z,q.r,q.t]),G=gu?(src?src.g||[]:[]):ZB.globs.map(g=>[g.id,g.x,g.y,g.z,g.vx,g.vy,g.vz]);
   const age=gu?Math.min(0.5,(performance.now()-(ZB.zacAt||performance.now()))/1000):0,ck=zClk();let n=0;
@@ -11105,7 +11143,13 @@ function zAcidDraw(dt){const A=ZAC,gu=zGuest(),src=gu?(S&&S.zac)||null:null;
   A.pool.count=n;if(n)A.pool.instanceMatrix.needsUpdate=true;n=0;
   for(const g of G){if(n>=ZAC_MAXG)break;const x=g[1]+g[4]*age,y=g[2]+g[5]*age-0.5*ZAC_G*age*age,z=g[3]+g[6]*age;if(y<0)continue;
     A.m.makeTranslation(x,y,z);A.glob.setMatrixAt(n++,A.m);if(Math.random()<dt*20)zPix(x,y,z,0,-0.3,0,0.04,0.5,1,0.2,true,0.3);}
-  A.glob.count=n;if(n)A.glob.instanceMatrix.needsUpdate=true;}
+  A.glob.count=n;if(n)A.glob.instanceMatrix.needsUpdate=true;n=0;
+  const WL=zWallList();A.wt.offset.y=ck*0.7;
+  for(const w of WL){if(n>=ZWALL_MAX)break;const h=zWallH(w);if(h<0.02)continue;const wob=1+0.04*Math.sin(ck*7+w.x);
+    A.q.setFromAxisAngle(A.v.set(0,1,0),-w.a);A.m.compose(A.v.set(w.x,0,w.z),A.q,A.sc.set(w.L,h*wob,ZWALL_D));A.wall.setMatrixAt(n,A.m);
+    A.m.compose(A.v.set(w.x,0,w.z),A.q,A.sc.set(w.L*0.96,h*0.97,ZWALL_D*0.5));A.core.setMatrixAt(n++,A.m);
+    if(Math.random()<dt*14){const f=Math.random()-0.5;zPix(w.x+Math.cos(w.a)*w.L*f,h,w.z+Math.sin(w.a)*w.L*f,(Math.random()-.5)*0.6,-0.4-Math.random(),(Math.random()-.5)*0.6,0.05,0.55,1,0.25,true,0.6);}}
+  A.wall.count=A.core.count=n;if(n){A.wall.instanceMatrix.needsUpdate=true;A.core.instanceMatrix.needsUpdate=true;}}
 function zLimbs(z){const r=z.reg;return{arms:(r.armL.gone?0:1)+(r.armR.gone?0:1),legs:(r.legL.gone?0:1)+(r.legR.gone?0:1)};}
 function zVoxW(z,p,i,out){const e=z.pm,o=p*16,P=ZR.parts[p],x=P.off[i*3],y=P.off[i*3+1],w=P.off[i*3+2];
   out.set(e[o]*x+e[o+4]*y+e[o+8]*w+e[o+12],e[o+1]*x+e[o+5]*y+e[o+9]*w+e[o+13],e[o+2]*x+e[o+6]*y+e[o+10]*w+e[o+14]);return out;}
@@ -11298,7 +11342,7 @@ function zRangeUI(el,mk,ab){el.append(mk('h3','','Revenants (Zombie Rumble)'));
     as.value=ZB.as||'';as.addEventListener('change',()=>{ZB.as=as.value;});al.append(as);el.append(al);}
   devKnob(el,'Horde size',1,ZB.cap,1,()=>ZB.horde,v=>{ZB.horde=v;},10);
   for(const [k,t,lo,hi,st] of [['zShHp','Shambler health',1,500,1],['zShSpd','Shambler speed (m/s)',0.3,6,0.1],['zShDmg','Shambler hit damage',0,100,1],
-    ['zSpHp','Sprinter health',1,500,1],['zSpSpd','Sprinter speed (m/s)',1,12,0.1],['zSpDmg','Sprinter hit damage',0,100,1],['zSpiHp','Spitter health',1,500,1],['zSpiGlob','Spitter acid hit',0,100,1],['zAcidDps','Acid pool damage per second',0,60,1],['zSpiCd','Spitter seconds between throws',0.5,10,0.1],['zShieldHp','Shielded elite shell',0,500,5],['zMaHp','Matriarch health (all copies)',100,8000,50],['zMaRegrow','Matriarch copy regrows after (s)',3,60,1],['zReach','Reach (m)',0.6,3,0.05]])
+    ['zSpHp','Sprinter health',1,500,1],['zSpSpd','Sprinter speed (m/s)',1,12,0.1],['zSpDmg','Sprinter hit damage',0,100,1],['zSpiHp','Spitter health',1,500,1],['zSpiGlob','Spitter acid hit',0,100,1],['zAcidDps','Acid pool damage per second',0,60,1],['zSpiCd','Spitter seconds between throws',0.5,10,0.1],['zShieldHp','Shielded elite shell',0,500,5],['zMaHp','Matriarch health (all copies)',100,8000,50],['zMaRegrow','Matriarch copy regrows after (s)',3,60,1],['zMaWallCd','Matriarch acid wall every (s)',2,60,0.5],['zMaWallT','Acid wall lasts (s)',1,30,0.5],['zMaWallDps','Acid wall burn (per s)',0,200,1],['zMaWallHit','Acid wall rising splash',0,100,1],['zReach','Reach (m)',0.6,3,0.05]])
     devKnob(el,t,lo,hi,st,()=>CFG[k],v=>{CFG[k]=v;sbSave();},CFG0[k]);
   el.append(mk('div','note','Health is split over head (75%), body (100%), arms (45% each) and legs (60% each); a head or body at zero kills, a limb at zero falls off. Health and damage apply to the next ones spawned; speed and reach apply at once. "You take no damage" on the Rules tab keeps them from dropping you.'));}
 
@@ -11737,6 +11781,7 @@ function zBotShot(b,z,hd,d,pl){if(!z.posed||z.st==='dead')return;const ps=[];
   for(let p=0;p<ZR.parts.length;p++){if(!z.cnt[p]||ZR.parts[p].glow)continue;const reg=ZR.parts[p].reg;if(hd?reg==='head':reg!=='head')ps.push(p);}
   if(!ps.length)return;const p=ps[(Math.random()*ps.length)|0],v=z.vox[p],n=ZR.parts[p].n;let i=(Math.random()*n)|0;for(let k=0;k<n&&!v[i];k++)i=(i+1)%n;
   const W=zVoxW(z,p,i,ZR.v2),ey=b.y+1.5;let dx=W.x-b.x,dy=W.y-ey,dz=W.z-b.z;const L=Math.hypot(dx,dy,dz)||1;dx/=L;dy/=L;dz/=L;
+  {const tw=zWallRay(b.x,ey,b.z,dx,dy,dz,L);if(tw>=0){spawnSparks(b.x+dx*tw,ey+dy*tw,b.z+dz*tw,0x9dff3c,2,-dx,-dy,-dz);return;}}/* her acid wall soaks it */
   const h=zRay(b.x,ey,b.z,dx,dy,dz,L+1);if(!h)return;const head=ZR.parts[h.p].reg==='head',dmg=wDmg(b.w,head,d)*(pl||1)*radMul(b);
   const hx=b.x+dx*h.t,hy=ey+dy*h.t,hz=b.z+dz*h.t;spawnSparks(hx,hy,hz,ZTYPES[h.z.t].eye,head?3:1,dx,dy,dz);
   zApply(h.z,{dmg,head,x:hx,y:hy,z:hz,dist:d,dx,dz,hits:[{p:h.p,lx:h.lx,ly:h.ly,lz:h.lz,dmg,dx,dy,dz}]},b);}
@@ -13145,6 +13190,7 @@ function fireRay(s,w,spread,acc){
   else if(rh)rgHitAt(rh,hx,hy,hz,best,w,dx,dy,dz);
   else if(best<maxR-1&&hb&&hb.ptl&&hop<2&&zsShotExit(hb,hx,hz)){const e=zsShotExit(hb,hx,hz);spawnSparks(hx,hy,hz,THEME.low,3,-dx,-dy,-dz);ox=e.x;oz=e.z;oy=hy;d0+=best;maxR-=best;via=true;raySkip=e.skip;continue;}
   else if(best<maxR-1&&hb&&hb.pane!=null){sendPane(hb.pane);paneHitFx(hb,hx,hy,hz,dx,dy,dz);}
+  else if(hb===ACID_HIT){spawnSparks(hx,hy,hz,0x9dff3c,5,-dx,-dy,-dz);zAcidSplash(hx,hy,hz);}
   else if(best<maxR-1){if(hb&&hb.rgc)rgCoverHit(hb.rgc,shotDmg(me.w,false,best,w));mark(hx,hy,hz,dx,dy,dz,hb&&hb.ci!=null?(hb.h0>=1.5?NEON.mg:NEON.cy):hb===ROOF_HIT||hy>WALL_H?0xcfeeff:0xffa040);impactSound(hx,hz,1);if(hb&&hb.ci!=null){sendCover(hb.ci);if(Math.random()<0.4)spawnDebris(hx-dx*0.05,hy,hz-dz*0.05,hb.h0>=1.5,0.6);spawnSparks(hx,hy,hz,hb.h0>=1.5?NEON.mg:NEON.cy,6,dx,dy,dz);}else spawnSparks(hx,hy,hz,0xbfe9ff,4,dx,dy,dz);}
   break;}
 }
@@ -13159,7 +13205,7 @@ function lanceRay(s,w,acc,ox,oy,oz,dx,dy,dz){
   if(ZB.acc){const skip=new Set();for(let n=0;n<12;n++){const zh=zRay(ox,oy,oz,dx,dy,dz,wall,skip);if(!zh)break;skip.add(zh.z);zHitAt(zh,ox+dx*zh.t,oy+dy*zh.t,oz+dz*zh.t,zh.t,w,dx,dy,dz);}}
   if(RG.acc){const rh=rgRay(ox,oy,oz,dx,dy,dz,wall);if(rh)rgHitAt(rh,ox+dx*rh.t,oy+dy*rh.t,oz+dz*rh.t,rh.t,w,dx,dy,dz);}
   const hx=ox+dx*wall,hy=oy+dy*wall,hz=oz+dz*wall;vtip.getWorldPosition(_v);beam(_v.x,_v.y,_v.z,hx,hy,hz,GUNGLOW.lance,0.012+0.03*(me.lanceF||0)+R*0.08);
-  if(wall<119){if(hb&&hb.pane!=null){sendPane(hb.pane);paneHitFx(hb,hx,hy,hz,dx,dy,dz);}else{mark(hx,hy,hz,dx,dy,dz,GUNGLOW.lance);impactSound(hx,hz,1);if(hb&&hb.ci!=null)sendCover(hb.ci);spawnSparks(hx,hy,hz,GUNGLOW.lance,6,dx,dy,dz);}}}
+  if(wall<119&&hb===ACID_HIT)spawnSparks(hx,hy,hz,0x9dff3c,6,-dx,-dy,-dz);else if(wall<119){if(hb&&hb.pane!=null){sendPane(hb.pane);paneHitFx(hb,hx,hy,hz,dx,dy,dz);}else{mark(hx,hy,hz,dx,dy,dz,GUNGLOW.lance);impactSound(hx,hz,1);if(hb&&hb.ci!=null)sendCover(hb.ci);spawnSparks(hx,hy,hz,GUNGLOW.lance,6,dx,dy,dz);}}}
 /* Arc Caster: the arc jumps from the first target to up to w.chain more within w.chainR m (Revenants and enemy players), full damage each */
 function arcChain(s,w,acc,p0,z0,x,y,z){const myTeam=S.players[s].team,cand=[];
   for(const q of ZB.list){if(q===z0||q.st==='dead'||!q.posed)continue;const d=Math.hypot(q.x-x,q.z-z);if(d<=w.chainR)cand.push({d,z:q,x:q.x,y:0.9*zSize(q),zz:q.z});}
@@ -13850,6 +13896,6 @@ mergeChildren(scene);
 refreshZoneLook('atk');
 // Compile every material's shader up front (in parallel where the browser supports it) so nothing compiles on the first shot or spawn.
 renderer.compileAsync(scene,camera).catch(()=>{}).finally(()=>requestAnimationFrame(frame));
-window.__za={localTick:dt=>localTick(dt),showWeapon:k=>showWeapon(k),trigger:v=>{mouseDown=!!v;dragMode=true;},wheelKeys:()=>wheelKeys(),GLS,BEAMP,intro:INTRO,ml:ML,sites:siteGrp,mf:{MF,MFV,MFA,ZS,ZSV,ZST,RG,EHH,ehPull:(x,z,m)=>ehPull(x,z,m),pulseAt:t=>pulseAt(t),orbAt:t=>orbAt(t),radAt:(x,z)=>radAt(x,z),coreAt:t=>coreAt(t),rainAt:t=>rainAt(t),zMutate:o=>zMutate(o),shotDmg:(k,h,d)=>shotDmg(k,h,d,wOf(k)),zsWant:Z=>zsWant(Z),zsOn:k=>zsOn(k),dropAt,magAt,ventAt,doorAt,ptlAt,scanAt,shutAt,zsT:()=>zsT(),zsLinks:()=>zsLinks(),rebuildGrid:()=>rebuildGrid(),craneAt:t=>craneAt(t),pourAt:t=>pourAt(t),mfT:()=>mfT(),damagePane:(i,d)=>damagePane(i,d),setMap:id=>setMap(id),tick:dt=>mfTick(dt)},dio:DIO,lx:LX,opt:OPT,zr:{ZB,ZR,ZCARDS,ZCAMP,zrEnd:(w,y)=>zrEnd(w,y),zcCarryCode:()=>zcCarryCode(),zrCardSend:c=>zrCardSend(c),zrCardAct:(p,c)=>zrCardAct(p,c),zrSeg:n=>zrSeg(n),zrInter:()=>zrInter(),zAoe:(...a)=>zAoe(...a),zSpawn:(t,x,z,y,e)=>zSpawn(t,x,z,y,e),zTick:dt=>zTick(dt),zRender:dt=>zRender(dt),zClear:()=>zClear(),zRay:(...a)=>zRay(...a),zHorde:()=>zHorde(),rgOn:()=>rgOn(),zBurst:(z,b)=>zBurst(z,b),zPack:()=>zPack(),zApplyT:(z,e,b)=>zApply(z,e,b),zSync:(a,b)=>zSync(a,b),zrWave:n=>zrWave(n),zKill:(z,h,b)=>zKill(z,h,b),zHitAt:(...a)=>zHitAt(...a),zDeliver:()=>zDeliver(),ZD},sim:{hostTick:dt=>hostTick(dt),coverTick:dt=>coverTick(dt),newMatch:()=>newMatch(),MATCH,dmSpawnSpot:p=>dmSpawnSpot(p),findPath:(a,b,c,d)=>findPath(a,b,c,d),freeAt:(x,z)=>freeAt(x,z),losPts:(...a)=>losPts(...a),DM_PTS,BOXES},BL,fire:()=>{const s=mySlot();if(s>=0)fire(s);},damage:(t,d,a,h)=>damage(t,d,a,h),prog:{PROG,PARTS,myW,modW,progSave,progLoad,rebuildVW,lvlOf,XPR},LX,MU,MM,WM,VB,OPT,AU,dev:{DEV,TUNE,GUN,W,COVER0,TWIN,STEP_MODE,devCollect,devApply},damageCover,COVER,coverVis,WH,openWheel:m=>openWheel(m),closeWheel:c=>closeWheel(c),wheelMove:(x,y)=>wheelMove(x,y),gfx:{renderer,scene,camera,applyGfx,DR,render:()=>renderScene(),FREF,BEAMS,MB,me,get gtao(){return gtaoPass;}},openPause:()=>openPause(),closePause:()=>closePause(),leaveMatch:()=>leaveMatch(),get S(){return S;},me,net,DMGDIR,rg:{RG,rgAdd,rgRemove,rgClear,BOXES},maps:{MAPS,MAP,MATCH,setMap,SITES,DM_PTS,findPath,freeAt,simTick:dt=>netTick(dt),SHOW,showCut:i=>showCut(i),TOD,ISO},botMem,CFG,SB,OPT,AU,get actx(){return actx;},mySlot:()=>mySlot(),sfx:{hitCue,HITX,footstep,slideSound,dashRcSound,get dashRcBuf(){return dashRcBuf;},shotSound,stepSound,voicePlay,vxStretch,VQ,announce,vxGraph,vxOpt,VOICE_G,get VB(){return VB;},voiceInit,get stepBufs(){return stepBufs;},get slideBuf(){return slideBuf;},get gunBufs(){return gunBufs;}}};
+window.__za={localTick:dt=>localTick(dt),showWeapon:k=>showWeapon(k),trigger:v=>{mouseDown=!!v;dragMode=true;},wheelKeys:()=>wheelKeys(),GLS,BEAMP,intro:INTRO,ml:ML,sites:siteGrp,mf:{MF,MFV,MFA,ZS,ZSV,ZST,RG,EHH,ehPull:(x,z,m)=>ehPull(x,z,m),pulseAt:t=>pulseAt(t),orbAt:t=>orbAt(t),radAt:(x,z)=>radAt(x,z),coreAt:t=>coreAt(t),rainAt:t=>rainAt(t),zMutate:o=>zMutate(o),shotDmg:(k,h,d)=>shotDmg(k,h,d,wOf(k)),zsWant:Z=>zsWant(Z),zsOn:k=>zsOn(k),dropAt,magAt,ventAt,doorAt,ptlAt,scanAt,shutAt,zsT:()=>zsT(),zsLinks:()=>zsLinks(),rebuildGrid:()=>rebuildGrid(),craneAt:t=>craneAt(t),pourAt:t=>pourAt(t),mfT:()=>mfT(),damagePane:(i,d)=>damagePane(i,d),setMap:id=>setMap(id),tick:dt=>mfTick(dt)},dio:DIO,lx:LX,opt:OPT,zr:{ZB,ZR,ZCARDS,ZCAMP,zrEnd:(w,y)=>zrEnd(w,y),zcCarryCode:()=>zcCarryCode(),zrCardSend:c=>zrCardSend(c),zrCardAct:(p,c)=>zrCardAct(p,c),zrSeg:n=>zrSeg(n),zrInter:()=>zrInter(),zAoe:(...a)=>zAoe(...a),zSpawn:(t,x,z,y,e)=>zSpawn(t,x,z,y,e),zTick:dt=>zTick(dt),zRender:dt=>zRender(dt),zClear:()=>zClear(),zRay:(...a)=>zRay(...a),zHorde:()=>zHorde(),rgOn:()=>rgOn(),zBurst:(z,b)=>zBurst(z,b),zPack:()=>zPack(),zApplyT:(z,e,b)=>zApply(z,e,b),zSync:(a,b)=>zSync(a,b),zrWave:n=>zrWave(n),zKill:(z,h,b)=>zKill(z,h,b),zHitAt:(...a)=>zHitAt(...a),zDeliver:()=>zDeliver(),ZD,zWallRay:(...a)=>zWallRay(...a),losPts:(...a)=>losPts(...a)},sim:{hostTick:dt=>hostTick(dt),coverTick:dt=>coverTick(dt),newMatch:()=>newMatch(),MATCH,dmSpawnSpot:p=>dmSpawnSpot(p),findPath:(a,b,c,d)=>findPath(a,b,c,d),freeAt:(x,z)=>freeAt(x,z),losPts:(...a)=>losPts(...a),DM_PTS,BOXES},BL,fire:()=>{const s=mySlot();if(s>=0)fire(s);},damage:(t,d,a,h)=>damage(t,d,a,h),prog:{PROG,PARTS,myW,modW,progSave,progLoad,rebuildVW,lvlOf,XPR},LX,MU,MM,WM,VB,OPT,AU,dev:{DEV,TUNE,GUN,W,COVER0,TWIN,STEP_MODE,devCollect,devApply},damageCover,COVER,coverVis,WH,openWheel:m=>openWheel(m),closeWheel:c=>closeWheel(c),wheelMove:(x,y)=>wheelMove(x,y),gfx:{renderer,scene,camera,applyGfx,DR,render:()=>renderScene(),FREF,BEAMS,MB,me,get gtao(){return gtaoPass;}},openPause:()=>openPause(),closePause:()=>closePause(),leaveMatch:()=>leaveMatch(),get S(){return S;},me,net,DMGDIR,rg:{RG,rgAdd,rgRemove,rgClear,BOXES},maps:{MAPS,MAP,MATCH,setMap,SITES,DM_PTS,findPath,freeAt,simTick:dt=>netTick(dt),SHOW,showCut:i=>showCut(i),TOD,ISO},botMem,CFG,SB,OPT,AU,get actx(){return actx;},mySlot:()=>mySlot(),sfx:{hitCue,HITX,footstep,slideSound,dashRcSound,get dashRcBuf(){return dashRcBuf;},shotSound,stepSound,voicePlay,vxStretch,VQ,announce,vxGraph,vxOpt,VOICE_G,get VB(){return VB;},voiceInit,get stepBufs(){return stepBufs;},get slideBuf(){return slideBuf;},get gunBufs(){return gunBufs;}}};
 })();
 </script>
