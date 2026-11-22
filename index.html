@@ -137,6 +137,7 @@ body{background:var(--bg);color:var(--fg);overflow:hidden;font-family:var(--disp
 #zrsb .c b{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:20px;font-weight:700}
 #zrsb .c.big b{font-size:30px;color:#ff6a5a;text-shadow:0 0 12px currentColor}
 #zrsb .c.fv b{color:var(--warn)}
+#zrsb .sw{grid-column:1/-1;text-align:center;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:4px}#zrsb .sw b{font:700 13px var(--mono);font-variant-numeric:tabular-nums;color:var(--fg);letter-spacing:0;margin-right:3px}
 #zrsb .c small{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:3px;white-space:nowrap}
 #zrsb .bar{grid-column:1/-1;height:3px;margin-top:5px;background:rgba(255,255,255,.12);border-radius:2px;overflow:hidden}#zrsb .bar i{display:block;height:100%;background:#ff6a5a;transition:width .2s}
 body.zrmode #score,body.zrmode #tickets{display:none}
@@ -323,6 +324,10 @@ body.prematch #topbar,body.prematch #mini,body.prematch #feed,body.prematch #vit
 #pause{z-index:13;background:rgba(5,4,12,.62);flex-direction:column}
 #pause .setcard{width:min(520px,100%)}
 #pause .pbtns{display:flex;flex-direction:column;gap:8px}
+#pause .pnow{display:flex;align-items:center;gap:10px;justify-content:space-between;border-top:1px solid var(--line);padding-top:8px;font-size:13px;color:var(--muted)}
+#pause .pnow span{min-width:0;display:flex;flex-direction:column}#pause .pnow b{color:var(--fg);font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#nowp{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 96px);transform:translateX(-50%);z-index:6;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 12px;font-size:13px;color:var(--muted);white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity .5s}
+#nowp.on{opacity:1}#nowp b{color:var(--fg);font-weight:600}body.ended #nowp{display:none}
 #prestart.warn{border-color:#ff5d73;color:#ff9aa8}
 #pause .keys{margin-top:4px}
 #settings{z-index:14;background:rgba(5,4,12,.55);align-items:flex-start;user-select:text;-webkit-user-select:text}
@@ -591,6 +596,9 @@ input,select{font:inherit;font-size:16px;color:var(--fg);background:#0b0f12;bord
 .blab{display:flex;flex-direction:column;min-width:0;line-height:1.15}.blab small{font-size:11px;color:var(--muted)}.brow2.clash .blab small{color:var(--warn)}
 .bslot{font:600 13px var(--mono);color:var(--fg);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:4px;padding:5px 4px;min-height:30px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bslot:hover,.bslot:focus-visible{border-color:var(--accent)}.bslot.none{color:var(--muted);font-weight:400}
+.bsw{position:relative;display:grid;min-width:0}.bsw .bslot{padding-right:22px}.bsw .bslot.none{padding-right:4px}
+.bclr{position:absolute;right:3px;top:50%;transform:translateY(-50%);width:20px;height:20px;border-radius:3px;border:0;background:transparent;color:var(--muted);font:700 15px/1 var(--mono);cursor:pointer;padding:0}
+.bclr:hover,.bclr:focus-visible{color:var(--bad);background:rgba(255,255,255,.08);outline:none}
 .bslot.clash{border-color:var(--warn);color:var(--warn)}.bslot.cap{border-color:var(--accent);color:var(--accent);animation:bcap 1s ease-in-out infinite}
 @keyframes bcap{50%{background:rgba(95,242,255,.16)}}
 #setS .vxrow{display:flex;flex-wrap:wrap;gap:8px}#setS .vxrow .btn{font-size:14px;padding:7px 12px}
@@ -678,7 +686,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
 #shopSlots .chip small{display:block!important;font-size:10px;-webkit-line-clamp:2;line-height:1.15}
 #shopSlots .chip:not(.lock):not(.on) small{display:none!important}
 #shopCv{flex:2 1 0;min-height:90px}
-.shopview .gtabs small{display:none}.shopview .gtabs .btn{align-items:center;justify-content:center;text-align:center;line-height:1.05;padding:4px 6px;min-height:30px}
+.shopview .gtabs small{display:none}.gtabs .glv{display:none}.shopview .gtabs .glv{display:block;font:600 10.5px var(--mono);font-style:normal;color:var(--accent);letter-spacing:.04em}.shopview .gtabs .btn.lock .glv{color:var(--muted)}.shopview .gtabs .btn{align-items:center;justify-content:center;text-align:center;line-height:1.05;padding:4px 6px;min-height:30px}
 @media (max-height:760px){#shopStats .fixed{display:none}#shopHint{display:none}.shopcard>.btns .cap{display:none}}
 @media (max-height:620px){.shopcard{padding:8px 12px;gap:6px}.shopcard .hd b{font-size:18px}#shopSlots{gap:3px}#shopSlots .slot h4{font-size:10.5px;margin:0 0 2px}
   #shopSlots .chip{padding:3px 5px}#shopSlots .chip b{font-size:11.5px}.chips{gap:4px}.chips.sw .chip{padding:3px 2px}.chips.sw .chip small{font-size:9px;letter-spacing:0;white-space:nowrap}#shopSlots .chips.sw{gap:3px}#shopSlots .chips.sw .chip{padding:3px 0;min-width:0}#shopSlots .chips.sw i{width:min(22px,70%)}
@@ -696,7 +704,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
 <div class="hud num" id="bigc" hidden></div>
 <div class="hud" id="topbar" hidden>
   <div id="score"><div class="sd t0" id="sd0"><span class="s num" id="sc0">0</span><span class="pips" id="tk0"></span></div><div class="mid"><span class="num" id="clock">2:00</span><span id="roundinfo">Round 1 · to 5</span></div><div class="sd t1" id="sd1"><span class="s num" id="sc1">0</span><span class="pips" id="tk1"></span></div></div>
-  <div id="zrsb"><div class="c"><b id="zsW">1/3</b><small id="zsWl">Wave</small></div><div class="c big"><b id="zsL">0</b><small id="zsLl">Revenants</small></div><div class="c fv"><b id="zsF">0</b><small>Favor</small></div><div class="bar"><i id="zsB"></i></div></div>
+  <div id="zrsb"><div class="c"><b id="zsW">1/3</b><small id="zsWl">Wave</small></div><div class="c big"><b id="zsL">0</b><small id="zsLl">Revenants</small></div><div class="c fv"><b id="zsF">0</b><small>Favor</small></div><div class="sw" title="Run time"><b id="zsT">0:00</b> run time</div><div class="bar"><i id="zsB"></i></div></div>
   <div id="objrow"><span id="role" class="atk">Attack</span><span id="objective"></span></div>
   <div id="tickets" class="num"></div>
 </div>
@@ -779,11 +787,13 @@ body.touch #dock #dashpips i{width:22px;height:6px}
     <div class="btns"><button class="btn" type="button" id="lobLeave">Leave</button><button class="btn primary" type="button" id="lobStart">Start match</button></div>
   </div>
 </div>
+<div id="nowp" aria-live="polite"></div>
 <div class="overlay" id="pause" hidden role="dialog" aria-label="Menu">
   <div class="setcard">
     <div class="hd"><b>Menu</b><span><kbd>Esc</kbd> closes</span></div>
     <div class="sub" id="pauseS" style="color:var(--muted);font-size:15px"></div>
     <div class="pbtns"><button class="btn primary" type="button" id="presume">Resume</button><button class="btn" type="button" id="psettings">Settings</button><button class="btn fsbtn" type="button" id="pfull">Full screen</button><button class="btn" type="button" id="prestart">Restart match</button><button class="btn" type="button" id="pleave">Leave match</button></div>
+    <div class="pnow" id="pnow" hidden><span>Now playing<b id="pnowT"></b></span><button class="btn" type="button" id="pnext">Next track</button></div>
     <div class="keys kbkeys" id="kbkeys"></div>
     <div class="keys padkeys" id="padkeys"></div>
   </div>
@@ -8904,7 +8914,15 @@ function mmLoad(i){if(MM.bufs[i]||MM.ld[i]||MM.bad[i])return;const T=MATCH_LIST[
 function mmNext(){for(let k=0;k<MATCH_LIST.length;k++){const i=MM.order[(MM.pi+k)%MM.order.length];if(!MM.bad[i])return [i,k];}return [0,0];}
 /* keep only the track playing now, the one queued next and Evasion (the fallback, also used by the Sound tab Test) decoded */
 function mmTrim(keep){for(const k in MM.bufs){const i=+k;if(i!==0&&i!==MM.cur&&i!==keep)delete MM.bufs[k];}}
-function mmStart(i,skip){const T=MATCH_LIST[i],t=actx.currentTime,same=i===MM.cur;MM.pi=(MM.pi+skip+1)%MM.order.length;MM.cur=i;MM.bg=T.bg;MM.ended=false;
+/* what's playing: a small caption under the scoreboard for a few seconds when a track starts, and a row in the pause menu */
+function mmName(i){const T=MATCH_LIST[i];if(!T)return'';const m=/^(.*?)\s*\(([^)]+)\)$/.exec(T.n);return m?`<b>${m[1]}</b> · ${m[2]}`:`<b>${T.n}</b> · Evgeny Bardyuzha`;}
+function mmShow(){const e=$('nowp');if(!e||MM.cur<0&&!MM.src)return;e.innerHTML='&#9835; '+mmName(MM.cur<0?0:MM.cur);e.classList.add('on');clearTimeout(mmShow.t);mmShow.t=setTimeout(()=>e.classList.remove('on'),4500);}
+function mmPauseRow(){const r=$('pnow');if(!r)return;const on=!!(MM.src&&MM.on);r.hidden=!on;if(on)$('pnowT').innerHTML=mmName(MM.cur<0?0:MM.cur);}
+/* skip to the next track (N, or Next track in the pause menu) */
+function mmSkip(){if(!actx||!MM.src||!MM.on)return;const t=actx.currentTime,s=MM.src;MM.src=null;MM.on=false;MM.waitT=t;
+  if(!MM.bufs[mmNext()[0]])mmLoad(mmNext()[0]);
+  MM.g.gain.cancelScheduledValues(t);MM.g.gain.setTargetAtTime(0,t,0.015);try{s.stop(t+0.08);}catch(e){}setTimeout(()=>{try{s.disconnect();}catch(e){}},300);}
+function mmStart(i,skip){const T=MATCH_LIST[i],t=actx.currentTime,same=i===MM.cur;setTimeout(()=>{mmShow();mmPauseRow();},50);MM.pi=(MM.pi+skip+1)%MM.order.length;MM.cur=i;MM.bg=T.bg;MM.ended=false;
   const s=actx.createBufferSource();s.buffer=MM.bufs[i];s.connect(MM.f);s.playbackRate.value=TUNE[MM.tk].pitch;
   /* Evasion on its own (nothing else could load) keeps its old seamless loop */
   const alone=!!T.emb&&MATCH_LIST.every((_,j)=>j===0||MM.bad[j]);
@@ -9329,7 +9347,7 @@ const KB_ACTS=[
   ['use','Use: revive, arm, defuse, take','Other',['KeyF'],'KeyF'],['giveup','Give up when down','Other',['KeyG'],'KeyG'],
   ['lookL','Turn left','Other',['ArrowLeft'],'ArrowLeft'],['lookR','Turn right','Other',['ArrowRight'],'ArrowRight'],
   ['lookU','Look up','Other',['ArrowUp'],'ArrowUp'],['lookD','Look down','Other',['ArrowDown'],'ArrowDown'],
-  ['settings','Settings','Other',['KeyO']],['tune','Sandbox tuning panel','Other',['KeyT','Backquote']]];
+  ['settings','Settings','Other',['KeyO']],['track','Next music track','Other',['KeyN']],['tune','Sandbox tuning panel','Other',['KeyT','Backquote']]];
 const KB_DEF={},KB_CANON={},KB_LBL={};for(const [a,l,,d,c] of KB_ACTS){KB_DEF[a]=[d[0]||'',d[1]||''];if(c)KB_CANON[a]=c;KB_LBL[a]=l;}
 const KB_FIXED=new Set(['Escape']);
 const KB={bind:{},rev:{},held:new Set(),layout:null};
@@ -9372,6 +9390,7 @@ function kbInput(code,down,repeat){
     else if(a==='dash')me.dashBuf=0.12;
     else if(a==='tune'){if(SB.on)toggleSB();}
     else if(a==='settings')toggleSettings();
+    else if(a==='track')mmSkip();
     else if(/^w[1-6]$/.test(a)){const zi=+a[1]-1;const wk=wheelKeys()[zi];if(WH.open){WH.hov=wk;closeWheel(true);}else if(S&&S.phase==='buy'){setWeapon(wk);}else choosePick(zi);}}
   return true;}
 function kbReleaseAll(){KB.held.clear();for(const k in keys)keys[k]=false;mouseDown=false;adsDown=false;}
@@ -9465,11 +9484,11 @@ function makeWheel(host,o){
   const el=(t,a,txt)=>{const n=document.createElementNS(NS,t);for(const k in a)n.setAttribute(k,a[k]);if(txt!=null)n.textContent=txt;return n;};
   const seg={};let segKey='';const hub=el('circle',{class:'whub',r:56});svg.append(hub);
   /* one segment per wheel gun; rebuilt when the Workshop loadout changes */
-  const build=()=>{const ks=wheelAngles(),key=ks.join();if(key===segKey)return;segKey=key;for(const k in seg){seg[k].remove();delete seg[k];}
+  const build=()=>{const ks=wheelAngles(),key=ks.join()+"|"+ks.map(k=>wlvlOf(PROG.wxp[k]||0)).join();if(key===segKey)return;segKey=key;for(const k in seg){seg[k].remove();delete seg[k];}
     ks.forEach((k,i)=>{const g=el('g',{class:'wseg',role:'button',tabindex:'0','aria-label':W[k].name});
     const t=WANG[k]*Math.PI/180,lx=(108*Math.cos(t)).toFixed(1),ly=108*Math.sin(t);
     g.append(el('path',{d:arcPath(WANG[k],154,62,WSPAN)}),el('text',{class:'wn',x:lx,y:(ly+2).toFixed(1)},W[k].short||W[k].name),
-      el('text',{class:'wk',x:lx,y:(ly+17).toFixed(1)},o.keys?'key '+(i+1):''),el('text',{class:'we',x:lx,y:(ly-16).toFixed(1)},o.selLabel||'equipped'));
+      el('text',{class:'wk',x:lx,y:(ly+17).toFixed(1)},'Lv '+wlvlOf(PROG.wxp[k]||0)+(o.keys?' · key '+(i+1):'')),el('text',{class:'we',x:lx,y:(ly-16).toFixed(1)},o.selLabel||'equipped'));
     g.addEventListener('pointerenter',()=>o.onHover&&o.onHover(k));g.addEventListener('pointerleave',()=>o.onHover&&o.onHover(null));
     g.addEventListener('click',e=>{e.stopPropagation();o.onPick(k);});
     g.addEventListener('keydown',e=>{if(e.code==='Enter'||e.code==='Space'){e.preventDefault();o.onPick(k);}});
@@ -10616,6 +10635,10 @@ function zSpawn(t,x,z,yaw,elite,mod){if(mod)elite=true;if(ZB.list.length>=ZB.cap
     wp:null,wpT:Math.random()*0.15,ph:Math.random()*6,seed:Math.random()*100,prog:{x,z,t:0},esc:null,deadT:0,headOff:false,flash:0,groanT:1+Math.random()*4,spd:0,atkK:0,fall:1,elite:!!elite,mod:mod||null,shield:mod==='sh'?CFG.zShieldHp:0};
   zBody(zo);if(T.legless)for(const r of ['legL','legR']){zo.reg[r].gone=true;zo.reg[r].hp=0;for(const q of ZR.regParts[r]){zo.cnt[q]=0;zo.vox[q].fill(0);zo.vd[q]=1;}}
   ZB.list.push(zo);return zo;}
+/* once a run (or match) is over the floor clears: every Revenant still standing dissolves where it is (no kill credit), acid and drops go */
+function zOverClear(dt){const L=ZB.list;for(const z of L)if(z.st!=='dead'){z.st='dead';z.hp=0;z.wind=0;z.deadT=ZDIS0-0.4;z.esc=null;}
+  for(const z of L)z.deadT+=dt;for(let i=L.length-1;i>=0;i--)if(L[i].deadT>ZDIS0+ZDIS+0.1)L.splice(i,1);
+  ZB.globs.length=0;ZB.pools.length=0;if(S.zac)S.zac=undefined;if(S.zr&&S.zr.drops&&S.zr.drops.length)S.zr.drops.length=0;}
 function zRemove(z){const i=ZB.list.indexOf(z);if(i>=0)ZB.list.splice(i,1);}
 function zClear(){ZB.list.length=0;ZB.acc=null;ZB.globs.length=0;ZB.pools.length=0;if(S)S.zac=undefined;}
 function zHurt(p,dmg,z,burst){if(!p||p.st!=='alive')return;if(SB.on&&SB.god&&!p.bot)return;if(p.prot>0)return;
@@ -10628,7 +10651,7 @@ function zHurt(p,dmg,z,burst){if(!p||p.st!=='alive')return;if(SB.on&&SB.god&&!p.
   if(!p.bot&&p.s===mySlot()&&OPT.dmgDir!=='off'){const L=DMGDIR.list,old=L.find(e=>e.s==='z'+z.id);if(old){old.t=DMGDIR.LIFE;old.x=z.x;old.z=z.z;}else{L.push({s:'z'+z.id,x:z.x,z:z.z,t:DMGDIR.LIFE,k:0.9});if(L.length>6)L.shift();}}
   if(p.hp<=0&&S.mode==='zr'){p.hp=0;p.st='down';p.dhp=CFG.downHP;p.downT=CFG.zrBleed+(zrSet(p,'med')>1?10:0)+4*zlv(p,'b');p.ak=null;p.ap=0;p.d=(p.d|0)+1;feed(`${p.name} is down, dragged under by ${zA(z)}`);}
   else if(p.hp<=0){p.hp=0;p.st='dead';p.deadT=S.mode==='dm'?CFG.dmRespawn:CFG.respawn;p.d=(p.d|0)+1;feed(`${p.name} was overrun by ${zA(z)}`);}}
-function zTick(dt){if(!S||S.phase!=='live')return;
+function zTick(dt){if(S&&S.phase==='over'&&ZB.list.length){zOverClear(dt);return;}if(!S||S.phase!=='live')return;
   const T=zsFocus(zTargets());/* a scan-marked player draws the whole horde */ZB.distT-=dt;if(ZB.distT<=0||ZB.grid!==ZB.gridSeen){ZB.distT=0.25;ZB.gridSeen=ZB.grid;zField(T);}
   const L=ZB.list;
   for(const z of L){
@@ -11284,9 +11307,9 @@ function zrWCard(P){const el=$('zrwcard'),L=S.zr.drops||[];let best=null,bd=6;
 function zrHome(p){const h=DM_HOME[p.s?2:0];let x=-h[0],z=-h[1];if(!freeAt(x,z)){const c=nearestFree(...cellOf(x,z));x=c[0]-50+0.5;z=c[1]-20+0.5;}
   dmPlace(p,x,z,Math.atan2(-(Math.sign(x)*48.5-x),-(Math.sign(z)*9-z)));}
 function zrStart(){S.center={own:-1,cap:-1,p:0};S.armed=null;S.tickets=[0,0];S.sudden=false;
-  S.timer=0;S.phase='buy';S.t=Math.max(CFG.buy,CFG.buy1,0.6+vxSeqLen(ZR_PA,ZR_PA_GAP)+3.4);S.last=null;/* room for the tunnel PA before 3-2-1 */
+  S.timer=0;S.phase='buy';S.t=(MATCH.zrWeek||1)===1?Math.max(CFG.buy,CFG.buy1,0.6+vxSeqLen(ZR_PA,ZR_PA_GAP)+3.4):Math.max(CFG.buy,CFG.buy1);S.last=null;/* room for the tunnel PA before 3-2-1 */
   const short=MATCH.zrLen==='short',home=MAP.id,others=MAP_IDS.filter(m=>m!==home&&!((MAPS[m].week|0)>(MATCH.zrWeek||1)));/* a later week's maps never show up as an earlier week's away broadcast */
-  S.zr={len:short?'short':'full',week:MATCH.zrWeek||1,seg:0,segs:short?3:4,awaySeg:short?2:3,home,away:others[(Math.random()*others.length)|0]||home,
+  S.zr={c0:S.clock||0,len:short?'short':'full',week:MATCH.zrWeek||1,seg:0,segs:short?3:4,awaySeg:short?2:3,home,away:others[(Math.random()*others.length)|0]||home,
     w:0,nw:0,ph:'pre',t:0,q:[],sp:0,left:0,kills:0,cleared:0,won:false,why:'',boss:null,offers:{},picked:{},ready:{},mine:{A:0,B:0},drops:[],di:0,crT:0,carry:(MATCH.zrWeek||1)>=2&&MATCH.zrCarry?1:0,cyd:{}};
   zClear();ZB.kills=0;ZB.hunt=true;ZB.endless=false;for(const p of S.players){p.team=0;p.k=0;p.d=0;p.fv=0;p.cards=[];p.dropW=null;p.sw=null;}
   zrSeg(1);}
@@ -11512,6 +11535,7 @@ function zrHud(P){const Z=S.zr;if(!Z)return;const L=Z.left|0;
   $('zsL').textContent=count?cd:L;$('zsL').style.color=count?'var(--accent)':'';
   $('zsLl').textContent=buy?'Going live':!live?(L===1?'Revenant':'Revenants'):Z.ph==='pre'?'Revenants rise':Z.ph==='break'?'Next wave':Z.ph==='inter'?'Intermission':Z.ph==='surge'&&Z.t>0?`Hold · ${L} up`:L===1?'Revenant':'Revenants';
   $('zsF').textContent=P?P.fv|0:0;
+  {const c=Math.max(0,(S.clock||0)-(Z.c0||0)),h=c/3600|0,m=(c/60|0)%60,sx=c%60|0,txt=(h?h+':'+String(m).padStart(2,'0'):m)+':'+String(sx).padStart(2,'0');const e=$('zsT');if(S.phase!=='over'&&e.textContent!==txt)e.textContent=txt;}/* run stopwatch: the host's match clock, so co-op partners see the same time */
   $('zsB').style.width=(Z.ph==='wave'&&Z.total?100*clamp(1-L/Z.total,0,1):Z.ph==='break'||Z.ph==='inter'?100:0).toFixed(1)+'%';
   const rb=$('role'),dir=Z.act&&ZDIR[Z.act];rb.hidden=!dir;if(dir){rb.className='zd';rb.textContent=`${ZDIR[Z.act].n} · 2× Favor`;}
   $('objective').textContent=!live?'':Z.ph==='surge'?(Z.t>0?'Elites incoming. Hold the floor':`Drop the last ${L}`):'';
@@ -11540,7 +11564,7 @@ function zrCap(t,sub,v){if(v)announce(v);const el=$('zrcap'),d=document.createEl
   el.replaceChildren(d);clearTimeout(ZW.capT);ZW.capT=setTimeout(()=>d.remove(),3300);}
 function zrWatch(){const Z=S.zr,k=S.mid+':'+Z.seg+':'+Z.w+':'+Z.ph+':'+S.phase,was=ZW.k,fresh=!was.startsWith(S.mid+':');
   // a partner going down or getting up
-  if(fresh){ZW.st={};if(S.phase==='buy'&&Z.seg===1){introSay(ZR_PA,0.6,ZR_PA_GAP);ZW.paEnd=performance.now()/1000+0.6+vxSeqLen(ZR_PA,ZR_PA_GAP);};}for(const p of S.players){const o=ZW.st[p.s];ZW.st[p.s]=p.st;if(!o||S.phase!=='live')continue;
+  if(fresh){ZW.st={};if(S.phase==='buy'&&Z.seg===1&&(Z.week||1)===1){introSay(ZR_PA,0.6,ZR_PA_GAP);ZW.paEnd=performance.now()/1000+0.6+vxSeqLen(ZR_PA,ZR_PA_GAP);}else if(S.phase==='buy')ZW.paEnd=0;}for(const p of S.players){const o=ZW.st[p.s];ZW.st[p.s]=p.st;if(!o||S.phase!=='live')continue;
     if(o==='alive'&&p.st==='down')zrCap('Warrior down',p.name,'r9');else if(o==='down'&&p.st==='alive'&&Z.ph!=='inter')zrCap('Warrior revived',p.name,'r10');}
   if(k===was)return;ZW.k=k;
   if(fresh)return;
@@ -11795,7 +11819,7 @@ function shopUI(){const k=SHOP.k,b=buildOf(k),mk=(t,c,x)=>{const n=document.crea
   const l=lvlOf(PROG.xp);$('shopLvl').textContent=`Level ${l.L}`+(l.need?` · ${fmtN(l.into)} / ${fmtN(l.need)} XP`:' · max');
   // gun tabs
   const gt=$('shopGuns');gt.replaceChildren();for(const g of PVPK){const wl=wlvlOf(PROG.wxp[g]),gl=gunLock(g),bt=mk('button','btn'+(g===k?' on':'')+(gl?' lock':''));bt.type='button';bt.setAttribute('aria-pressed',g===k);
-    bt.append(mk('b','',W[g].short||W[g].name),mk('small','',gl?'🔒 '+gl.replace(/^Level /,'Lv '):wl>=WMAXL?'Level 10 · max':`Level ${wl} · ${PROG.wxp[g]%WL_XP} / ${WL_XP}`));if(gl)bt.title=`${W[g].name}: unlocks at ${gl}`;
+    bt.append(mk('b','',W[g].short||W[g].name),mk('em','glv',gl?'🔒':'Lv '+wl),mk('small','',gl?'🔒 '+gl.replace(/^Level /,'Lv '):wl>=WMAXL?'Level 10 · max':`Level ${wl} · ${PROG.wxp[g]%WL_XP} / ${WL_XP}`));if(gl)bt.title=`${W[g].name}: unlocks at ${gl}`;
     bt.addEventListener('click',()=>{SHOP.k=g;SHOP.hov=null;shopUI();});gt.append(bt);}
   // wheel loadout: six selects; picking a gun that is already on the wheel swaps the two
   const wh=$('shopWheel');wh.replaceChildren(mk('span','','Wheel'));const wk=wheelKeys();
@@ -12116,7 +12140,7 @@ let pauseAt=0;
 function inPlay(){return !!S&&$('menu').hidden;}
 function autoLock(gesture){if(inPlay()&&!locked&&$('pause').hidden&&!otherOverlay())grabMouse(gesture);}
 function otherOverlay(){return !$('endscr').hidden||!$('settings').hidden||!$('sbpanel').hidden||!$('dead').hidden||!$('zrint').hidden;}
-function openPause(){if(!inPlay()||!$('pause').hidden)return;closeWheel(false);$('pause').hidden=false;pauseAt=performance.now();
+function openPause(){if(!inPlay()||!$('pause').hidden)return;closeWheel(false);$('pause').hidden=false;mmPauseRow();pauseAt=performance.now();
   for(const k in keys)keys[k]=false;mouseDown=false;adsDown=false;if(locked)document.exitPointerLock();
   restartArm=0;restartUI();
   $('pauseS').textContent=net.mode==='solo'?(SB.on?'Sandbox is paused.':'Practice is paused.'):'Online match: the game keeps running while this menu is open.';
@@ -12181,6 +12205,7 @@ function leaveMatch(){endHide();net.inLobby=false;$('lobby').hidden=true;xpFlush
   if(locked)document.exitPointerLock();
   $('menu').hidden=false;$('joinbtn').disabled=!roomNS;applyGfx();}
 $('presume').addEventListener('click',()=>{closePause();autoLock(true);});
+$('pnext').addEventListener('click',()=>{mmSkip();$('pnowT').textContent='…';});
 $('psettings').addEventListener('click',()=>toggleSettings(true));
 $('prestart').addEventListener('click',()=>{if(!canRestart())return;if(restartArm>performance.now())restartMatch();else{restartArm=performance.now()+3000;restartUI();setTimeout(restartUI,3050);blip(440,0.05,0.03,false,'ui');}});
 $('pleave').addEventListener('click',leaveMatch);
@@ -12371,7 +12396,7 @@ window.addEventListener('resize',()=>{tLayApply();if(TE.on)teSync();if(tStickId=
 function kbHints(){try{
   const el=$('kbkeys');if(el){const mv=['fwd','left','back','right'].map(kbN),wasd=mv.join('')==='WASD'?'WASD':mv.join(' ');
     const it=[[wasd,'move'],[kbN('fire'),'fire'],[kbN('sprint'),'sprint'],[kbN('aim'),'aim'],[kbN('jump'),'jump'],[kbN('crouch'),'crouch, slide'],[kbN('dash'),'dash'],
-      [kbN('leanL')+'</kbd> <kbd>'+kbN('leanR'),'lean'],[kbN('use'),'revive, arm, defuse'],[kbN('reload'),'reload'],[kbN('giveup'),'give up when down'],[kbN('settings'),'settings'],['Esc','this menu']];
+      [kbN('leanL')+'</kbd> <kbd>'+kbN('leanR'),'lean'],[kbN('use'),'revive, arm, defuse'],[kbN('reload'),'reload'],[kbN('giveup'),'give up when down'],[kbN('settings'),'settings'],[kbN('track'),'next music track'],['Esc','this menu']];
     el.innerHTML=it.map(([k,t])=>`<span><kbd>${k.split('</kbd> <kbd>').map(esc).join('</kbd> <kbd>')}</kbd> ${t}</span>`).join('');}
   const sk=$('setkey');if(sk)sk.textContent=kbN('settings');
   const d=$('deadK');if(d)d.dataset.pad='';lastPickerKey='';}catch(e){}}
@@ -12381,16 +12406,19 @@ function kbHints(){try{
   for(const grp of ['Movement','Combat','Other']){const col=mk('div','bcol');col.append(mk('h3',null,grp));
     for(const [a,l,g] of KB_ACTS){if(g!==grp)continue;const row=mk('div','brow2');row.dataset.a=a;const lab=mk('span','blab');lab.append(mk('span',null,l),mk('small','bwarn'));row.append(lab);
       slots[a]=[0,1].map(i=>{const b=mk('button','bslot');b.type='button';b.dataset.a=a;b.dataset.i=i;b.setAttribute('aria-label',l+(i?' (second key)':' (key)'));
-        b.addEventListener('click',()=>{if(performance.now()-capEnd<400)return;if(KB.cap&&KB.cap.a===a&&KB.cap.i===i){capStop();return;}capStart(a,i);});row.append(b);return b;});
+        b.addEventListener('click',()=>{if(performance.now()-capEnd<400)return;if(KB.cap&&KB.cap.a===a&&KB.cap.i===i){capStop();return;}capStart(a,i);});
+        /* the x clears the slot (no key) without having to press Backspace while it listens */
+        const w=mk('span','bsw'),x=mk('button','bclr','×');x.type='button';x.setAttribute('aria-label','Clear '+l+(i?' (second key)':' (key)'));x.title='Clear this key';
+        x.addEventListener('click',e=>{e.stopPropagation();KB.cap={a,i};setBind('');});b.clr=x;w.append(b,x);row.append(w);return b;});
       col.append(row);}
     G.append(col);}
-  function render(){for(const a in slots){const [b0,b1]=slots[a],row=b0.parentNode;
-      for(const b of slots[a]){const i=+b.dataset.i,c=KB.bind[a][i],cap=KB.cap&&KB.cap.a===a&&KB.cap.i===i;b.textContent=cap?'Press a key…':c?kbName(c):'—';b.classList.toggle('cap',!!cap);b.classList.toggle('none',!c&&!cap);
+  function render(){for(const a in slots){const [b0,b1]=slots[a],row=b0.parentNode.parentNode;
+      for(const b of slots[a]){const i=+b.dataset.i,c=KB.bind[a][i],cap=KB.cap&&KB.cap.a===a&&KB.cap.i===i;b.textContent=cap?'Press a key…':c?kbName(c):'—';b.clr.hidden=!c||cap;b.classList.toggle('cap',!!cap);b.classList.toggle('none',!c&&!cap);
         const o=c?(KB.rev[c]||[]).filter(x=>x!==a):[];b.classList.toggle('clash',o.length>0);b.title=o.length?`Also bound to ${o.map(x=>KB_LBL[x]).join(', ')}`:'';}
       const others=[...new Set(KB.bind[a].filter(Boolean).flatMap(c=>(KB.rev[c]||[]).filter(x=>x!==a)))];
       row.classList.toggle('clash',others.length>0);row.querySelector('.bwarn').textContent=others.length?'Shares a key with '+others.map(x=>KB_LBL[x]).join(', '):!KB.bind[a].some(Boolean)?'No key':'';}
     const n=Object.keys(KB.rev).filter(c=>KB.rev[c].length>1).length;
-    if(!KB.cap&&!MSG.dataset.keep)MSG.textContent=n?`${n} key${n>1?'s are':' is'} bound to more than one action (marked in yellow). Pressing ${n>1?'one':'it'} does all of them.`:'Click a slot, then press the key or mouse button you want. Each action has two slots.';
+    if(!KB.cap&&!MSG.dataset.keep)MSG.textContent=n?`${n} key${n>1?'s are':' is'} bound to more than one action (marked in yellow). Pressing ${n>1?'one':'it'} does all of them.`:'Click a slot, then press the key or mouse button you want. Each action has two slots; × clears one.';
     MSG.classList.toggle('warn',n>0);}
   function capStart(a,i){KB.cap={a,i};delete MSG.dataset.keep;MSG.textContent=`Press a key, mouse button or scroll the wheel for ${KB_LBL[a]}. Esc cancels, Backspace or Delete clears the slot.`;MSG.classList.remove('warn');render();}
   function capStop(){KB.cap=null;capEnd=performance.now();render();}
@@ -13331,7 +13359,7 @@ const INTRO_SHOTS=[
   {v:'i5',d:6.5,u:[0.36,0.43],dark:1,line:'And tonight\'s headliner... the Juggernaut.'},
   {v:'i6',d:5.5,u:[0.85,0.99],sigil:1,out:1,line:'The Benefactors thank you for watching.'}];
 const INTRO={on:false,ph:'',t:0,i:-1,shotT:0,dur:0,then:null,el:null,arm:0,crawlD:28,finalD:3.2,staticD:0.9,voice:[],drone:null,stc:null};
-function introDue(){if($('modesel').value!=='zr'||zcSel()!==1)return false;try{return localStorage.getItem('za-intro')!=='1';}catch(e){return true;}}
+function introDue(){if($('modesel').value!=='zr'||zcSel()!==1)return false;try{const w=ZCAMP.w&&ZCAMP.w[1];if(w&&w.c)return false;}catch(e){}/* never once Week 1 is cleared */try{return localStorage.getItem('za-intro')!=='1';}catch(e){return true;}}
 function introBuild(){if(INTRO.el)return;const el=$('intro'),mk=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n;};
   const cr=mk('div','icrawl'),cin=mk('div','icin');cin.append(...INTRO_CRAWL.map(t=>mk('p','',t)));cr.append(cin);
   const st=mk('canvas','istatic');st.width=192;st.height=108;INTRO.stc=st;
