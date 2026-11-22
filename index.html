@@ -394,15 +394,15 @@ body.ended #touch,body.ended #zrcap,body.ended #down,body.ended #lockhint,body.e
 /* main menu: classic layout. Logo top left, a big vertical list of items, a flyout panel for Play / Play online, the player card top right.
    The left side is darkened so the list reads; the arena flyover stays visible on the right. */
 #menu{align-items:stretch;justify-content:stretch;background:linear-gradient(90deg,rgba(10,7,20,.9) 0%,rgba(10,7,20,.62) 34%,rgba(10,7,20,.12) 64%,rgba(10,7,20,0) 80%),radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(10,7,20,.55) 100%)}
-.mwrap{box-sizing:border-box;width:100%;height:100%;overflow:hidden;display:grid;grid-template-columns:minmax(260px,400px) minmax(0,380px) minmax(0,1fr);grid-template-rows:auto 1fr auto;grid-template-areas:"logo logo card" "list panel ." "foot foot foot";gap:clamp(14px,3vh,32px) clamp(18px,3vw,44px);padding:clamp(4px,3vh,36px) clamp(0px,2vw,32px) 0}
+.mwrap{box-sizing:border-box;width:100%;height:100%;overflow:hidden;display:grid;grid-template-columns:minmax(260px,calc(400px*var(--uiz,1))) minmax(0,calc(380px*var(--uiz,1))) minmax(0,1fr);grid-template-rows:auto 1fr auto;grid-template-areas:"logo logo card" "list panel ." "foot foot foot";gap:clamp(14px,3vh,32px) clamp(18px,3vw,44px);padding:clamp(4px,3vh,36px) clamp(0px,2vw,32px) 0}
 .mlogo{grid-area:logo;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
-.mlogo h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(40px,min(11vh,14.5vw),104px);line-height:.82;letter-spacing:.01em;text-transform:uppercase;display:flex;flex-direction:column;gap:.06em;text-shadow:0 0 22px rgba(95,242,255,.35)}
+.mlogo h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(40px,min(11vh,14.5vw),calc(104px*var(--uiz,1)));line-height:.82;letter-spacing:.01em;text-transform:uppercase;display:flex;flex-direction:column;gap:.06em;text-shadow:0 0 22px rgba(95,242,255,.35)}
 .mlogo h1 span{font-size:.5em;letter-spacing:.14em;padding-left:.06em;line-height:1}
 .mlogo h1 b{color:var(--accent);text-shadow:0 0 18px rgba(95,242,255,.75),3px 0 0 rgba(255,43,214,.7)}
 .mtag{font-size:clamp(14px,2.2vh,19px);letter-spacing:.36em;text-transform:uppercase;color:var(--muted);font-weight:600;padding-left:3px;display:flex;align-items:center;gap:10px}
 .mtag::before{content:"";width:34px;height:3px;background:var(--accent2);box-shadow:0 0 10px var(--accent2)}
 .mlist{grid-area:list;display:flex;flex-direction:column;align-items:flex-start;gap:clamp(0px,.6vh,6px);align-self:center}
-.mi{font:inherit;font-family:var(--display);font-weight:700;font-size:calc(clamp(22px,min(6vh,11vw),50px)*var(--mfit,1));line-height:1.05;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;color:rgba(238,240,255,.56);background:none;border:0;padding:2px 26px 2px 22px;cursor:pointer;position:relative;text-align:left;transition:color .12s,transform .16s cubic-bezier(.2,.7,.2,1),text-shadow .12s;-webkit-tap-highlight-color:transparent}
+.mi{font:inherit;font-family:var(--display);font-weight:700;font-size:calc(clamp(22px,min(6vh,11vw),calc(50px*var(--uiz,1)))*var(--mfit,1));line-height:1.05;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;color:rgba(238,240,255,.56);background:none;border:0;padding:2px 26px 2px 22px;cursor:pointer;position:relative;text-align:left;transition:color .12s,transform .16s cubic-bezier(.2,.7,.2,1),text-shadow .12s;-webkit-tap-highlight-color:transparent}
 .mi::before{content:"";position:absolute;left:0;top:18%;bottom:18%;width:6px;background:var(--accent);transform:skewX(-14deg) scaleY(0);transform-origin:center;transition:transform .14s;box-shadow:0 0 12px var(--accent)}
 .mi span{position:relative;z-index:1}
 .mi::after{content:"";position:absolute;inset:0 0 0 12px;background:linear-gradient(90deg,rgba(95,242,255,.2),rgba(95,242,255,0) 85%);opacity:0;transition:opacity .12s;clip-path:polygon(0 0,100% 0,96% 100%,0 100%)}
@@ -415,6 +415,9 @@ body.ended #touch,body.ended #zrcap,body.ended #down,body.ended #lockhint,body.e
 .mpanel{position:fixed;inset:0;z-index:11;display:flex;pointer-events:none;animation:mpin .18s ease-out;
   background:linear-gradient(90deg,rgba(10,7,20,.88) 0%,rgba(10,7,20,.62) 40%,rgba(10,7,20,0) 66%),linear-gradient(0deg,rgba(10,7,20,.55) 0%,rgba(10,7,20,0) 18%)}
 @keyframes mpin{from{opacity:0}to{opacity:1}}
+/* big desktop screens (Joe's ultrawide): the mode and map screens scale up with the window height; --uiz is set in uiZoom() */
+#mpanel,#mapscr{zoom:var(--uiz,1)}
+@media (min-height:900px) and (min-aspect-ratio:4/3){.mcards{padding-top:6vh}}
 #menu.sub{background:none}
 #menu.sub .mwrap>:not(#mpanel){visibility:hidden}
 .mcol{pointer-events:auto;box-sizing:border-box;width:min(440px,max(46vw,310px));flex:none;height:100%;display:flex;flex-direction:column;gap:clamp(6px,1.4vh,14px);overflow:visible;
@@ -509,7 +512,7 @@ body.ended #touch,body.ended #zrcap,body.ended #down,body.ended #lockhint,body.e
 .mapt:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .mgo{font-size:24px;padding:12px 16px;margin-top:4px}
 .mcard{box-sizing:border-box;grid-area:card;justify-self:end;align-self:start;width:min(280px,100%);display:flex;flex-direction:column;gap:5px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
-.mlogo h1{zoom:var(--mfit,1)}.mcard{zoom:max(var(--mfit,1),.8)}
+.mlogo h1{zoom:var(--mfit,1)}.mcard{zoom:calc(max(var(--mfit,1),.8)*var(--uiz,1))}.mfoot{zoom:var(--uiz,1)}
 @media (max-height:700px){.mcard .cap{display:none}}
 .mnick{font-family:var(--display);font-size:24px;font-weight:700;letter-spacing:.04em;background:transparent;border:1px solid transparent;padding:2px 6px;margin:-2px -6px}
 .mnick:hover,.mnick:focus{border-color:var(--line);background:#0b0f12}
@@ -12591,7 +12594,7 @@ const tFingers=new Map();let tLookTap=null;let tStickId=null,tStick0={x:0,y:0},t
 function touchWanted(){return OPT.touch==='on'||(OPT.touch==='auto'&&(matchMedia('(pointer:coarse)').matches||TOUCH.seen));}
 function touchApply(){const on=touchWanted();if(on!==TOUCH.on){TOUCH.on=on;if(on&&locked)document.exitPointerLock();if(!on)touchRelease();}
   document.body.classList.toggle('touch',on);TL.style.setProperty('--tsz',OPT.tSize);document.body.style.setProperty('--tsz',OPT.tSize);$('tFire2').hidden=!OPT.tFire2;tLayApply();
-  $('touchnote').hidden=!on;$('fullbtn').classList.toggle('ok',!!(document.fullscreenEnabled||document.webkitFullscreenEnabled));}
+  $('touchnote').hidden=!on;$('fullbtn').classList.toggle('ok',!!(document.fullscreenEnabled||document.webkitFullscreenEnabled));if(typeof uiZoom==='function')uiZoom();}
 function touchRelease(){for(const f of tFingers.values())if(f.el)f.el.classList.remove('dn');tFingers.clear();tLookTap=null;tStickId=null;TOUCH.mx=TOUCH.my=0;TOUCH.run=false;
   mouseDown=false;keys.KeyC=keys.KeyF=keys.KeyG=false;TSTICK.classList.add('idle');TKNOB.style.transform='';stickHome();}
 function stickHome(){const r=TL.getBoundingClientRect(),u=parseFloat(getComputedStyle(TL).getPropertyValue('--u'))||60,h=tLayHome();
@@ -13828,6 +13831,8 @@ function dioClear(){for(const a of avatars){a.g.visible=false;a.blob.visible=fal
   if(DIO.zr||ZB.list.length){DIO.zr=false;zClear();zRender(0);}}
 const _dCam=new THREE.PerspectiveCamera(),_dP=new THREE.Vector3();
 /* main menu fit: if the menu is taller than the screen (big fonts, odd zoom, short full-screen windows), shrink the list and logo until it fits */
+function uiZoom(){const t=document.body.classList.contains('touch')||matchMedia('(pointer:coarse)').matches;const z=t?1:clamp(Math.min(innerHeight/900,innerWidth/1500),1,1.8);document.documentElement.style.setProperty('--uiz',z.toFixed(3));}
+addEventListener('resize',uiZoom);uiZoom();
 function menuFit(){const w=document.querySelector('#menu .mwrap');if(!w||$('menu').hidden||!w.clientHeight)return;let k=1;w.style.setProperty('--mfit',1);
   for(let i=0;i<10&&w.scrollHeight>w.clientHeight+1;i++){k-=0.06;w.style.setProperty('--mfit',k.toFixed(2));}}
 new ResizeObserver(()=>menuFit()).observe($('menu'));addEventListener('resize',menuFit);if(document.fonts)document.fonts.ready.then(menuFit);
