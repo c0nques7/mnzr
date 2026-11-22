@@ -373,6 +373,8 @@ body.touch .stabhint{display:none}
 #endbtns #eagain{flex-basis:auto;white-space:nowrap}
 #endbtns .btn:focus-visible,#endbtns .btn.pad{outline:3px solid var(--accent);outline-offset:3px}
 #endnote{margin:0;color:var(--muted);font-size:15px;text-align:center;min-height:1.2em}
+#endcr{margin:0;text-align:center;font:600 15px var(--mono);color:#ffd36a;letter-spacing:.02em}
+.zlruns{display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--muted)}.zlruns h4{margin:4px 0 2px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg)}.zlruns div{display:flex;justify-content:space-between;gap:10px}.zlruns b{font:600 13px var(--mono);color:#ffd36a}
 body.ended #touch,body.ended #zrcap,body.ended #down,body.ended #lockhint,body.ended #prompt,body.ended #ring{visibility:hidden}
 #down{background:rgba(60,8,6,.38);pointer-events:none;z-index:6;flex-direction:column;gap:6px;text-align:center}
 #down h2{margin:0;font-size:46px;letter-spacing:.08em;color:#ffb3ab}
@@ -710,7 +712,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
 <div class="hud num" id="bigc" hidden></div>
 <div class="hud" id="topbar" hidden>
   <div id="score"><div class="sd t0" id="sd0"><span class="s num" id="sc0">0</span><span class="pips" id="tk0"></span></div><div class="mid"><span class="num" id="clock">2:00</span><span id="roundinfo">Round 1 · to 5</span></div><div class="sd t1" id="sd1"><span class="s num" id="sc1">0</span><span class="pips" id="tk1"></span></div></div>
-  <div id="zrsb"><div class="c"><b id="zsW">1/3</b><small id="zsWl">Wave</small></div><div class="c big"><b id="zsL">0</b><small id="zsLl">Revenants</small></div><div class="c fv"><b id="zsF">0</b><small>Favor</small></div><div class="sw" title="Run time"><b id="zsT">0:00</b> run time</div><div class="bar"><i id="zsB"></i></div></div>
+  <div id="zrsb"><div class="c"><b id="zsW">1/3</b><small id="zsWl">Wave</small></div><div class="c big"><b id="zsL">0</b><small id="zsLl">Revenants</small></div><div class="c fv"><b id="zsF">0</b><small>Favor</small></div><div class="sw" title="Run time and Credits picked up this run"><b id="zsT">0:00</b> run time · <b id="zsC">0</b> credits</div><div class="bar"><i id="zsB"></i></div></div>
   <div id="objrow"><span id="role" class="atk">Attack</span><span id="objective"></span></div>
   <div id="tickets" class="num"></div>
 </div>
@@ -736,7 +738,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
 <div class="hud" id="zrcap" aria-live="polite"></div>
 <div class="hud" id="zrwcard" hidden></div>
 <div class="hud" id="zrboss" hidden><b>The Juggernaut</b><div class="zbb"><i id="zrbossF"></i></div><span>Plating turns bullets from the front. Hit it in the back</span></div>
-<div class="overlay" id="zrlocker" hidden role="dialog" aria-label="Locker"><div class="zlpanel"><div class="zlhd"><div><b>Locker</b><span>Permanent upgrades for Zombie Rumble, bought with Credits from runs. They never apply in PvP.</span></div><span id="zrlockcr" class="num"></span></div><div id="zrlocklist"></div><div class="zlft"><button class="btn" type="button" id="zrlockx">Close</button></div></div></div>
+<div class="overlay" id="zrlocker" hidden role="dialog" aria-label="Locker"><div class="zlpanel"><div class="zlhd"><div><b>Locker</b><span>Permanent upgrades for Zombie Rumble, bought with Credits from runs. They never apply in PvP.</span></div><span id="zrlockcr" class="num"></span></div><div id="zrlocklist"></div><div class="zlruns" id="zrlockruns"></div><div class="zlft"><button class="btn" type="button" id="zrlockx">Close</button></div></div></div>
 <div class="hud" id="zrint" hidden role="dialog" aria-label="Intermission"><div class="zih"><b>Intermission</b><span id="zrintT" class="num"></span></div><p id="zrintS"></p><div id="zrcards"></div><div id="zrdir" hidden><div><span class="zdh">Broadcast directive · next segment pays double Favor</span><b id="zrdirN"></b><span id="zrdirD"></span></div><button class="btn" type="button" id="zrdirB"></button></div><div class="zib"><button class="btn" type="button" id="zrfor" hidden></button><button class="btn" type="button" id="zrreroll"></button><button class="btn primary" type="button" id="zrready">Ready</button></div><p id="zrintP"></p></div>
 <div id="intro" hidden aria-label="Campaign intro"></div>
 <div class="hud" id="banner" hidden><h2 id="bannerT"></h2><p id="bannerS"></p></div>
@@ -766,7 +768,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
 </div>
 <div class="hud" id="lockhint" hidden>Click to aim · <span id="lockmode"></span></div>
 
-<div class="overlay" id="endscr" hidden role="dialog" aria-label="Match over"><div id="endcol"><div id="endbtns"><button class="btn primary" type="button" id="eagain">Play again</button><button class="btn" type="button" id="ereplay" hidden>Replay week</button><button class="btn" type="button" id="emenu">Main menu</button></div><p id="endnote"></p></div></div>
+<div class="overlay" id="endscr" hidden role="dialog" aria-label="Match over"><div id="endcol"><div id="endbtns"><button class="btn primary" type="button" id="eagain">Play again</button><button class="btn" type="button" id="ereplay" hidden>Replay week</button><button class="btn" type="button" id="emenu">Main menu</button></div><p id="endnote"></p><p id="endcr" hidden></p></div></div>
 <div class="overlay" id="down" hidden>
   <h2>Downed</h2>
   <p id="downtxt"></p>
@@ -9601,7 +9603,7 @@ function grabMouse(gesture){if(locked||TOUCH.on)return;if(gesture)grabGesture=tr
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===canvas;if(locked){lockFails=0;dragMode=false;grabGesture=false;clearTimeout(grabTimer);}else lastExit=performance.now();});
 document.addEventListener('pointerlockerror',lockFailed);
 
-function startReload(){const w=myW(me.w);if(me.reloadT>0||me.ammo===w.mag||(w.heat&&me.ammo>0))return;me.rlEmpty=me.ammo===0;me.boltT=0;me.chgT=0;me.bq=0;me.reloadT=me.reloadMax=w.reload;if(!w.heat)reloadSound(me.reloadT,me.ammo===0);}
+function startReload(){const w=myW(me.w);if(me.reloadT>0||me.ammo===w.mag||(w.heat&&me.ammo>0))return;me.rlEmpty=me.ammo===0;me.boltT=0;me.chgT=0;me.bq=0;me.reloadT=me.reloadMax=w.reload*(1-0.06*lkLocal('q'));if(!w.heat)reloadSound(me.reloadT,me.ammo===0);}
 /* one round leaves the gun: ammo, recoil, the shot itself */
 function pullShot(s,cw,inBurst){
   if(me.sinceShot>0.28)me.burst=0;
@@ -11419,7 +11421,12 @@ const ZLOCK={t:{n:'Riot padding',d:'Take 4% less damage from Revenants per level
   r:{n:'Medic training',d:'Revive your partner 12% faster per level',cost:[100,220,380]},
   b:{n:'Iron lungs',d:'Bleed out 4 s slower per level while down',cost:[100,220,380]},
   p:{n:'Patron contacts',d:'Rerolls at the intermission cost 10 Favor less per level',cost:[150,350]},
-  d:{n:'Front row seats',d:'A fourth card on offer at every intermission',cost:[600]}};
+  d:{n:'Front row seats',d:'A fourth card on offer at every intermission',cost:[600]},
+  c:{n:'Scavenger',d:'Pick up 10% more Credits per level',cost:[200,400,700]},
+  q:{n:'Quick hands',d:'Reload 6% faster per level',cost:[150,300,500]},
+  g:{n:'Second wind',d:'Dash recharges 8% faster per level',cost:[150,300]}};
+/* your own Locker level, for upgrades this browser applies to itself (Credits, reload, dash): Zombie Rumble only, never the Sandbox */
+function lkLocal(k){if(!S||S.mode!=='zr'||SB.on||!ZLOCK[k])return 0;const o=ZCAMP.lk||{};return Math.min(ZLOCK[k].cost.length,o[k]|0);}
 const ZLOCKK=Object.keys(ZLOCK);
 function lkMine(){const o=(ZCAMP.lk&&typeof ZCAMP.lk==='object')?ZCAMP.lk:(ZCAMP.lk={});return ZLOCKK.map(k=>Math.min(ZLOCK[k].cost.length,o[k]|0)).join('');}
 const LKC={};
@@ -11433,7 +11440,9 @@ function lockUI(){const el=$('zrlocklist');if(!el)return;const mk=(t,c,x)=>{cons
     const info=mk('div','zlinfo');info.append(mk('b','',L.n),mk('span','',L.d),pips);
     const b=mk('button','btn'+(max?'':' primary'),max?'Maxed':`Upgrade · ${cost}`);b.type='button';b.disabled=max||cr<cost;
     b.addEventListener('click',()=>{if(b.disabled)return;ZCAMP.cr=(ZCAMP.cr|0)-cost;ZCAMP.lk=ZCAMP.lk||{};ZCAMP.lk[k]=lv+1;zcSave();lockUI();blip(980,0.04,0.02,false,'ui');});
-    row.append(info,b);return row;}));}
+    row.append(info,b);return row;}));
+  const rl=$('zrlockruns'),R=Array.isArray(ZCAMP.runs)?ZCAMP.runs:[];rl.replaceChildren();if(R.length){rl.append(mk('h4','','Credits from recent runs'));
+    for(const q of R.slice().reverse()){const d=mk('div');d.append(mk('span','',`Week ${q.w|0} · ${q.won?'retained':'eliminated'}${q.d?' · '+q.d:''}`),mk('b','','+'+(q.cr|0)));rl.append(d);}}}
 function lockOpen(on){const el=$('zrlocker');el.hidden=!on;if(on){lockUI();const b=el.querySelector('.zlrow .btn:not(:disabled)')||$('zrlockx');b.focus();blip(660,0.05,0.03,false,'ui');}}
 function zcUI(){const el=$('zrweeks');if(!el)return;const mk=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n;};const sel=zcSel();
   el.replaceChildren(...[1,2,3,4].map(n=>{const W0=ZWEEKS[n],w=ZCAMP.w[n]||{},open=zcOpen(n),play=zcPlayable(n),b=mk('button','zwk'+(n===sel?' on':''));b.type='button';
@@ -11543,7 +11552,7 @@ function zrMine(k){if(!S||S.mode!=='zr')return false;const s=mySlot();return s>=
 function zrWMod(w,k){if(!S||S.mode!=='zr')return w;const o={...w};{const sw=zrMySw();if(k&&sw&&sw.k===k)swApply(o,sw);}if(zrMySet('kin'))o.move*=1.05;o.reload*=1-zrMyV('qh');o.mag=Math.round(o.mag*(1+zrMyV('dm')));
   {const v=1-zrMyV('sa');o.spread*=v;o.recoil*=v;o.cone*=v;}o.move*=1+zrMyV('fl')+((S.players[mySlot()]||{}).shT>zClk()?(S.players[mySlot()].shV||0):0);return o;}
 function myDashN(){return Math.max(1,CFG.dashN|0)+zrMyV('tc');}
-function myDashCd(){return CFG.dashCd*(1-zrMyV('ad'))*(zrMySet('kin')>1?0.8:1);}
+function myDashCd(){return CFG.dashCd*(1-zrMyV('ad'))*(1-0.08*lkLocal('g'))*(zrMySet('kin')>1?0.8:1);}
 function zrFavor(p,n,why){if(!p||!S||S.mode!=='zr'||!(n>0))return;p.fv=(p.fv|0)+Math.round(n*[1,1.25,1.5][zrSet(p,'brd')]*(S.zr&&S.zr.act?(zrHas(p,'ps')?3:2):1)*(zrHas(p,'rg')?2:1));}
 /* ---------- Revenant drops: Credits piles and special weapons ----------
    The host rolls drops on a kill and keeps them in S.zr.drops ({i,t:'c'|'w',x,z,e: expiry on S.timer, v: Credits, sw: {k,r,s}}), so they ride
@@ -11609,7 +11618,7 @@ function zrDropRender(dt){ZDM.t+=dt;const L=S&&S.mode==='zr'&&S.zr&&S.zr.drops||
     g.visible=d.e-S.timer>5||Math.sin(ZDM.t*16)>-0.3;}/* blinks in its last 5 s */
   for(const [i,g] of ZDM.m)if(!seen.has(i)){scene.remove(g);g.traverse(n=>{if(n.geometry)n.geometry.dispose();if(n.material&&!n.material.isShared)n.material.dispose&&n.material.dispose();});ZDM.m.delete(i);}}
 /* Credits picked up (by anyone) go into this browser's Locker */
-function zrCredT(Z){const t=Z.crT|0;if(ZW.crK!==S.mid){ZW.crK=S.mid;ZW.crT=t;return;}if(t>ZW.crT){const d=t-ZW.crT;ZW.crT=t;ZCAMP.cr=(ZCAMP.cr|0)+d;zcSave();lockUI();xpToast(`+${d} Credits`);blip(1560,0.05,0.02,false,'ui');}}
+function zrCredT(Z){const t=Z.crT|0;if(ZW.crK!==S.mid){ZW.crK=S.mid;ZW.crT=t;ZW.runCr=0;ZW.crB=0;return;}if(t>ZW.crT){const d0=t-ZW.crT;ZW.crT=t;ZW.crB=(ZW.crB||0)+d0*0.1*lkLocal('c');const bon=Math.floor(ZW.crB);ZW.crB-=bon;const d=d0+bon;ZW.runCr=(ZW.runCr|0)+d;ZCAMP.cr=(ZCAMP.cr|0)+d;zcSave();lockUI();xpToast(`+${d} Credits`);blip(1560,0.05,0.02,false,'ui');}}
 /* the hovering card over the nearest special weapon: its stats against the gun in your hands */
 const ZWC={k:'',near:null};
 function swStats(w){const pel=w.pel||0,dm=w.dmg*(w.dmgM||1);return{dmg:{v:dm*(pel||1),t:pel?`${Math.round(dm)}×${pel}`:String(Math.round(dm))},rate:{v:60/w.cd,t:Math.round(60/w.cd)+' rpm'},mag:{v:w.mag,t:String(w.mag)},
@@ -11865,7 +11874,7 @@ function zrHud(P){const Z=S.zr;if(!Z)return;const L=Z.left|0;
   $('zsL').textContent=count?cd:L;$('zsL').style.color=count?'var(--accent)':'';
   $('zsLl').textContent=buy?'Going live':!live?(L===1?'Revenant':'Revenants'):Z.ph==='pre'?'Revenants rise':Z.ph==='break'?'Next wave':Z.ph==='inter'?'Intermission':Z.ph==='surge'&&Z.t>0?`Hold · ${L} up`:L===1?'Revenant':'Revenants';
   $('zsF').textContent=P?P.fv|0:0;
-  {const c=Math.max(0,(S.clock||0)-(Z.c0||0)),h=c/3600|0,m=(c/60|0)%60,sx=c%60|0,txt=(h?h+':'+String(m).padStart(2,'0'):m)+':'+String(sx).padStart(2,'0');const e=$('zsT');if(S.phase!=='over'&&e.textContent!==txt)e.textContent=txt;}/* run stopwatch: the host's match clock, so co-op partners see the same time */
+  {const c=Math.max(0,(S.clock||0)-(Z.c0||0)),h=c/3600|0,m=(c/60|0)%60,sx=c%60|0,txt=(h?h+':'+String(m).padStart(2,'0'):m)+':'+String(sx).padStart(2,'0');const e=$('zsT');if(S.phase!=='over'&&e.textContent!==txt)e.textContent=txt;const cc=String(ZW.crK===S.mid?ZW.runCr|0:0);if($('zsC').textContent!==cc)$('zsC').textContent=cc;}/* run stopwatch: the host's match clock, so co-op partners see the same time */
   $('zsB').style.width=(Z.ph==='wave'&&Z.total?100*clamp(1-L/Z.total,0,1):Z.ph==='break'||Z.ph==='inter'?100:0).toFixed(1)+'%';
   const rb=$('role'),dir=Z.act&&ZDIR[Z.act];rb.hidden=!dir;if(dir){rb.className='zd';rb.textContent=`${ZDIR[Z.act].n} · 2× Favor`;}
   $('objective').textContent=!live?'':Z.ph==='surge'?(Z.t>0?'Elites incoming. Hold the floor':`Drop the last ${L}`):'';
@@ -11887,7 +11896,7 @@ function zrBanner(){const Z=S.zr,bn=$('banner');bn.hidden=false;
   if(S.phase==='buy'){$('bannerT').textContent='Monday Night Zombie Rumble';
     $('bannerS').textContent=`Draftee. You are awake, in the tunnel under the ${(MAPS[Z.home]||MAPS.yard).name}. Survive the week and you will be retained. Fall and you will be reprinted. · ${Z.segs} segments, about ${Z.len==='short'?10:25} min · Weapon: ${myW(me.w).name}${Z.carry&&zcMyCarried()?` · Build carried from Week ${(Z.week|0)-1}`:''}`;return;}
   $('bannerT').textContent=Z.won?'Week complete':'Broadcast terminated';
-  $('bannerS').textContent=(Z.won?'You have been retained'+(ZW.unl&&ZWEEKS[ZW.unl]?` · Week ${ZW.unl}: ${ZWEEKS[ZW.unl].n} unlocked${ZWEEKS[ZW.unl].built?'':' (coming soon)'}`:''):`${Z.why} in segment ${Z.seg}${Z.ph==='boss'?', against '+((ZWEEKS[Z.week||1]||{}).boss||'the headliner'):Z.w?', wave '+Z.w:''}`)+` · ${Z.kills|0} Revenants dropped · ${fmt(S.timer)}`+((ZW.cr|0)+(Z.crT|0)?` · +${(ZW.cr|0)+(Z.crT|0)} Credits for the Locker`:'')+`${overIn('run')}`;}
+  $('bannerS').textContent=(Z.won?'You have been retained'+(ZW.unl&&ZWEEKS[ZW.unl]?` · Week ${ZW.unl}: ${ZWEEKS[ZW.unl].n} unlocked${ZWEEKS[ZW.unl].built?'':' (coming soon)'}`:''):`${Z.why} in segment ${Z.seg}${Z.ph==='boss'?', against '+((ZWEEKS[Z.week||1]||{}).boss||'the headliner'):Z.w?', wave '+Z.w:''}`)+` · ${Z.kills|0} Revenants dropped · ${fmt(S.timer)}`+`${overIn('run')}`;}
 /* the Circuit's announcer, as captions until the lines are recorded, and the crowd (on every client, from the shared state) */
 const ZW={k:'',st:{},fv:0,fvK:-1};
 function zrCap(t,sub,v){if(v)announce(v);const el=$('zrcap'),d=document.createElement('div');d.textContent=t;if(sub){const s=document.createElement('small');s.textContent=sub;d.append(s);}
@@ -12517,7 +12526,9 @@ function endHide(){const el=$('endscr');if(el.hidden)return;el.hidden=true;docum
   for(const b of $('endbtns').children)b.classList.remove('pad');}
 function endBtns(){return [...$('endbtns').children].filter(b=>!b.disabled&&!b.hidden);}
 function endFocus(i,pad){const bs=[...$('endbtns').children].filter(b=>!b.hidden);END.padI=(i+bs.length)%bs.length;for(const b of bs)b.classList.toggle('pad',!!pad&&b===bs[END.padI]);try{bs[END.padI].focus({preventScroll:true});}catch(e){}}
-function endTick(P){const over=!!S&&S.phase==='over'&&inPlay();if(!over){endHide();return;}endShow();
+function endTick(P){const over=!!S&&S.phase==='over'&&inPlay();if(!over){endHide();$('endcr').hidden=true;return;}endShow();
+  {const zr=S.mode==='zr'&&!SB.on&&S.zr,ec=$('endcr');ec.hidden=!zr;if(zr){const n=(ZW.cr|0)+(ZW.crK===S.mid?ZW.runCr|0:0),txt=`+${n} Credits this run · ${(ZCAMP.cr|0).toLocaleString('en-US')} in your Locker`;if(ec.textContent!==txt)ec.textContent=txt;
+    if(ZW.runSaved!==S.mid){ZW.runSaved=S.mid;const R=Array.isArray(ZCAMP.runs)?ZCAMP.runs:(ZCAMP.runs=[]);const dt=new Date();R.push({w:S.zr.week|0||1,cr:n,won:!!S.zr.won,d:dt.toLocaleDateString('en-US',{month:'short',day:'numeric'})});while(R.length>5)R.shift();zcSave();}}}
   const s=mySlot(),hum=S.players.filter(p=>!p.bot),rd=hum.filter(p=>S.again&&S.again.includes(p.s)).length,mine=s>=0&&!!S.again&&S.again.includes(s);
   const ag=$('eagain'),solo=net.mode==='solo',cont=zrCanContinue(),nw=cont?(S.zr.week||1)+1:0,rp=$('ereplay'),rpOn=cont&&(solo||net.host);
   if(rp.hidden===rpOn){rp.hidden=!rpOn;}if(rpOn){const t2=`Replay Week ${nw-1}`;if(rp.textContent!==t2)rp.textContent=t2;}
