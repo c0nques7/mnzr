@@ -10011,7 +10011,7 @@ function ehTick(dt){const V=MFV.eh,E=MF.eh;if(!V||!E)return;const now=performanc
 /* a big soft flare where a shot was fired: Warren is dark enough that every shot gives the shooter away */
 function mfFlare(x,y,z){if(MAP.id!=='warren')return;const f=MFV.flares.find(q=>q.t<=0)||MFV.flares[0];if(!f)return;f.t=0.09;f.s.position.set(x,y,z);f.s.visible=true;f.s.scale.setScalar(4.5+Math.random()*1.5);}
 /* the game clock for map features; guests run it on between host packets */
-function mfT(){if(!S)return performance.now()/1000;let t=S.mft||0;if(net.mode==='online'&&!net.host&&S.phase==='live')t+=Math.min(0.3,(performance.now()-net.lastState)/1000);return t;}
+function mfT(){if(!S)return 0;/* menu flyover: map mechanics hold still (Joe: hazards should not move behind the menu) */let t=S.mft||0;if(net.mode==='online'&&!net.host&&S.phase==='live')t+=Math.min(0.3,(performance.now()-net.lastState)/1000);return t;}
 function mfCap(txt,t){MFV.cap=txt;MFV.capT=t||3;}
 function mfPushOut(b){const r=0.42;
   {const l=me.x-(b.x0-r),rr=b.x1+r-me.x,f=me.z-(b.z0-r),bk=b.z1+r-me.z,m=Math.min(l,rr,f,bk);if(m>0&&me.y<b.y1-0.05){if(m===l)me.x=b.x0-r;else if(m===rr)me.x=b.x1+r;else if(m===f)me.z=b.z0-r;else me.z=b.z1+r;me.mantle=null;}}
