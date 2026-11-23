@@ -318,6 +318,14 @@ body.prematch #topbar,body.prematch #mini,body.prematch #feed,body.prematch #vit
 #intro .ieyes{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);display:none;gap:clamp(18px,4vmin,40px)}
 #intro.dark .ieyes{display:flex}
 #intro .ieyes i{width:clamp(16px,3vmin,28px);height:clamp(7px,1.2vmin,12px);border-radius:50%;background:#ff3030;box-shadow:0 0 18px 6px rgba(255,48,48,.7);opacity:0;animation:ieyes 4s 1.4s ease-in forwards}
+#intro.acid .ieyes i{background:#9dff3c;box-shadow:0 0 22px 8px rgba(157,255,60,.85);animation:ieyes 3.2s 0.7s ease-in forwards}
+#intro .ireel{position:absolute;left:max(16px,6vw);bottom:calc(7vh + 92px);display:none;flex-direction:column;gap:4px;border-left:5px solid #ff4655;background:rgba(12,6,14,.84);padding:12px 20px;min-width:min(380px,84vw);text-transform:uppercase;animation:il3 .45s ease both}
+#intro.reel .ireel{display:flex}
+#intro .ireel small{font-size:12px;letter-spacing:.22em;color:var(--muted)}
+#intro .ireel b{font-size:clamp(22px,4vmin,36px);letter-spacing:.06em;line-height:1.05;color:#fff}
+#intro .ireel em{font-style:normal;font-size:13px;letter-spacing:.14em;color:#ffd0a0}
+#intro .ireel .istamp{align-self:flex-start;margin-top:6px;padding:3px 10px;border:2px solid #ff3b4e;color:#ff3b4e;font-size:clamp(14px,2.4vmin,20px);font-weight:700;letter-spacing:.18em;transform:rotate(-2deg);background:rgba(255,30,50,.12);box-shadow:0 0 14px rgba(255,48,68,.35);animation:istamp .32s cubic-bezier(.2,.9,.3,1.2) both}
+@keyframes istamp{from{opacity:0;transform:scale(2.1) rotate(-7deg)}to{opacity:1;transform:scale(1) rotate(-2deg)}}
 @keyframes ieyes{0%{opacity:0}30%{opacity:1}36%{opacity:.2}42%{opacity:1}100%{opacity:1}}
 #intro .isub{position:absolute;left:50%;bottom:calc(7vh + 18px);transform:translateX(-50%);width:min(860px,calc(100vw - 32px));text-align:center;font-family:system-ui,sans-serif;font-size:clamp(16px,2.6vmin,22px);font-weight:500;line-height:1.35;text-wrap:balance;text-shadow:0 0 4px #000,0 2px 3px #000;animation:ifade .5s ease-out both}
 #intro .iskip{position:absolute;right:max(16px,3vw);bottom:12px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);opacity:0;transition:opacity .6s}
@@ -12350,7 +12358,7 @@ function zcUI(){const el=$('zrweeks');if(!el)return;const mk=(t,c,x)=>{const n=d
     const mm=t=>Math.floor(t/60)+':'+String(Math.round(t)%60).padStart(2,'0')/* fmt is declared further down; this runs at startup */,st=!open?`Clear Week ${n-1} to unlock`:!W0.built?'Unlocked · coming soon':w.c?`Cleared${w.best.full?' · Full '+mm(w.best.full):''}${w.best.short?' · Short '+mm(w.best.short):''}`:w.runs?`${w.runs} run${w.runs>1?'s':''}, not cleared yet`:'Not played yet';
     b.title=`Week ${n}: ${W0.n} · ${st}`;b.append(mk('b','',`${n} · ${W0.n}`),mk('span','',st));
     b.addEventListener('click',()=>{if(!play)return;ZCAMP.sel=n;zcSave();zcUI();modeCap();blip(980,0.022,0.012,false,'ui');});return b;}),
-    (()=>{const b=mk('button','zwk zwintro');b.type='button';b.append(mk('b','','Watch the intro'),mk('span','','Draft Night · the broadcast opens'));b.addEventListener('click',()=>introStart(null));return b;})());}
+    (()=>{const b=mk('button','zwk zwintro');b.type='button';const w2=sel===2;b.append(mk('b','',w2?'Watch Week 2 intro':'Watch the intro'),mk('span','',w2?'Containment Week · cold open':'Draft Night · the broadcast opens'));b.addEventListener('click',()=>introStart(null,w2?2:1));return b;})());}
 /* The run (phase 3: Week 1, Draft Night). A Full broadcast is four segments (home, home, away, home); a Short one is three
    (home, away, home). The away segment is on a random other map. Each segment is a few waves with 10 s breathers, then a finale:
    an elite surge you hold out against, or in the last segment the headliner, the Juggernaut. Between segments an intermission
@@ -12554,7 +12562,7 @@ function zrHome(p){const h=DM_HOME[p.s?2:0];let x=-h[0],z=-h[1];if(!freeAt(x,z))
   dmPlace(p,x,z,Math.atan2(-(Math.sign(x)*48.5-x),-(Math.sign(z)*9-z)));}
 function zrStart(){S.center={own:-1,cap:-1,p:0};S.armed=null;S.tickets=[0,0];S.sudden=false;
   const wk=MATCH.zrWeek||1,short=MATCH.zrLen==='short';
-  S.timer=0;S.phase='buy';S.t=wk===1?Math.max(CFG.buy,CFG.buy1,0.6+vxSeqLen(ZR_PA,ZR_PA_GAP)+3.4):Math.max(CFG.buy,CFG.buy1);S.last=null;/* room for the tunnel PA before 3-2-1 */
+  S.timer=0;S.phase='buy';S.t=wk===1?Math.max(CFG.buy,CFG.buy1,0.6+vxSeqLen(ZR_PA,ZR_PA_GAP)+3.4):wk===2&&net.mode==='online'?Math.max(CFG.buy,CFG.buy1,21):Math.max(CFG.buy,CFG.buy1);S.last=null;/* room for the tunnel PA or Week 2 online cold open before 3-2-1 */
   /* Week 2 (Containment Week) tours all four new stadiums: Full = Fallout -> Chronofield -> Low Orbit (away) -> Event Horizon; Short = Fallout -> Chronofield or Low Orbit -> Event Horizon */
   const maps=wk===2?(short?['fallout',Math.random()<0.5?'chrono':'orbit','horizon']:['fallout','chrono','orbit','horizon']):null;
   const home=maps?maps[0]:MAP.id,others=MAP_IDS.filter(m=>m!==home&&!((MAPS[m].week|0)>wk));/* a later week's maps never show up as an earlier week's away broadcast */
@@ -12826,17 +12834,17 @@ function vsubLines(keys,at,gap,subs){vsubClear();const el=$('vosub');let t=at||0
     t+=L+gap;}}
 function zrWatch(){const Z=S.zr,k=S.mid+':'+Z.seg+':'+Z.w+':'+Z.ph+':'+S.phase,was=ZW.k,fresh=!was.startsWith(S.mid+':');
   // a partner going down or getting up
-  if(fresh){ZW.st={};if(S.phase==='buy'&&Z.seg===1&&(Z.week||1)===1){introSay(ZR_PA,0.6,ZR_PA_GAP);vsubLines(ZR_PA,0.6,ZR_PA_GAP,ZR_PA_SUB);ZW.paEnd=performance.now()/1000+0.6+vxSeqLen(ZR_PA,ZR_PA_GAP);}else if(S.phase==='buy')ZW.paEnd=0;}for(const p of S.players){const o=ZW.st[p.s];ZW.st[p.s]=p.st;if(!o||S.phase!=='live')continue;
+  if(fresh){ZW.st={};if(S.phase==='buy'&&Z.seg===1&&(Z.week||1)===1){introSay(ZR_PA,0.6,ZR_PA_GAP);vsubLines(ZR_PA,0.6,ZR_PA_GAP,ZR_PA_SUB);ZW.paEnd=performance.now()/1000+0.6+vxSeqLen(ZR_PA,ZR_PA_GAP);}else{ZW.paEnd=0;if(net.mode==='online'&&S.phase==='buy'&&Z.seg===1&&(Z.week|0)===2&&!INTRO.on&&introDue(2,true))introStart(null,2,true);}}for(const p of S.players){const o=ZW.st[p.s];ZW.st[p.s]=p.st;if(!o||S.phase!=='live')continue;
     if(o==='alive'&&p.st==='down')zrCap('Warrior down',p.name,'r9');else if(o==='down'&&p.st==='alive'&&Z.ph!=='inter')zrCap('Warrior revived',p.name,'r10');}
   if(k===was)return;ZW.k=k;
   if(fresh)return;
-  if(S.phase==='over'){crowdCheer(Z.won?'win':'knock',1);sting(Z.won?'win':'lose');ZW.cr=0;ZW.unl=zcRecord(Z,S.timer)?(Z.week||1)+1:0;zrCap(Z.won?'Week complete':'Broadcast terminated',Z.won?'You have been retained':Z.why,Z.won?'e1':'e3');if(Z.won)announce('e2');}
+  if(S.phase==='over'){crowdCheer(Z.won?'win':'knock',1);sting(Z.won?'win':'lose');ZW.cr=0;ZW.unl=zcRecord(Z,S.timer)?(Z.week||1)+1:0;const winV=(Z.week|0)===2&&VB.w2_e?'w2_e':'e1';zrCap(Z.won?'Week complete':'Broadcast terminated',Z.won?'You have been retained':Z.why,Z.won?winV:'e3');if(Z.won)announce('e2');}
   else if(S.phase!=='live')return;
   else if(Z.ph==='pre')zrCap(`Segment ${Z.seg}`,Z.act&&ZDIR[Z.act]?`Directive: ${ZDIR[Z.act].n}. ${ZDIR[Z.act].d}. Double Favor`:Z.seg===Z.awaySeg?`Away broadcast from ${MAPS[MAP.id].name}`:Z.maps?`Stadium ${Z.seg}/${Z.segs}: ${MAPS[MAP.id].name}`:'The host world is watching');
   else if(Z.ph==='wave'){if(Z.w>1)sting('armed',0,0.04);if(Z.seg===1&&Z.w===1)zrCap('The Circuit presents',`Week ${Z.week||1}: ${ZWEEKS[Z.week||1].n} · the host world is watching`);else zrCap(Z.w===Z.nw?'Final wave':`Wave ${Z.w}`,(Z.week|0)>=2&&Z.seg===1&&Z.w===2?'Spitters in the field: shoot the glowing throat':`Segment ${Z.seg}`,Z.w===Z.nw?'r3':'r'+Z.w);}
   else if(Z.ph==='break'){crowdCheer('point',1);sting('win',0,0.04);}
   else if(Z.ph==='surge'){sting('armed',0,0.05);zrCap('Surge','Elites incoming. Hold the floor','r4');}
-  else if(Z.ph==='boss'){crowdCheer('point',1);sting('armed',0,0.06);if((Z.week|0)===2)zrCap('Headliner incoming','The Matriarch','r12');else{zrCap('Headliner incoming','The Juggernaut','r12');announce('h1');}}
+  else if(Z.ph==='boss'){crowdCheer('point',1);sting('armed',0,0.06);if((Z.week|0)===2){zrCap('Headliner incoming','The Matriarch','r12');announce('h2');}else{zrCap('Headliner incoming','The Juggernaut','r12');announce('h1');}}
   else if(Z.ph==='inter'){crowdCheer('win',0.8);zrCap('Intermission','The patrons are bidding','r5');announce('r6');}}
 /* the intermission: three patron cards. The first pick is free; then Favor buys the others or rerolls them. */
 const ZI={k:'',gift:false};
@@ -13002,7 +13010,7 @@ function unlocksBetween(L0,L1,wl0,wl1){const out=[];
   return out;}
 function xpAward(rec,fin){rec.done=rec.key;const xs=rec.xs;if(!xs)return null;const lines=[];
   for(const f in XPL)if(xs[f])lines.push([XPL[f],xs[f],xs[f]*XPV[f]]);
-  if(fin){if(fin.rounds)lines.push(['Rounds won',fin.rounds,fin.rounds*XPM.round]);lines.push([fin.zr?(fin.won?'Week complete':'Run played'):fin.won?'Match won':fin.draw?'Draw':'Match played','',fin.zr&&fin.won?XPM.week:fin.won?XPM.win:fin.draw?XPM.draw:XPM.played]);}
+  if(fin){if(fin.rounds)lines.push(['Rounds won',fin.rounds,fin.rounds*XPM.round]);const wkXp=Math.round(XPM.week*((fin.week|0)>=2?1.2:1));lines.push([fin.zr?(fin.won?'Week complete':'Run played'):fin.won?'Match won':fin.draw?'Draw':'Match played','',fin.zr&&fin.won?wkXp:fin.won?XPM.win:fin.draw?XPM.draw:XPM.played]);}
   const total=lines.reduce((a,l)=>a+l[2],0);if(!total)return null;
   const b=lvlOf(PROG.xp),wl0={},wl1={},wg={};for(const k of WKEYS)wl0[k]=wlvlOf(PROG.wxp[k]);
   PROG.xp+=total;for(const k of WKEYS){const g=(xs.w&&xs.w[k])|0;if(g>0){PROG.wxp[k]+=g;wg[k]=g;}wl1[k]=wlvlOf(PROG.wxp[k]);}PROG.n++;
@@ -13021,7 +13029,7 @@ function xpTick(){
   XPR.prev=XPR.xs=JSON.parse(JSON.stringify(cur));XPR.team=P.team;if(S.phase==='live')XPR.live=key;
   if(S.phase==='over'&&XPR.done!==key&&XPR.live===key){
     const dm=S.mode==='dm',w=dm?(S.last?S.last.team:-1):S.score[0]>S.score[1]?0:1;
-    const res=xpAward(XPR,S.mode==='zr'?{won:!!(S.zr&&S.zr.won),draw:false,rounds:0,zr:1}:{won:w===P.team,draw:w<0,rounds:dm?0:S.score[P.team]|0});if(res)xpShow(res);}
+    const res=xpAward(XPR,S.mode==='zr'?{won:!!(S.zr&&S.zr.won),draw:false,rounds:0,zr:1,week:(S.zr&&S.zr.week)||1}:{won:w===P.team,draw:w<0,rounds:dm?0:S.score[P.team]|0});if(res)xpShow(res);}
   if(S.phase!=='over')$('xpsum').hidden=true;
 }
 function xpFlush(){if(S&&!SB.on&&XPR.xs&&XPR.done!==XPR.key)xpAward(XPR,null);XPR.key='';XPR.xs=XPR.prev=null;$('xpsum').hidden=true;$('xptoast').replaceChildren();}
@@ -13205,6 +13213,11 @@ zcUI();modeCap();segSync();
    UPDATES below is the offline fallback and the minimum version; release notes are cached in localStorage and refreshed
    in the background, so the menu works offline and stays inside GitHub's API rate limit. Drafts and prereleases are skipped. */
 const UPDATES=[
+  {v:'0.10.0',d:'2026-11-23',t:'Week 2 cold open, voice-line slots and XP bonus',n:[
+    'Week 2 (Containment Week) now opens with a ~20 s skippable broadcast cold open featuring archived dossiers of earlier teams stamped "RETAINED: 0 WEEKS", the Reach proving grounds welcome and a Matriarch headliner tease.',
+    'The Week 2 cold open plays in both solo and online co-op (during the tunnel hold before Wave 1) and can be replayed anytime from the week picker.',
+    'Announcer voice slots wired up for Week 2 (w2_1, w2_2, w2_3, h2 and w2_e), including The Matriarch headliner callout.',
+    'Clearing Week 2 now pays +20% bonus XP (1,200 XP) alongside the +20% Credits bonus.']},
   {v:'0.9.0',d:'2026-11-23',t:'New Week 2 maps: Chronofield and Low Orbit',n:[
     'New Week 2 map: Chronofield — five drifting slowed-time bubbles roam the midfield, slowing players, Revenants, grenades and acid globs to 40% speed while bullets pass through normally.',
     'Chronofield stage changes: Rewind snaps broken cover back 10 seconds with a VHS ripple every 25 seconds; Echoes replay a holographic ghost of each player from 5 seconds ago that draws Revenants away.',
@@ -13416,7 +13429,7 @@ $('lobLeave').addEventListener('click',()=>{leaveMatch();blip(520,0.05,0.03,fals
 window.addEventListener('keydown',e=>{if($('lobby').hidden)return;if(e.code==='Escape'||e.code==='Backspace'){e.preventDefault();e.stopImmediatePropagation();$('lobLeave').click();}
   else if(e.code==='Enter'||e.code==='NumpadEnter'){e.preventDefault();e.stopImmediatePropagation();$('lobStart').click();}},true);
 tuneApply();
-$('practice').addEventListener('click',()=>{tuneApply();SB.on=false;if(introDue())introStart(startSolo);else startSolo();});
+$('practice').addEventListener('click',()=>{tuneApply();SB.on=false;const wk=introDue();if(wk)introStart(startSolo,wk);else startSolo();});
 if(!DEVMODE)for(const el of [$('sandboxbtn'),$('shopAll').closest('label')]){el.hidden=true;el.style.display='none';}
 $('sandboxbtn').addEventListener('click',()=>{if(!DEVMODE)return;SB.on=true;SB.mode='range';SB.tab='range';sbLoad();devLoad();buildSB();startSolo();});
 $('joinbtn').addEventListener('click',async()=>{tuneApply();SB.on=false;readMenu();const code=($('code').value||'arena-1').toLowerCase().replace(/[^a-z0-9_.-]/g,'').slice(0,40)||'arena-1';$('code').value=code;$('joinbtn').disabled=true;
@@ -14879,17 +14892,32 @@ const INTRO_SHOTS=[
   {v:'i4',d:6.5,u:[0.75,0.82],bump:1,line:'Draft Night is brought to you by VOLTEX. The official drink of Season one hundred.'},
   {v:'i5',d:6.5,u:[0.36,0.43],dark:1,line:'And tonight\'s headliner... the Juggernaut.'},
   {v:'i6',d:5.5,u:[0.85,0.99],sigil:1,out:1,line:'The Benefactors thank you for watching.'}];
-const INTRO={on:false,ph:'',t:0,i:-1,shotT:0,dur:0,then:null,el:null,arm:0,crawlD:28,finalD:3.2,staticD:0.9,voice:[],drone:null,stc:null};
-function introDue(){if($('modesel').value!=='zr'||zcSel()!==1)return false;try{const w=ZCAMP.w&&ZCAMP.w[1];if(w&&w.c)return false;}catch(e){}/* never once Week 1 is cleared */try{return localStorage.getItem('za-intro')!=='1';}catch(e){return true;}}
+/* Week 2 (Containment Week) cold open (~20 s, skippable, plays in solo and online co-op).
+   Voice slots ready in VOICE_MP3: w2_1 ("Week two: Containment Week"), w2_2 (Reach host-world welcome),
+   w2_3 ("No team before you has seen week three"), h2 ("Headliner incoming: The Matriarch"). */
+const INTRO_W2_REEL=[
+  {tag:'Archived dossier · Season 100',name:'Squad 07 · Iron Vultures',meta:'Drafted: Week 1 · Lost: Fallout',stamp:'RETAINED: 0 WEEKS'},
+  {tag:'Archived dossier · Season 100',name:'Squad 14 · Redline',meta:'Drafted: Week 1 · Lost: Chronofield',stamp:'RETAINED: 0 WEEKS'},
+  {tag:'Archived dossier · Season 100',name:'Squad 19 · Glass Jacks',meta:'Drafted: Week 1 · Lost: Event Horizon',stamp:'RETAINED: 0 WEEKS'}];
+const INTRO_W2_SHOTS=[
+  {v:'w2_1',d:4.5,u:[0.02,0.16],sigil:1,l3:['Containment Week','Week 2 · Season 100'],line:'Week two: Containment Week. Live from the Reach proving grounds.'},
+  {v:'w2_2',d:6.5,u:[0.18,0.44],reel:1,line:'Four live anomaly arenas: Fallout, Chronofield, Low Orbit, and Event Horizon. Welcome to the Reach.'},
+  {v:'w2_3',d:4.5,u:[0.55,0.74],l3:['Survival record','0 teams retained'],line:'Every squad drafted before you broke before the tour ended. No team before you has seen week three.'},
+  {v:'h2',d:4.8,u:[0.36,0.44],dark:1,acid:1,out:1,line:'And waiting at the end of the tour... The Matriarch.'}];
+const INTRO={on:false,wk:1,inMatch:false,shots:INTRO_SHOTS,ph:'',t:0,i:-1,reelI:-1,shotT:0,dur:0,then:null,el:null,arm:0,crawlD:28,finalD:3.2,staticD:0.9,voice:[],drone:null,stc:null};
+function introDue(wk,online){if(!online&&$('modesel').value!=='zr')return 0;const w=wk||zcSel();if(w!==1&&w!==2)return 0;if(w===1&&online)return 0;
+  try{const cw=ZCAMP.w&&ZCAMP.w[w];if(cw&&cw.c)return 0;}catch(e){}/* never once that week is cleared */
+  try{return localStorage.getItem(w===2?'za-intro2':'za-intro')!=='1'?w:0;}catch(e){return w;}}
 function introBuild(){if(INTRO.el)return;const el=$('intro'),mk=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n;};
   const cr=mk('div','icrawl'),cin=mk('div','icin');cin.append(...INTRO_CRAWL.map(t=>mk('p','',t)));cr.append(cin);
   const st=mk('canvas','istatic');st.width=192;st.height=108;INTRO.stc=st;
-  const bc=mk('div','ibc'),live=mk('div','ilive'),brand=mk('div','ibrand'),sig=mk('div','isig'),l3=mk('div','il3'),bump=mk('div','ibump'),eyes=mk('div','ieyes');
+  const bc=mk('div','ibc'),live=mk('div','ilive'),brand=mk('div','ibrand'),sig=mk('div','isig'),l3=mk('div','il3'),reel=mk('div','ireel'),bump=mk('div','ibump'),eyes=mk('div','ieyes');
   live.append(mk('i'),mk('b','','Live'),mk('span','','Season 100'));brand.append(mk('small','','Monday Night'),mk('b','','Zombie Rumble'));
-  sig.append(mk('span','isr'),mk('b','','The Circuit'),mk('small','','A Benefactors broadcast'));l3.append(mk('b'),mk('span'));eyes.append(mk('i'),mk('i'));
+  sig.append(mk('span','isr'),mk('b','','The Circuit'),mk('small','','A Benefactors broadcast'));l3.append(mk('b'),mk('span'));
+  reel.append(mk('small'),mk('b'),mk('em'),mk('span','istamp'));eyes.append(mk('i'),mk('i'));
   const bcv=mk('canvas');bcv.width=512;bcv.height=82;try{const tt=sponsorTex(SPONSORS[0],512,82);bcv.getContext('2d').drawImage(tt.image,0,0);tt.dispose();}catch(e){}
   bump.append(mk('small','','Draft Night is brought to you by'),bcv);
-  bc.append(mk('div','ishade'),live,brand,sig,l3,bump,eyes,mk('div','isub'));
+  bc.append(mk('div','ishade'),live,brand,sig,l3,reel,bump,eyes,mk('div','isub'));
   el.append(cr,mk('div','ifinal',INTRO_FINAL),st,bc,mk('div','iskip',TOUCH.on?'Tap to skip':'Press any key to skip'));
   el.addEventListener('pointerdown',e=>{e.preventDefault();introSkip();});INTRO.el=el;}
 /* play announcer lines one after another (skipping any not recorded yet), gap seconds apart (default: after each echo tail); returns how long they run, tail included */
@@ -14900,23 +14928,31 @@ function introDrone(on){if(!actx||!AU.bus)return;const now=actx.currentTime;
     const os=[[55,'sawtooth',0.5],[82.4,'triangle',0.7],[110.3,'sine',0.4]].map(([f,w,v])=>{const o=actx.createOscillator(),og=actx.createGain();o.type=w;o.frequency.value=f;og.gain.value=v;o.connect(og);og.connect(lp);o.start(now);return o;});
     const lfo=actx.createOscillator(),lg=actx.createGain();lfo.frequency.value=0.07;lg.gain.value=160;lfo.connect(lg);lg.connect(lp.frequency);lfo.start(now);os.push(lfo);INTRO.drone={g,os};return;}
   const d=INTRO.drone;if(!d)return;INTRO.drone=null;d.g.gain.setTargetAtTime(0.0001,now,0.25);for(const o of d.os)try{o.stop(now+1.5);}catch(e){}}
-function introStart(then){if(INTRO.on||S)return;audioInit();sfxInit();introBuild();dioHide();
-  if(MS.open){MS.open=false;isoScene(false);TOD.cur='';}$('mapscr').hidden=true;$('menu').classList.remove('mapon');$('menu').hidden=true;
-  if(MATCH.map!==MAP.id&&setMap(MATCH.map))SHOW.map=MAP_IDS.indexOf(MAP.id);SHOW.want=-1;SHOW.fade=0;$('flyfade').style.opacity=0;
+function introReelSet(ri){const el=INTRO.el,r=INTRO_W2_REEL[ri];if(!el||!r||INTRO.reelI===ri)return;INTRO.reelI=ri;
+  const bx=el.querySelector('.ireel');bx.querySelector('small').textContent=r.tag;bx.querySelector('b').textContent=r.name;bx.querySelector('em').textContent=r.meta;
+  const st=bx.querySelector('.istamp');st.textContent=r.stamp;for(const q of [bx,st]){q.style.animation='none';void q.offsetWidth;q.style.animation='';}
+  blip(220,0.08,0.05,false,'ui');}
+function introStart(then,wk,inMatch){wk=wk||1;if(INTRO.on||(S&&!inMatch))return;audioInit();sfxInit();introBuild();dioHide();
+  if(!inMatch){if(MS.open){MS.open=false;isoScene(false);TOD.cur='';}$('mapscr').hidden=true;$('menu').classList.remove('mapon');$('menu').hidden=true;
+    const targetMap=wk===2?'fallout':MATCH.map;if(targetMap!==MAP.id&&setMap(targetMap))SHOW.map=MAP_IDS.indexOf(MAP.id);SHOW.want=-1;SHOW.fade=0;$('flyfade').style.opacity=0;}
+  else if(locked)try{document.exitPointerLock();}catch(e){}
   if(TOD.force!=='night'){TOD.force='night';applyGfx();}
-  Object.assign(INTRO,{on:true,ph:'crawl',t:0,i:-1,then,arm:performance.now()+900,last:performance.now()});const el=INTRO.el;el.hidden=false;el.className='crawl';
-  const c=el.querySelector('.icin');c.style.animation='none';void c.offsetWidth;c.style.animation=`icrawl ${INTRO.crawlD}s linear forwards`;
-  introDrone(true);introSay(['i7'],1);}
-function introShot(i){const s=INTRO_SHOTS[i],el=INTRO.el;INTRO.i=i;INTRO.shotT=0;const said=introSay([s.v],0.25);INTRO.dur=Math.max(s.d,said?said-0.75:0);/* 2 s after the words before the next shot speaks, so the echo clears */INTRO.vEnd=said?said-3.5:3;INTRO.roar=false;INTRO.cheerT=0;/* a recorded line carries ~2.4 s of PA echo after the words */
+  const w2=wk===2;
+  Object.assign(INTRO,{on:true,wk,inMatch:!!inMatch,shots:w2?INTRO_W2_SHOTS:INTRO_SHOTS,ph:w2?'static':'crawl',t:0,i:-1,reelI:-1,then,arm:performance.now()+900,last:performance.now(),staticD:w2?0.6:0.9});
+  const el=INTRO.el;el.hidden=false;el.className=INTRO.ph;
+  if(w2){snd({noise:true,f:2600,type:'bandpass',q:0.6,dur:INTRO.staticD,vol:0.14,bus:'ui'});}
+  else{const c=el.querySelector('.icin');c.style.animation='none';void c.offsetWidth;c.style.animation=`icrawl ${INTRO.crawlD}s linear forwards`;introDrone(true);introSay(['i7'],1);}}
+function introShot(i){const s=INTRO.shots[i],el=INTRO.el;INTRO.i=i;INTRO.shotT=0;INTRO.reelI=-1;const said=introSay([s.v],0.25);INTRO.dur=Math.max(s.d,said?said-0.75:0);/* 2 s after the words before the next shot speaks, so the echo clears */INTRO.vEnd=said?said-3.5:Math.min(2.6,s.d*0.55);INTRO.roar=false;INTRO.cheerT=0;/* a recorded line carries ~2.4 s of PA echo after the words */
   const l3=s.l3==='live'?[`Live from the ${MAPS[MAP.id].theme.title}`,'Monday Night Zombie Rumble']:s.l3;
-  el.className='bc'+(s.sigil?' sigil':'')+(s.bump?' bump':'')+(s.dark?' dark':'')+(l3?' l3':'')+(performance.now()>INTRO.arm?' armed':'');
+  el.className='bc'+(s.sigil?' sigil':'')+(s.bump?' bump':'')+(s.reel?' reel':'')+(s.dark?' dark':'')+(s.acid?' acid':'')+(l3?' l3':'')+(performance.now()>INTRO.arm?' armed':'');
   if(l3){el.querySelector('.il3 b').textContent=l3[0];el.querySelector('.il3 span').textContent=l3[1];}
+  if(s.reel)introReelSet(0);
   for(const q of el.querySelectorAll('.isub,.il3,.isig,.ibump,.ieyes i')){q.style.animation='none';void q.offsetWidth;q.style.animation='';}
   el.querySelector('.isub').textContent=s.line;
   if(s.dark){CR.team=[0,0];sting('armed',0.5,0.05);}else{if(i===0)sting('win',0.3,0.035);if(i>0)crowdCheer('win',1);INTRO.cheerT=i>0?3.4:1.5;}}
 /* the crowd during the broadcast: the stands stay up (visuals and the crowd bed) and a fresh cheer is laid in every few seconds so it never
    goes flat under a line; the headliner shot falls quiet until the name is said, then the house erupts */
-function introCrowd(dt){const s=INTRO_SHOTS[INTRO.i];if(s.dark&&!INTRO.roar){if(INTRO.shotT<INTRO.vEnd)return;INTRO.roar=true;crowdCheer('win',1);INTRO.cheerT=3.4;}
+function introCrowd(dt){const s=INTRO.shots[INTRO.i];if(s.dark&&!INTRO.roar){if(INTRO.shotT<INTRO.vEnd)return;INTRO.roar=true;crowdCheer('win',1);INTRO.cheerT=3.4;}
   if(s.out&&INTRO.shotT>INTRO.dur-1.3)return;cheer(0,null,1);cheer(1,null,1);INTRO.cheerT-=dt;if(INTRO.cheerT<=0){crowdCheer('point',1);INTRO.cheerT=3.4;}}
 function introTick(dt){const el=INTRO.el;INTRO.t+=dt;if(performance.now()>INTRO.arm)el.classList.add('armed');
   if(INTRO.ph==='crawl'&&INTRO.t>=INTRO.crawlD){INTRO.ph='final';INTRO.t=0;el.className='final armed';}
@@ -14925,16 +14961,18 @@ function introTick(dt){const el=INTRO.el;INTRO.t+=dt;if(performance.now()>INTRO.
   else if(INTRO.ph==='static'){const c=INTRO.stc,g=c.getContext('2d'),im=g.createImageData(c.width,c.height),d=im.data;
     for(let i=0;i<d.length;i+=4){const v=Math.random()*255|0;d[i]=d[i+1]=d[i+2]=v;d[i+3]=255;}g.putImageData(im,0,0);
     if(INTRO.t>=INTRO.staticD){INTRO.ph='bc';introShot(0);}}
-  else if(INTRO.ph==='bc'){INTRO.shotT+=dt;const s=INTRO_SHOTS[INTRO.i];introCrowd(dt);
+  else if(INTRO.ph==='bc'){INTRO.shotT+=dt;const s=INTRO.shots[INTRO.i];introCrowd(dt);
+    if(s.reel){const ri=Math.min(INTRO_W2_REEL.length-1,Math.floor(INTRO.shotT/Math.max(0.5,INTRO.dur/INTRO_W2_REEL.length)));introReelSet(ri);}
     if(s.out&&INTRO.shotT>INTRO.dur-1.3)el.classList.add('out');
-    if(INTRO.shotT>=INTRO.dur){if(INTRO.i+1<INTRO_SHOTS.length)introShot(INTRO.i+1);else introEnd();}}}
-function introView(){const now=performance.now(),dt=Math.min(0.25,(now-INTRO.last)/1000);INTRO.last=now;introTick(dt);if(!INTRO.on)return;const s=INTRO_SHOTS[Math.max(0,INTRO.i)],k=INTRO.ph==='bc'?clamp(INTRO.shotT/INTRO.dur,0,1):0;
+    if(INTRO.shotT>=INTRO.dur){if(INTRO.i+1<INTRO.shots.length)introShot(INTRO.i+1);else introEnd();}}}
+function introView(){const now=performance.now(),dt=Math.min(0.25,(now-INTRO.last)/1000);INTRO.last=now;introTick(dt);if(!INTRO.on)return;const s=INTRO.shots[Math.max(0,INTRO.i)],k=INTRO.ph==='bc'?clamp(INTRO.shotT/INTRO.dur,0,1):0;
   const e=0.6*k+0.4*(k*k*(3-2*k)),u=(s.u[0]+(s.u[1]-s.u[0])*e)%1;FLY_POS.getPoint(u,flyP);FLY_LOOK.getPoint(u,flyL);
   camera.position.copy(flyP);flyLs.copy(flyL);camera.lookAt(flyLs);if(Math.abs(camera.fov-62)>0.05){camera.fov=62;camera.updateProjectionMatrix();}vm.visible=false;}
 function introSkip(){if(INTRO.on&&performance.now()>INTRO.arm)introEnd();}
-function introEnd(){if(!INTRO.on)return;INTRO.on=false;INTRO.el.hidden=true;INTRO.el.className='';introHush();introDrone(false);
-  try{localStorage.setItem('za-intro','1');}catch(e){}
-  const f=INTRO.then;INTRO.then=null;if(f){TOD.force='';applyGfx();f();}
+function introEnd(){if(!INTRO.on)return;const wasMatch=INTRO.inMatch,wk=INTRO.wk;INTRO.on=false;INTRO.inMatch=false;INTRO.el.hidden=true;INTRO.el.className='';introHush();introDrone(false);
+  try{localStorage.setItem(wk===2?'za-intro2':'za-intro','1');}catch(e){}
+  const f=INTRO.then;INTRO.then=null;if(wasMatch){TOD.force='';applyGfx();if(!TOUCH.on&&!PAD.on)requestLock();}
+  else if(f){TOD.force='';applyGfx();f();}
   else{$('menu').hidden=false;if(!$('mpanel').hidden)dioShow($('modesel').value);}}
 window.addEventListener('keydown',e=>{if(!INTRO.on)return;e.preventDefault();e.stopImmediatePropagation();if(!e.repeat)introSkip();},true);
 /* ---------- mode screen diorama ----------
@@ -15068,9 +15106,9 @@ function frameBody(now){
   if(paused){}
   else if(S||net.mode!=='none'){netTick(dt);}
   if(paused){}
-  else if(S){if(DIO.on)dioHide();coverTick(dt);rgTick(dt);zRender(dt);zrDropRender(dt);debrisTick(dt);localTick(dt);renderOthers(dt);siteFx();hud(dt);audioTick(dt);}
+  else if(S){if(DIO.on)dioHide();if(INTRO.on&&INTRO.inMatch&&S.phase!=='buy')introEnd();coverTick(dt);rgTick(dt);zRender(dt);zrDropRender(dt);debrisTick(dt);localTick(dt);renderOthers(dt);siteFx();hud(dt);audioTick(dt);if(INTRO.on&&INTRO.inMatch)introView();}
   else{siteShow(true);flyover(dt);}
-  if((S||($('menu').hidden&&!INTRO.on))&&(TOD.force||SHOW.fade)){TOD.force='';SHOW.fade=0;SHOW.want=-1;$('flyfade').style.opacity=0;applyGfx();}/* leaving the menu: the player's time of day again */
+  if(((S&&!INTRO.on)||($('menu').hidden&&!INTRO.on))&&(TOD.force||SHOW.fade)){TOD.force='';SHOW.fade=0;SHOW.want=-1;$('flyfade').style.opacity=0;applyGfx();}/* leaving the menu: the player's time of day again */
   if(!$('lobby').hidden)lobbyTick(dt);
   fxTick(dt,now);touchTick();
   renderScene();
@@ -15147,7 +15185,7 @@ warmUI(0,'Compiling shaders…');
   const TOKEN='za-cloud-token';
   /* Deliberately excludes za-relay (a shared link could repoint it at a third-party relay), dev/sandbox
      switches and the release cache. Values are strings because that is what localStorage stores. */
-  const KEYS=['za-zr','za-prog','za-name','za-w','za-binds','za-opt','za-tlayout','za-hudlay','za-map','za-mode','za-zrcarry','za-zrlen','za-settab','za-intro','za-updseen'];
+  const KEYS=['za-zr','za-prog','za-name','za-w','za-binds','za-opt','za-tlayout','za-hudlay','za-map','za-mode','za-zrcarry','za-zrlen','za-settab','za-intro','za-intro2','za-updseen'];
   let me=null,baseline='',busy=false;
   const serial=()=>{const d={};for(const k of KEYS){try{const v=localStorage.getItem(k);if(v!==null)d[k]=v;}catch(e){}}return JSON.stringify(d);};
   const hasLocal=()=>{try{return KEYS.some(k=>localStorage.getItem(k)!==null);}catch(e){return false;}};
