@@ -234,7 +234,7 @@ body.prematch #topbar,body.prematch #mini,body.prematch #feed,body.prematch #vit
 .zlpanel{width:min(680px,100%);max-height:100%;overflow:auto;background:var(--panel-solid);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
 .zlhd{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.zlhd div{display:flex;flex-direction:column;gap:2px}.zlhd b{font-family:var(--display);font-size:30px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
 .zlhd div span{font-size:14px;color:var(--muted)}#zrlockcr{font-size:22px;color:var(--warn);white-space:nowrap}
-#zrlocklist{display:flex;flex-direction:column;gap:6px}.zlrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:rgba(255,255,255,.03)}
+#zrlocklist{display:flex;flex-direction:column;gap:6px}.zlshelf{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:6px;padding:4px 2px 2px;border-bottom:1px solid rgba(255,255,255,.12);font-family:var(--display);font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}.zlshelf:first-child{margin-top:0}.zlshelf span{font-family:var(--ui);font-size:12px;letter-spacing:0;text-transform:none;color:var(--muted)}.zlshelf.locked{color:var(--muted)}.zlrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:rgba(255,255,255,.03)}.zlrow.locked{opacity:.52}
 .zlinfo{display:flex;flex-direction:column;gap:2px;min-width:0}.zlinfo b{font-size:18px}.zlinfo>span{font-size:14px;color:var(--muted)}
 .zlpips{display:flex;gap:4px;margin-top:3px}.zlpips i{width:22px;height:6px;border-radius:2px;background:rgba(255,255,255,.12)}.zlpips i.on{background:var(--accent);box-shadow:0 0 6px rgba(95,242,255,.6)}
 .zlrow .btn{min-height:44px;min-width:150px;flex:none}.zlft{display:flex;justify-content:flex-end}.zlft .btn{min-height:44px}
@@ -6808,6 +6808,7 @@ function regenTick(dt){const rg=S.regen;if(!rg)return;for(let i=0;i<rg.length;i+
   for(const k in botMem)botMem[k].path=null;}}
 /* ---------- map features, host side: the Foundry pour burns whoever stands on the channel floor, glass panes rebuild ---------- */
 function envHurt(p,d,why){if(!S||S.phase!=='live'||!p)return;if(SB.on&&SB.god&&!p.bot)return;
+  if(S.mode==='zr'&&d<500)d*=1-0.15*zlv(p,'h');
   if(p.st==='alive'){if(p.prot>0)return;p.hp-=d;p.ak=null;p.ap=0;p.burnT=S.clock;if(p.hp>0)return;p.hp=0;
     if(S.mode==='dm'){p.st='dead';p.deadT=CFG.dmRespawn;p.d=(p.d|0)+1;feed(`${p.name} ${why}`);}
     else if(S.mode==='zr'){p.st='down';p.dhp=CFG.downHP;p.downT=CFG.zrBleed;p.d=(p.d|0)+1;feed(`${p.name} is down, ${why}`);}
@@ -6823,7 +6824,7 @@ function mfHost(dt){if(S.mode==='zr'||S.range)zsHost(dt);foHost(dt);orbHost(dt);
   if(MF.pour&&pourAt(t)===2){for(const p of S.players){if(p.st==='dead'||!inPour(p.x,p.z,0.3,t)||(p.y||0)>0.3)continue;envHurt(p,POUR_DPS*dt,'burned in the pour');}
     /* Revenants burn too (headliners are too heavy to be hurt by it, but they still walk around it) */
     if(ZB.list.length&&!zGuest())for(const o of ZB.list.slice()){if(o.st!=='walk'&&o.st!=='rise'||ZTYPES[o.t].boss||!inPour(o.x,o.z,0.3,t)||!o.reg||!o.reg.torso)continue;
-      o.reg.torso.hp-=POUR_DPS*1.5*dt;o.flash=Math.max(o.flash||0,0.6);if(o.reg.torso.hp<=0)zKill(o,false,null);else o.hp=Math.max(1,Math.round(o.reg.torso.hp));}}
+      o.reg.torso.hp-=POUR_DPS*1.5*zrHazM()*dt;o.flash=Math.max(o.flash||0,0.6);if(o.reg.torso.hp<=0)zKill(o,false,null);else o.hp=Math.max(1,Math.round(o.reg.torso.hp));}}
   const R=S.paneR;if(R)for(let i=0;i<R.length;i++){if(!(R[i]>0))continue;R[i]-=dt;if(R[i]>0)continue;R[i]=0;S.pane[i]=PANE_HP;}}
 /* ---------- Zombie Rumble stage changes: each wave the stadium reconfigures the map (Joe's picks, 2026-11-21: Yard Container Drop +
    Magnet Sweep, Foundry Steam Vents + Blast Doors, Atrium Portal Panes + Security Scan, Warren Shutter Maze + Hatches).
@@ -6921,7 +6922,7 @@ function zsPtlSide(i,vx,vz,x,z){const b=MF.panes[i],xs=b.x1-b.x0<b.z1-b.z0,v=xs?
 function zsLinks(){const L=new Map();for(let i=0;i<MF.panes.length;i++){if(!zsPtlOpen(i))continue;const cells=j=>{const b=MF.panes[j],out=[];
       for(let x=Math.floor(b.x0-0.5);x<=Math.floor(b.x1+0.5);x++)for(let z=Math.floor(b.z0);z<=Math.floor(b.z1-0.01);z++){const gx=x+50,gz=z+20;if(gx<0||gz<0||gx>=GW||gz>=GD)continue;if(zsPaneIn(b,x+0.5,z+0.5,0.35))out.push(gx*GD+gz);}return out;};
     const a=cells(i),c=cells(i^1);for(const k of a)L.set(k,c);}ZS.link=L.size?L:null;}
-function zsHurt(o,dm){if(!o||o.st==='dead')return;if(zShieldAbsorb(o,dm))return;const boss=!!ZTYPES[o.t].boss;o.reg.torso.hp-=boss?dm*0.3:dm;o.flash=1;o.flinch=1;if(!boss)o.slow=1;
+function zsHurt(o,dm){if(!o||o.st==='dead')return;dm*=zrHazM();if(zShieldAbsorb(o,dm))return;const boss=!!ZTYPES[o.t].boss;o.reg.torso.hp-=boss?dm*0.3:dm;o.flash=1;o.flinch=1;if(!boss)o.slow=1;
   if(o.reg.torso.hp<=0)zKill(o,false,null);else o.hp=Math.max(1,Math.round(o.reg.torso.hp));}
 function zsFocus(T){const Z=zsZ();if(!Z||!Z.mk)return T;const M=T.filter(p=>Z.mk[p.s]>0);return M.length?M:T;}
 function zsHatchNear(p){const Z=zsZ();if(!zsOn('hatch')||!Z.hat)return-1;const H=MF.zs.hatch;for(let i=0;i<H.length;i++)if(Z.hat[i]===1&&hyp(p.x,p.z,H[i].x,H[i].z)<ZS.HATCH_R)return i;return-1;}
@@ -6949,7 +6950,8 @@ function zMutate(o,remote){if(o.elite||o.st==='dead')return;o.elite=true;o.radT=
 function foHost(dt){const R=MF.rad;if(!R||!S||S.phase!=='live')return;
   for(const p of S.players){if(p.st==='dead'||(S.range&&p.bot&&!p.rgId)){p.rad=0;p.rsk=0;continue;}
     const up=p.st==='alive',k=up&&(p.y||0)<1.5?radAt(p.x,p.z):0,dc=up&&(p.y||0)<1.5&&deconAt(p.x,p.z);let r=p.rad||0;
-    r=dc?r-CFG.radDecon*dt:k>0?r+CFG.radIn*k*dt:r-CFG.radOut*dt;p.rad=r=clamp(r,0,100);
+    const radM=S.mode==='zr'?(zrHas(p,'hs')?0.5:1)*(1-0.15*zlv(p,'h')):1;
+    r=dc?r-CFG.radDecon*dt:k>0?r+CFG.radIn*radM*k*dt:r-CFG.radOut*dt;p.rad=r=clamp(r,0,100);
     if(r>=100)p.rsk=1;else if(p.rsk&&r<60)p.rsk=0;
     if(p.rsk&&up)envHurt(p,CFG.radHurt*dt,'died of radiation');
     /* bots step out of a hot zone when the meter runs high, and go for a decon shower when they are sick and one is close */
@@ -7023,7 +7025,7 @@ function ehHost(dt){const E=MF.eh;if(!E||!S||S.phase!=='live')return;
       for(let i=0;i<14;i++)zPix(o.x,0.4+Math.random()*1.6,o.z,(E.x-o.x)*2+(Math.random()-.5)*2,1+Math.random()*2,(E.z-o.z)*2+(Math.random()-.5)*2,0.06,0.7,0.5,1,true,0.5);
       if(dau)feed('The core swallowed a daughter');continue;}
     // the Matriarch herself or the Juggernaut: burns while she stands in it, and a split here throws the daughters clear
-    o.reg.torso.hp-=CFG.ehBossDps*dt;o.flash=1;const th=o.t==='matri'&&(o.gen|0)<1?o.max*0.66:0;
+    o.reg.torso.hp-=CFG.ehBossDps*zrHazM()*dt;o.flash=1;const th=o.t==='matri'&&(o.gen|0)<1?o.max*0.66:0;
     if(o.reg.torso.hp<=th){zKill(o,false,null);if(th)for(const c of ZB.list){if(c===o||c.t!=='matri'||c.st==='dead'||hyp(c.x,c.z,o.x,o.z)>3)continue;const a=Math.atan2(c.z-E.z,c.x-E.x)||Math.random()*6.283;
         for(const dd of [5.5,7,4.5]){const ex=E.x+Math.cos(a)*dd,ez=E.z+Math.sin(a)*dd;if(freeAt(ex,ez)){c.x=ex;c.z=ez;break;}}}}
     else o.hp=Math.max(1,Math.round(o.reg.torso.hp));}}
@@ -7093,7 +7095,7 @@ function startRound(){
 const DM_PTS=[];
 function dmPts(){DM_PTS.length=0;for(let x=-46;x<=46;x+=4)for(let z=-16;z<=16;z+=4){let ok=true;for(let dx=-1;dx<=1&&ok;dx++)for(let dz=-1;dz<=1&&ok;dz++)if(!freeAt(x+dx,z+dz))ok=false;if(ok)DM_PTS.push({x,z});}}
 dmPts();
-function dmPlace(p,x,z,yaw){p.x=x;p.z=z;p.y=0;p.st='alive';p.hp=100;p.dhp=0;if(p.bot)p.w=PVPK[(Math.random()*PVPK.length)|0];p.ak=null;p.ap=0;p.at=-1;p.pick=-1;p.give=false;p.lastZ=zoneOf(x);
+function dmPlace(p,x,z,yaw){p.x=x;p.z=z;p.y=0;p.st='alive';p.hp=zrMaxHp(p);p.dhp=0;if(p.bot)p.w=PVPK[(Math.random()*PVPK.length)|0];p.ak=null;p.ap=0;p.at=-1;p.pick=-1;p.give=false;p.lastZ=zoneOf(x);
   p.spyaw=yaw;p.yaw=yaw;p.pitch=0;p.spx=x;p.spz=z;p.sp++;p.prot=CFG.spawnProt;p.wr=0;const m=botMem[p.s];if(m){m.path=null;m.wr=0;m.vy=0;m.kvx=m.kvz=0;m.dashN=null;m.dashT=0;}}
 /* match start: each team in its own base's spawn alcoves (two to an alcove in 4v4), mirrored through the center like the arena */
 const DM_HOME=[[46,-14],[46,14],[47.5,-17.5],[47.5,17.5]];
@@ -7172,7 +7174,7 @@ function hostTick(dt){
   S.clock+=dt;if(!S.cover)S.cover=COVER.map(b=>b.max);
   if(!S.pane||S.pane.length!==MF.panes.length){S.pane=MF.panes.map(()=>PANE_HP);S.paneR=MF.panes.map(()=>0);}
   if(S.phase==='live')S.mft=(S.mft||0)+dt;else if(S.phase==='buy')S.mft=0;/* map feature clock: crane and pour start over each round */
-  if(S.phase==='buy'){if(S.mode==='zr')zrCarryTick();S.t-=dt;if(S.t<=0){S.phase='live';S.t=0;/* Sponsor deal: starting Favor, once the humans are seated */if(S.mode==='zr')for(const p of S.players)p.fv=(p.fv|0)+30*zlv(p,'f');}}
+  if(S.phase==='buy'){if(S.mode==='zr')zrCarryTick();S.t-=dt;if(S.t<=0){S.phase='live';S.t=0;/* Sponsor deal & Vitality: starting Favor and max HP, once the humans are seated */if(S.mode==='zr')for(const p of S.players){p.fv=(p.fv|0)+30*zlv(p,'f');if(p.st==='alive')p.hp=zrMaxHp(p);}}}
   else if(S.phase==='live'){if(S.mode==='dm'){dmTick(dt);if(S.range)rgSiteTick(dt);}else if(S.mode==='zr')zrTick(dt);else liveTick(dt);if(S.phase==='live'){regenTick(dt);mfHost(dt);}}
   else if(S.phase==='post'){S.t-=dt;if(S.t<=0){if(!SB.on&&(S.score[0]>=CFG.winScore||S.score[1]>=CFG.winScore)){S.phase='over';S.t=CFG.overT;feed(`${TEAMN[S.score[0]>S.score[1]?0:1]} wins the match`);}else{S.round++;startRound();}}}
   else if(S.phase==='over'){if(net.mode!=='solo'||SB.on)S.t-=dt;const hum=S.players.filter(p=>!p.bot);if(S.t<=0||(hum.length&&S.again&&hum.every(p=>S.again.includes(p.s)))){if(zrCanContinue())zcAdvance();newMatch();}}
@@ -7228,7 +7230,7 @@ function actions(p,dt,role){
   p.ap+=dt/(k==='weld'?ZS.HATCH_WELD:k==='rev'?CFG.revive*(S.mode==='zr'?(zrHas(p,'fm')?zrV(p,'fm'):1)*(1-0.12*zlv(p,'r')):1):k==='arm'?CFG.arm:CFG.defuse);
   if(p.ap>=1){
     p.ak=null;p.ap=0;p.at=-1;
-    if(k==='rev'){xsAdd(p,'rv');const d=S.players[tg];d.st='alive';d.hp=S.mode==='zr'?CFG.zrRevHP:retHP(d.team,roleOf(d.team,S.round),zoneOf(d.x));if(S.mode==='zr'&&zrV(p,'tg')){const v=zrV(p,'tg');d.hp=Math.min(100,d.hp+v);p.hp=Math.min(100,p.hp+v);}feed(`${p.name} revived ${d.name} at ${d.hp} HP`);
+    if(k==='rev'){xsAdd(p,'rv');const d=S.players[tg];d.st='alive';d.hp=S.mode==='zr'?CFG.zrRevHP:retHP(d.team,roleOf(d.team,S.round),zoneOf(d.x));if(S.mode==='zr'&&zrV(p,'tg')){const v=zrV(p,'tg');d.hp=Math.min(zrMaxHp(d),d.hp+v);p.hp=Math.min(zrMaxHp(p),p.hp+v);}feed(`${p.name} revived ${d.name} at ${d.hp} HP`);
       if(S.mode==='zr')zrFavor(p,ZFV.rev+(ZB.list.some(o=>o.st==='walk'&&hyp(o.x,o.z,d.x,d.z)<6)?ZFV.revHot:0));}
     else if(k==='arm'){xsAdd(p,'pl');S.armed={site:tg,t:CFG.fuse};feed(`${p.name} armed the charge at ${tg}`);}
     else if(k==='weld')zsWeld(p,tg);
@@ -11721,9 +11723,9 @@ function zClear(){ZB.list.length=0;ZB.acc=null;ZB.globs.length=0;ZB.pools.length
 function zHurt(p,dmg,z,burst){if(!p||p.st!=='alive')return;if(SB.on&&SB.god&&!p.bot)return;if(p.prot>0)return;
   if(S.mode==='zr'){dmg*=1-zrV(p,'ts');if(zrHas(p,'ex'))dmg*=1.25;if(p.rcN)dmg*=1+0.1*p.rcN;dmg*=1-0.04*zlv(p,'t');if(zrAct('glass'))dmg*=1.25;if(zrSet(p,'med'))dmg*=0.9;if(burst)dmg*=1-zrV(p,'bp');if(burst&&zrSet(p,'ark'))dmg*=0.75;dmg=Math.round(dmg);}
   p.hp-=dmg;p.ak=null;p.ap=0;
-  if(S.mode==='zr'&&p.hp>0&&p.hp<30&&!p.edUsed&&zrV(p,'ed')){p.edUsed=1;p.hp=Math.min(100,p.hp+zrV(p,'ed'));feed(`An ORBIT drone patches ${p.name} up`);}
+  if(S.mode==='zr'&&p.hp>0&&p.hp<30&&!p.edUsed&&zrV(p,'ed')){p.edUsed=1;p.hp=Math.min(zrMaxHp(p),p.hp+zrV(p,'ed'));feed(`An ORBIT drone patches ${p.name} up`);}
   if(S.mode==='zr'&&p.hp<=0){const q=S.players.find(o=>o!==p&&o.st==='alive'&&zrHas(o,'lf')&&!o.lfUsed&&hyp(o.x,o.z,p.x,p.z)<6);if(q){q.lfUsed=1;p.hp=1;feed(`${q.name}'s Lifeline keeps ${p.name} up`);}}
-  if(S.mode==='zr'&&p.hp<=0&&zrHas(p,'rc')&&!p.rcUsed){p.rcUsed=1;p.rcN=(p.rcN|0)+1;p.hp=100;feed(`${p.name} is reprinted on the spot (Reprint Clause)`);}
+  if(S.mode==='zr'&&p.hp<=0&&zrHas(p,'rc')&&!p.rcUsed){p.rcUsed=1;p.rcN=(p.rcN|0)+1;p.hp=zrMaxHp(p);feed(`${p.name} is reprinted on the spot (Reprint Clause)`);}
   // the red damage arcs point at the Revenant that hit you (they only know players, so add it here)
   if(!p.bot&&p.s===mySlot()&&OPT.dmgDir!=='off'){const L=DMGDIR.list,old=L.find(e=>e.s==='z'+z.id);if(old){old.t=DMGDIR.LIFE;old.x=z.x;old.z=z.z;}else{L.push({s:'z'+z.id,x:z.x,z:z.z,t:DMGDIR.LIFE,k:0.9});if(L.length>6)L.shift();}}
   if(p.hp<=0&&S.mode==='zr'){p.hp=0;p.st='down';p.dhp=CFG.downHP;p.downT=CFG.zrBleed+(zrSet(p,'med')>1?10:0)+4*zlv(p,'b');p.ak=null;p.ap=0;p.d=(p.d|0)+1;feed(`${p.name} is down, dragged under by ${zA(z)}`);}
@@ -11926,23 +11928,23 @@ function zWallNear(w,x,z,m){const c=Math.cos(w.a),sn=Math.sin(w.a),rx=x-w.x,rz=z
 function zWallTick(dt){const W=ZB.walls;
   for(let i=W.length-1;i>=0;i--){const w=W[i];w.t-=dt;
     if(w.t<=0){const c=Math.cos(w.a),sn=Math.sin(w.a);for(const f of [-0.28,0.28])zAcidPool(w.x+c*w.L*f,w.z+sn*w.L*f);W.splice(i,1);continue;}
-    if(!w.hit&&w.T-w.t>0.25){w.hit=true;for(const p of S.players)if(p.st==='alive'&&(p.y||0)<1.5&&zWallNear(w,p.x,p.z,1.6))zHurt(p,CFG.zMaWallHit,{id:'acid',x:w.x,z:w.z,t:'matri'});}
+    if(!w.hit&&w.T-w.t>0.25){w.hit=true;for(const p of S.players)if(p.st==='alive'&&(p.y||0)<1.5&&zWallNear(w,p.x,p.z,1.6))zHurt(p,Math.max(1,Math.round(CFG.zMaWallHit*zrAcidM(p,true))),{id:'acid',x:w.x,z:w.z,t:'matri'});}
     if(zWallH(w)<0.5)continue;
     for(const p of S.players){if(p.st!=='alive'||(p.y||0)>zWallH(w)||!zWallNear(w,p.x,p.z,0.35))continue;
-      p.awA=(p.awA||0)+CFG.zMaWallDps*dt;if(p.awA>=1){const d=Math.floor(p.awA);p.awA-=d;zHurt(p,d,{id:'acid',x:w.x,z:w.z,t:'matri'});}
+      p.awA=(p.awA||0)+CFG.zMaWallDps*zrAcidM(p,true)*dt;if(p.awA>=1){const d=Math.floor(p.awA);p.awA-=d;zHurt(p,d,{id:'acid',x:w.x,z:w.z,t:'matri'});}
       if(p.bot){const m=botMem[p.s];if(m&&!m.esc){const c=Math.cos(w.a),sn=Math.sin(w.a),side=((p.x-w.x)*-sn+(p.z-w.z)*c)>=0?1:-1,ex=p.x-sn*side*1.4,ez=p.z+c*side*1.4;if(freeAt(ex,ez))m.esc={x:ex,z:ez,t:1.2};}}}}}
 function zAcidSplash(x,y,z){for(let i=0;i<10;i++)zPix(x,Math.max(0.1,y),z,(Math.random()-.5)*3,1+Math.random()*2,(Math.random()-.5)*3,0.05,0.5,1,0.2,true,0.5+Math.random()*0.4);}
 function zAcidTick(dt){const G=ZB.globs,P=ZB.pools;if(ZB.walls.length)zWallTick(dt);if(!G.length&&!P.length&&!ZB.walls.length){if(S&&S.zac)S.zac=undefined;return;}
   for(let i=G.length-1;i>=0;i--){const g=G[i],px=g.x,pz=g.z,gdt=dt*chronoAt(g.x,g.z);g.t+=gdt;g.vy-=ZAC_G*gravAt(g.x,g.z)*gdt;g.x+=g.vx*gdt;g.y+=g.vy*gdt;g.z+=g.vz*gdt;let done=false;
     if(MF.eh){const q=ehPull(g.x,g.z,CFG.ehPullG);if(q){g.vx+=q.x*dt;g.vz+=q.z*dt;if(q.d<MF.eh.r*0.7&&g.y<5){G.splice(i,1);continue;}}}/* the black hole bends acid globs in and eats them */
-    for(const p of S.players){if(p.st!=='alive')continue;const py=p.y||0;if(Math.abs(p.x-g.x)<0.55&&Math.abs(p.z-g.z)<0.55&&g.y>py&&g.y<py+1.9){zHurt(p,CFG.zSpiGlob,g.src);zAcidPool(p.x,p.z);done=true;break;}}
+    for(const p of S.players){if(p.st!=='alive')continue;const py=p.y||0;if(Math.abs(p.x-g.x)<0.55&&Math.abs(p.z-g.z)<0.55&&g.y>py&&g.y<py+1.9){zHurt(p,Math.max(1,Math.round(CFG.zSpiGlob*zrAcidM(p,false))),g.src);zAcidPool(p.x,p.z);done=true;break;}}
     if(!done&&zSolidAt(g.x,g.y,g.z)){zAcidPool(px,pz);done=true;}
     if(!done&&g.y<=0.05){zAcidPool(g.x,g.z);done=true;}
     if(!done&&(g.t>3||Math.abs(g.x)>49||Math.abs(g.z)>19.5))done=true;
     if(done){zAcidSplash(g.x,g.y,g.z);G.splice(i,1);}}
   for(let i=P.length-1;i>=0;i--){const q=P[i];q.t-=dt;if(q.t<=0){P.splice(i,1);continue;}
     for(const p of S.players){if(p.st!=='alive'||(p.y||0)>0.45||hyp(p.x,p.z,q.x,q.z)>q.r*0.92)continue;
-      p.acA=(p.acA||0)+CFG.zAcidDps*dt;if(p.acA>=1){const d=Math.floor(p.acA);p.acA-=d;zHurt(p,d,{id:'acid',x:q.x,z:q.z,t:'spit'});}
+      p.acA=(p.acA||0)+CFG.zAcidDps*zrAcidM(p,true)*dt;if(p.acA>=1){const d=Math.floor(p.acA);p.acA-=d;zHurt(p,d,{id:'acid',x:q.x,z:q.z,t:'spit'});}
       // bots step out of acid, away from the middle of the pool
       if(p.bot){const m=botMem[p.s];if(m&&!m.esc){const l=hyp(p.x,p.z,q.x,q.z)||1,ux=(p.x-q.x)/l||1,uz=(p.z-q.z)/l,ex=q.x+ux*(q.r+1),ez=q.z+uz*(q.r+1);if(freeAt(ex,ez))m.esc={x:ex,z:ez,t:1.5};}}}}
   const r1=v=>Math.round(v*10)/10;
@@ -12080,7 +12082,12 @@ function zApply(z,e,by,pred){if(z.st==='dead')return false;const boss=!!ZTYPES[z
       const broke=R.hp<=0||(reg!=='torso'&&ZR.regParts[reg].some(q=>!ZR.parts[q].soft&&!ZR.parts[q].only&&!z.cnt[q]));
       if(broke){if(reg==='torso'){z.reg.torso.hp=0;}else{zSever(z,reg,ux,uz);if(reg==='head')headKill=true;else{off.push(ZREG[reg].name);if(reg.startsWith('leg')&&!boss)z.slow=0.8;}}}}
     // a Spitter hit in the head or its glowing throat sac while it winds up a throw dies on the spot
-    if(z.sw>0&&!headKill&&e.hits.some(h=>ZR.parts[h.p].reg==='head')){headKill=true;if(mine)feed('Throat shot');}
+    const throat=!boss&&z.sw>0&&e.hits.some(h=>ZR.parts[h.p].reg==='head');
+    if(throat&&!headKill){headKill=true;if(mine)feed('Throat shot');}
+    // Throat Cutter: Spitter throat shots and Matriarch back-sac hits pay bonus Favor (host side)
+    if(!pred&&!zGuest()&&S&&S.mode==='zr'&&by){const thV=zrV(by,'th');if(thV){
+      if(throat)zrFavor(by,thV);
+      else if(z.t==='matri'&&e.plate>1&&zClk()-(by.thT||-99)>=0.4){by.thT=zClk();zrFavor(by,thV);}}}
     // Payload: every 10th hit a player lands bursts (the host decides; a guest's own copy waits)
     if(!pred&&!zGuest()&&zrHas(by,'px')){by.pxN=(by.pxN|0)+1;if(by.pxN>=10){by.pxN=0;const bx=z.x,bz=z.z;setTimeout(()=>{if(S&&S.phase==='live')zAoe(bx,bz,2.5,40,by);},0);}}
     const regs=Object.keys(hitReg).map(r=>`${ZREG[r].name} ${Math.round(hitReg[r])}`).join(', ');
@@ -12332,7 +12339,12 @@ const ZLOCK={t:{n:'Riot padding',d:'Take 4% less damage from Revenants per level
   d:{n:'Front row seats',d:'A fourth card on offer at every intermission',cost:[600]},
   c:{n:'Scavenger',d:'Pick up 10% more Credits per level',cost:[200,400,700]},
   q:{n:'Quick hands',d:'Reload 6% faster per level',cost:[150,300,500]},
-  g:{n:'Second wind',d:'Dash recharges 8% faster per level',cost:[150,300]}};
+  g:{n:'Second wind',d:'Dash recharges 8% faster per level',cost:[150,300]},
+  // Week 2 Locker shelf (append-only so presence 'lk' indices stay compatible): opens once Week 2 is cleared
+  v:{n:'Vitality',d:'+10 max HP per level in Zombie Rumble',cost:[300,550,900],shelf:2},
+  x:{n:'Extra thruster',d:'Start every Zombie Rumble run with +1 dash charge',cost:[900],shelf:2},
+  h:{n:'Containment suit',d:'Take 15% less acid and arena hazard damage, and fill radiation 15% slower per level',cost:[250,500],shelf:2}};
+function zcShelfOpen(n){return n<=1||!!(ZCAMP.w[n]&&ZCAMP.w[n].c);}
 /* your own Locker level, for upgrades this browser applies to itself (Credits, reload, dash): Zombie Rumble only, never the Sandbox */
 function lkLocal(k){if(!S||S.mode!=='zr'||SB.on||!ZLOCK[k])return 0;const o=ZCAMP.lk||{};return Math.min(ZLOCK[k].cost.length,o[k]|0);}
 const ZLOCKK=Object.keys(ZLOCK);
@@ -12340,15 +12352,21 @@ function lkMine(){const o=(ZCAMP.lk&&typeof ZCAMP.lk==='object')?ZCAMP.lk:(ZCAMP
 const LKC={};
 function zlv(p,k){if(!p||p.bot||!S||S.mode!=='zr')return 0;const pr=presenceOf(p.peer),code=pr&&typeof pr.lk==='string'?pr.lk:p.s===mySlot()?lkMine():'';
   const i=ZLOCKK.indexOf(k);return Math.min(ZLOCK[k].cost.length,Math.max(0,+code[i]||0));}
+function zrMaxHp(p){return S&&S.mode==='zr'&&p?100+10*zlv(p,'v'):100;}
 function zrRerollCost(p){if(S&&S.zr&&((S.zr.rrN||{})[p.s]|0)<zrV(p,'ir'))return 0;/* Instant Replay */return Math.max(0,ZREROLL-10*zlv(p,'p'));}
 function lockUI(){const el=$('zrlocklist');if(!el)return;const mk=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n;};const cr=ZCAMP.cr|0,o=ZCAMP.lk||{};
   $('zrlockcr').textContent=cr.toLocaleString('en-US')+' Credits';$('lockbtn').querySelector('span').textContent='Locker';
-  el.replaceChildren(...ZLOCKK.map(k=>{const L=ZLOCK[k],lv=Math.min(L.cost.length,o[k]|0),max=lv>=L.cost.length,cost=max?0:L.cost[lv],row=mk('div','zlrow');
-    const pips=mk('span','zlpips');for(let i=0;i<L.cost.length;i++)pips.append(mk('i',i<lv?'on':''));
-    const info=mk('div','zlinfo');info.append(mk('b','',L.n),mk('span','',L.d),pips);
-    const b=mk('button','btn'+(max?'':' primary'),max?'Maxed':`Upgrade · ${cost}`);b.type='button';b.disabled=max||cr<cost;
-    b.addEventListener('click',()=>{if(b.disabled)return;ZCAMP.cr=(ZCAMP.cr|0)-cost;ZCAMP.lk=ZCAMP.lk||{};ZCAMP.lk[k]=lv+1;zcSave();lockUI();blip(980,0.04,0.02,false,'ui');});
-    row.append(info,b);return row;}));
+  const nodes=[],shelves=[[1,'Week 1 Shelf','Draft Night'],[2,'Week 2 Shelf','Containment Week']];
+  for(const [sn,title,sub] of shelves){const open=zcShelfOpen(sn),hd=mk('div','zlshelf'+(open?'':' locked'));
+    hd.append(document.createTextNode(title),mk('span','',open?sub:`Clear Week ${sn}: ${sub} to unlock`));nodes.push(hd);
+    for(const k of ZLOCKK){const L=ZLOCK[k];if((L.shelf||1)!==sn)continue;
+      const lv=Math.min(L.cost.length,o[k]|0),max=lv>=L.cost.length,cost=max?0:L.cost[lv],row=mk('div','zlrow'+(open?'':' locked'));
+      const pips=mk('span','zlpips');for(let i=0;i<L.cost.length;i++)pips.append(mk('i',i<lv?'on':''));
+      const info=mk('div','zlinfo');info.append(mk('b','',L.n),mk('span','',L.d),pips);
+      const b=mk('button','btn'+(!open||max?'':' primary'),!open?'Locked':max?'Maxed':`Upgrade · ${cost}`);b.type='button';b.disabled=!open||max||cr<cost;
+      b.addEventListener('click',()=>{if(b.disabled)return;ZCAMP.cr=(ZCAMP.cr|0)-cost;ZCAMP.lk=ZCAMP.lk||{};ZCAMP.lk[k]=lv+1;zcSave();lockUI();blip(980,0.04,0.02,false,'ui');});
+      row.append(info,b);nodes.push(row);}}
+  el.replaceChildren(...nodes);
   const rl=$('zrlockruns'),R=Array.isArray(ZCAMP.runs)?ZCAMP.runs:[];rl.replaceChildren();if(R.length){rl.append(mk('h4','','Credits from recent runs'));
     for(const q of R.slice().reverse()){const d=mk('div');d.append(mk('span','',`Week ${q.w|0} · ${q.won?'retained':'eliminated'}${q.d?' · '+q.d:''}`),mk('b','','+'+(q.cr|0)));rl.append(d);}}}
 function lockOpen(on){const el=$('zrlocker');el.hidden=!on;if(on){lockUI();const b=el.querySelector('.zlrow .btn:not(:disabled)')||$('zrlockx');b.focus();blip(660,0.05,0.03,false,'ui');}}
@@ -12414,6 +12432,11 @@ const ZCARDS={
   // ORBIT: logistics (Arena Works)
   bo:{h:'ark',b:'ORBIT',n:'Bulk Order',r:1,d:'# of your shots use no round',v:[0.1,0.17,0.24],t:['10%','17%','24%']},
   ed:{h:'ark',b:'ORBIT',n:'Express Drone',r:2,d:'Once a segment, when you drop under 30 HP a drone patches you up for #',v:[40,60,80],t:['40 HP','60 HP','80 HP']},
+  // Week 2+ hazard cards (offered from Week 2 onward)
+  sl:{h:'med',b:'KRAKKA',n:'Sealant Boots',r:2,w:2,d:'Acid pools and walls hurt you # less',v:[0.6,0.75,0.9],t:['60%','75%','90%']},
+  th:{h:'arm',n:'Throat Cutter',r:1,w:2,d:'Spitter throat shots and Matriarch sac hits pay # Favor',v:[2,3,4],t:['+2','+3','+4']},
+  hs:{h:'ark',n:'Hazard Shunt',r:2,w:2,d:'Revenants take # damage from arena hazards, and your rad meter fills half as fast',v:[2,2.5,3],t:['double','2.5×','triple']},
+  ws:{h:'kin',n:'Splash Step',r:3,w:2,d:'Dashing through an acid pool clears it'},
   // the Benefactors: run-defining, with a price
   rc:{h:'bnf',n:'Reprint Clause',r:4,d:'Once a segment, when you go down you are reprinted at once with full health',x:'Each reprint: you take 10% more damage for the rest of the run'},
   ex:{h:'bnf',n:'Exclusive Contract',r:4,d:'+40% damage',x:'You take 25% more damage'},
@@ -12461,7 +12484,7 @@ function zrAny(k){return !!S&&S.players.some(p=>zrHas(p,k));}
 function zrMine(k){if(!S||S.mode!=='zr')return false;const s=mySlot();return s>=0&&zrHas(S.players[s],k);}
 function zrWMod(w,k){if(!S||S.mode!=='zr')return w;const o={...w};{const sw=zrMySw();if(k&&sw&&sw.k===k)swApply(o,sw);}if(zrMySet('kin'))o.move*=1.05;o.reload*=1-zrMyV('qh');o.mag=Math.round(o.mag*(1+zrMyV('dm')));
   {const v=1-zrMyV('sa');o.spread*=v;o.recoil*=v;o.cone*=v;}o.move*=1+zrMyV('fl')+((S.players[mySlot()]||{}).shT>zClk()?(S.players[mySlot()].shV||0):0);return o;}
-function myDashN(){return Math.max(1,CFG.dashN|0)+zrMyV('tc');}
+function myDashN(){return Math.max(1,CFG.dashN|0)+zrMyV('tc')+lkLocal('x');}
 function myDashCd(){return CFG.dashCd*(1-zrMyV('ad'))*(1-0.08*lkLocal('g'))*(zrMySet('kin')>1?0.8:1);}
 function zrFavor(p,n,why){if(!p||!S||S.mode!=='zr'||!(n>0))return;p.fv=(p.fv|0)+Math.round(n*[1,1.25,1.5][zrSet(p,'brd')]*(S.zr&&S.zr.act?(zrHas(p,'ps')?3:2):1)*(zrHas(p,'rg')?2:1));}
 /* ---------- Revenant drops: Credits piles and special weapons ----------
@@ -12503,7 +12526,7 @@ function zrDropTick(){const Z=S.zr;if(!Z.drops)Z.drops=[];
     for(const p of S.players){if(p.st!=='alive'){p._u=p.use;continue;}const press=p.use&&!p._u;
       for(let i=Z.drops.length-1;i>=0;i--){const d=Z.drops[i],dd=hyp(d.x,d.z,p.x,p.z);
         if(d.t==='c'&&dd<1.3){Z.crT=(Z.crT|0)+d.v;Z.drops.splice(i,1);}
-        else if(d.t==='k'&&dd<1.3){const o=S.players.find(q=>q.s===d.o);p.hp=Math.min(100,p.hp+15);Z.drops.splice(i,1);
+        else if(d.t==='k'&&dd<1.3){const o=S.players.find(q=>q.s===d.o);p.hp=Math.min(zrMaxHp(p),p.hp+15);Z.drops.splice(i,1);
           if(o&&zrV(o,'sh')){p.shT=S.clock+4;p.shV=zrV(o,'sh');}if(o&&zrHas(o,'ss')){const bx=d.x,bz=d.z;setTimeout(()=>{if(S&&S.phase==='live')zAoe(bx,bz,4,30,o);},0);}}
         else if(d.t==='v'&&dd<1.3){p.vtT=S.clock+5;p.vtN=(p.vtN|0)+1;Z.drops.splice(i,1);}
         else if(d.t==='w'&&press&&!p.bot&&!p.ak&&dd<1.8){const old=p.sw;p.sw=d.sw;p.dropW=d.sw.k;Z.drops.splice(i,1);
@@ -12602,8 +12625,8 @@ function zrRise(t,elite,far){const Z=S.zr,boss=ZTYPES[t]&&ZTYPES[t].boss;if(!eli
   return zSpawn(t,c.x,c.z,Math.atan2(-(n.x-c.x),-(n.z-c.z)),elite,mod);}
 /* everyone back up and healed (between waves and segments); anyone out of the fight comes back beside a partner */
 function zrRegroup(){const up=S.players.find(p=>p.st==='alive');
-  for(const p of S.players){if(p.st==='alive'){p.hp=100;continue;}
-    if(p.st==='down'){p.st='alive';p.hp=100;p.ak=null;p.ap=0;feed(`${p.name} is back on their feet`);continue;}
+  for(const p of S.players){if(p.st==='alive'){p.hp=zrMaxHp(p);continue;}
+    if(p.st==='down'){p.st='alive';p.hp=zrMaxHp(p);p.ak=null;p.ap=0;feed(`${p.name} is back on their feet`);continue;}
     if(!up)continue;let x=up.x,z=up.z;for(let i=0;i<16;i++){const a=i/16*Math.PI*2,ex=up.x+Math.cos(a)*1.6,ez=up.z+Math.sin(a)*1.6;if(freeAt(ex,ez)&&segClear(up.x,up.z,ex,ez)){x=ex;z=ez;break;}}
     dmPlace(p,x,z,dmFace(x,z,ZB.list.filter(o=>o.st!=='dead')));feed(`${p.name} is back in`);}}
 function zrTick(dt){const Z=S.zr;if(!Z)return;S.timer+=dt;zrDropTick();const short=Z.len==='short';
@@ -12644,8 +12667,8 @@ function zrInter(){const Z=S.zr;Z.ph='inter';Z.t=30;zClear();zrRegroup();Z.rrN={
   feed(`Intermission · segment ${Z.seg+1} next`);}
 /* levels: a Standard or Rare card you hold can come back until it is level III; Signature and Benefactor cards are one per run */
 function zCap(id){return ZCARDS[id].r>=3?1:3;}
-function zrRoll(p,n){const own=new Set((S.zr.offers&&S.zr.offers[p.s])||[]),pool=[];
-  for(const id in ZCARDS){if(own.has(id)||ZCARDS[id].r===4||zrLv(p,id)>=zCap(id))continue;const r=ZCARDS[id].r;for(let i=0;i<(r===1?6:r===2?3:1);i++)pool.push(id);}
+function zrRoll(p,n){const own=new Set((S.zr.offers&&S.zr.offers[p.s])||[]),wk=(S.zr&&S.zr.week)|0,pool=[];
+  for(const id in ZCARDS){if(own.has(id)||ZCARDS[id].r===4||(ZCARDS[id].w|0)>wk||zrLv(p,id)>=zCap(id))continue;const r=ZCARDS[id].r;for(let i=0;i<(r===1?6:r===2?3:1);i++)pool.push(id);}
   const out=[];while(out.length<n&&pool.length){const id=pool[(Math.random()*pool.length)|0];if(!out.includes(id))out.push(id);for(let i=pool.length-1;i>=0;i--)if(pool[i]===id)pool.splice(i,1);}
   // the Benefactors bid rarely: one in ten offers swaps its last card for one of theirs (never more than one)
   if(out.length&&Math.random()<0.1){const bs=Object.keys(ZCARDS).filter(id=>ZCARDS[id].r===4&&!zrLv(p,id));if(bs.length)out[out.length-1]=bs[(Math.random()*bs.length)|0];}
@@ -12671,12 +12694,17 @@ function zAoe(x,zz,r,dmg,by){for(const o of ZB.list){if(o.st==='dead')continue;c
     if(lim.length&&o.posed&&!ZTYPES[o.t].boss&&Math.random()<0.5)zSever(o,lim[(Math.random()*lim.length)|0],ux,uz);
     if(o.reg.torso.hp<=0)zKill(o,false,by);else o.hp=Math.max(1,Math.round(o.reg.torso.hp));}
   for(let i=0;i<14;i++){const a=Math.random()*Math.PI*2,v=2+Math.random()*5;zPix(x,0.6,zz,Math.cos(a)*v,2+Math.random()*4,Math.sin(a)*v,ZV*1.4,1,0.6,0.25,true,0.6+Math.random()*0.6);}}
-/* Battering Dash: a dash (seen as the player's dash counter moving) knocks flat any Revenant it runs into */
-function zrDashHit(p,dt){if(!zrHas(p,'ds'))return;const ds=p.bot?p.ds|0:p.s===mySlot()?(me.dashSeq|0)%1000:((net.mode==='online'&&presenceOf(p.peer))||{}).ds|0;
+/* Hazard Shunt (IRONLEAF) multiplier for Revenant damage from arena hazards, and Sealant Boots / Containment Suit multiplier for acid */
+function zrHazM(){if(!S||S.mode!=='zr')return 1;let m=1;for(const p of S.players)m=Math.max(m,zrV(p,'hs')||1);return m;}
+function zrAcidM(p,pool){if(!S||S.mode!=='zr'||!p)return 1;return(pool?1-zrV(p,'sl'):1)*(1-0.15*zlv(p,'h'));}
+/* Battering Dash & Splash Step: a dash (seen as the player's dash counter moving) knocks flat Revenants and/or clears acid pools */
+function zrDashHit(p,dt){const dsOn=zrHas(p,'ds'),wsOn=zrHas(p,'ws');if(!dsOn&&!wsOn)return;const ds=p.bot?p.ds|0:p.s===mySlot()?(me.dashSeq|0)%1000:((net.mode==='online'&&presenceOf(p.peer))||{}).ds|0;
   if(p.dsSeen==null)p.dsSeen=ds;if(ds!==p.dsSeen){p.dsSeen=ds;p.dsT=0.35;p.dsId=(p.dsId|0)+1;}if(!(p.dsT>0))return;p.dsT-=dt;
-  for(const o of ZB.list){if(o.st!=='walk'||o.dsHit===p.s*1e4+p.dsId||hyp(o.x,o.z,p.x,p.z)>1.2)continue;o.dsHit=p.s*1e4+p.dsId;
+  if(dsOn)for(const o of ZB.list){if(o.st!=='walk'||o.dsHit===p.s*1e4+p.dsId||hyp(o.x,o.z,p.x,p.z)>1.2)continue;o.dsHit=p.s*1e4+p.dsId;
     if(zShieldAbsorb(o,60))continue;
-    o.reg.torso.hp-=ZTYPES[o.t].boss?20:60;o.flash=1;o.flinch=1;o.slow=1.2;if(o.reg.torso.hp<=0)zKill(o,false,p);}}
+    o.reg.torso.hp-=ZTYPES[o.t].boss?20:60;o.flash=1;o.flinch=1;o.slow=1.2;if(o.reg.torso.hp<=0)zKill(o,false,p);}
+  if(wsOn&&ZB.pools.length)for(let i=ZB.pools.length-1;i>=0;i--){const q=ZB.pools[i];if(hyp(q.x,q.z,p.x,p.z)>q.r+0.9)continue;ZB.pools.splice(i,1);
+    for(let j=0;j<10;j++)zPix(q.x+(Math.random()-.5)*q.r,0.12,q.z+(Math.random()-.5)*q.r,(Math.random()-.5)*4,1.2+Math.random()*2.5,(Math.random()-.5)*4,0.055,0.4,1,0.75,true,0.55);}}
 /* Tripwire: rebuilt cover leaves a mine in front of it (a drop of type 'm', set off in zrDropTick) */
 function zrTripwire(b){if(!S||S.mode!=='zr'||!S.zr||!S.zr.drops)return;const o=S.players.find(p=>zrV(p,'tw'));if(!o)return;const Z=S.zr,cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2;
   for(const [x,z] of [[cx,b.z1+0.9],[cx,b.z0-0.9],[b.x1+0.9,cz],[b.x0-0.9,cz]])if(freeAt(x,z)){Z.drops.push({t:'m',o:o.s,i:++Z.di,x:+x.toFixed(2),z:+z.toFixed(2),e:Math.round(S.timer+60)});break;}
@@ -12687,7 +12715,7 @@ function zrTackle(p){const v=zrV(p,'st');if(!v||p.bot)return;const sl=p.s===mySl
 /* kill bookkeeping for Favor: headshots, multi-kills (each within 1 s of the last), wallrun kills, Bloodletting, Crowd Roar */
 function zrOnKill(z,head,by){if(!by||!S||S.mode!=='zr')return;const c=S.clock;by.zmk=by.zmkT!=null&&c-by.zmkT<=1?(by.zmk|0)+1:1;by.zmkT=c;
   zrFavor(by,ZFV.kill+(head?ZFV.head*(zrV(by,'sb')||1):0)+(by.zmk>1?ZFV.multi+zrV(by,'hr'):0)+(by.wr?2:0));
-  if(zrHas(by,'kh')&&by.st==='alive')by.hp=Math.min(100,by.hp+zrV(by,'kh'));
+  if(zrHas(by,'kh')&&by.st==='alive')by.hp=Math.min(zrMaxHp(by),by.hp+zrV(by,'kh'));
   if(by.zmk===2&&zrHas(by,'cr'))for(const o of ZB.list)if(o.st==='walk'&&hyp(o.x,o.z,by.x,by.z)<10){o.slow=1.5;o.flinch=1;o.flash=0.6;}}
 /* ---------- the Juggernaut ----------
    A towering Revenant in riot plating. Shots from the front glance off the plating (30% damage); its back is exposed (160%).
@@ -12820,7 +12848,7 @@ function zrBanner(){const Z=S.zr,bn=$('banner');bn.hidden=S.phase==='buy';/* the
   if(S.phase==='buy'){$('bannerT').textContent='Monday Night Zombie Rumble';
     $('bannerS').textContent=`Draftee. You are awake, in the tunnel under the ${(MAPS[Z.home]||MAPS.yard).name}. Survive the week and you will be retained. Fall and you will be reprinted. · ${Z.segs} segments, about ${Z.len==='short'?10:25} min · Weapon: ${myW(me.w).name}${Z.carry&&zcMyCarried()?` · Build carried from Week ${(Z.week|0)-1}`:''}`;return;}
   $('bannerT').textContent=Z.won?'Week complete':'Broadcast terminated';
-  $('bannerS').textContent=(Z.won?'You have been retained'+(ZW.unl&&ZWEEKS[ZW.unl]?` · Week ${ZW.unl}: ${ZWEEKS[ZW.unl].n} unlocked${ZWEEKS[ZW.unl].built?'':' (coming soon)'}`:''):`${Z.why} in segment ${Z.seg}${Z.ph==='boss'?', against '+((ZWEEKS[Z.week||1]||{}).boss||'the headliner'):Z.w?', wave '+Z.w:''}`)+` · ${Z.kills|0} Revenants dropped · ${fmt(S.timer)}`+`${overIn('run')}`;}
+  $('bannerS').textContent=(Z.won?'You have been retained'+(ZW.unl===3?' · Week 2 Locker shelf unlocked':'')+(ZW.unl&&ZWEEKS[ZW.unl]?` · Week ${ZW.unl}: ${ZWEEKS[ZW.unl].n} unlocked${ZWEEKS[ZW.unl].built?'':' (coming soon)'}`:''):`${Z.why} in segment ${Z.seg}${Z.ph==='boss'?', against '+((ZWEEKS[Z.week||1]||{}).boss||'the headliner'):Z.w?', wave '+Z.w:''}`)+` · ${Z.kills|0} Revenants dropped · ${fmt(S.timer)}`+`${overIn('run')}`;}
 /* the Circuit's announcer, as captions until the lines are recorded, and the crowd (on every client, from the shared state) */
 const ZW={k:'',st:{},fv:0,fvK:-1};
 function zrCap(t,sub,v){if(v)announce(v);const el=$('zrcap'),d=document.createElement('div');d.textContent=t;if(sub){const s=document.createElement('small');s.textContent=sub;d.append(s);}
@@ -13213,6 +13241,10 @@ zcUI();modeCap();segSync();
    UPDATES below is the offline fallback and the minimum version; release notes are cached in localStorage and refreshed
    in the background, so the menu works offline and stays inside GitHub's API rate limit. Drafts and prereleases are skipped. */
 const UPDATES=[
+  {v:'0.11.0',d:'2026-11-23',t:'Week 2 hazard Favor cards and Week 2 Locker shelf',n:[
+    'Four new Week 2+ Favor cards offered from Week 2 onward: KRAKKA Sealant Boots (acid pools and walls hurt 60–90% less), HEXFORGE Throat Cutter (+2–4 Favor on Spitter throat shots and Matriarch back-sac hits), IRONLEAF Hazard Shunt (Revenants take 2×–3× damage from arena hazards and your rad meter fills half as fast), and VOLTEX Splash Step (dashing through an acid pool clears it).',
+    'Week 2 clear reward: beating Containment Week unlocks the Week 2 Locker shelf with three new permanent Zombie Rumble upgrades — Vitality (+10 max HP per level, up to 130 HP), Extra thruster (+1 starting dash charge), and Containment suit (15% less acid/hazard damage and slower rad fill per level).',
+    'Fixed a bug where headshotting the Matriarch during her acid-volley windup could trigger the Spitter throat-shot instant kill.']},
   {v:'0.10.0',d:'2026-11-23',t:'Week 2 cold open, voice-line slots and XP bonus',n:[
     'Week 2 (Containment Week) now opens with a ~20 s skippable broadcast cold open featuring archived dossiers of earlier teams stamped "RETAINED: 0 WEEKS", the Reach proving grounds welcome and a Matriarch headliner tease.',
     'The Week 2 cold open plays in both solo and online co-op (during the tunnel hold before Wave 1) and can be replayed anytime from the week picker.',
@@ -14664,7 +14696,7 @@ function hud(dt){
   if(fd.dataset.k!==fk){fd.dataset.k=fk;fd.replaceChildren(...items.map(f=>{const d=document.createElement('div');d.textContent=f.m;return d;}));}
   // vitals
   if(P){
-    const hp=P.st==='alive'?Math.max(0,Math.round(P.hp)):0;$('hpnum').textContent=hp;$('hpfill').style.width=hp+'%';dashHud();radHud(P);mapIndHud(P);$('hpfill').style.background=hpColor(hp);
+    const hp=P.st==='alive'?Math.max(0,Math.round(P.hp)):0,mhp=zrMaxHp(P),hpPct=clamp(hp/mhp*100,0,100);$('hpnum').textContent=hp;$('hpfill').style.width=hpPct+'%';dashHud();radHud(P);mapIndHud(P);$('hpfill').style.background=hpColor(Math.round(hpPct));
     const zi=zoneOf(me.x);const rh=dm?100:returnHP(role,zi);
     $('zoneline').innerHTML='';if(!dm){const b=document.createElement('b');b.textContent=zoneName(role,zi);const sp=document.createElement('span');sp.textContent=' · come back here at ';const h=document.createElement('b');h.textContent=rh+' HP';h.style.color=hpColor(rh);
     $('zoneline').append(b,sp,h);}if(P.st==='alive'&&P.prot>0&&S.phase==='live'){const sh=document.createElement('b');sh.textContent=' · Spawn shield '+P.prot.toFixed(1)+'s';sh.style.color='var(--accent)';$('zoneline').append(sh);}
