@@ -3,6 +3,9 @@
 <!-- Vercel Web Analytics (page views only; the script exists only on the Vercel deployment) -->
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
+<!-- Vercel Speed Insights (Core Web Vitals; the script exists only on the Vercel deployment) -->
+<script>window.si=window.si||function(){(window.siq=window.siq||[]).push(arguments)};</script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
@@ -12882,6 +12885,8 @@ zcUI();modeCap();segSync();
    UPDATES below is the offline fallback and the minimum version; release notes are cached in localStorage and refreshed
    in the background, so the menu works offline and stays inside GitHub's API rate limit. Drafts and prereleases are skipped. */
 const UPDATES=[
+  {v:'0.8.1',d:'2026-11-23',t:'Vercel Speed Insights performance monitoring',n:[
+    'Added Vercel Speed Insights to track Core Web Vitals and page load performance on the live deployment.']},
   {v:'0.8.0',d:'2026-11-23',t:'Crate destruction overhaul and Sandbox crate gallery',n:[
     'Cover destruction overhauled: jagged faceted fracture chunks, snapped exterior wall plates, kinked steel rebar and skin-matched interiors for every crate type (armour panels, supply crates, hazard barriers, ribbed slabs, cargo containers and server stacks).',
     'All six damage stages upgraded: blown-out top corners expose fractured cores and bent steel without floating cracks or wireframes, half-height breaks get a 3D cratered fracture bed and sheared lower trim, and critical cover notches its lower corners while shedding gravel and sparks.',
