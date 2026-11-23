@@ -1,0 +1,23 @@
+{
+  "name": "mnzr",
+  "version": "1.0.0",
+  "description": "Monday Night Zombie Rumble - A browser-based 3D arena shooter",
+  "type": "module",
+  "scripts": {
+    "serve": "npx serve .",
+    "test": "echo \"No tests configured\" && exit 0"
+  },
+  "keywords": [
+    "game",
+    "shooter",
+    "three.js"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vercel/speed-insights": "^1.0.0"
+  },
+  "devDependencies": {
+    "serve": "^14.2.1"
+  }
+}
