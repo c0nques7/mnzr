@@ -8970,15 +8970,34 @@ const VW={};for(const k of WKEYS)VW[k]=buildGun(vg,false,k,null,GUNGLOW[k]);
 for(const k in VW)VW[k].sightY=VW[k].g.userData.sightY*VW[k].g.scale.y;
 function tintGun(g,hex){const c=lin(hex),cy=lin(NEON.cy);g.traverse(o=>{if(o.material&&o.material.isMeshBasicMaterial&&o.material.color.equals(cy)){o.material=o.material.clone();o.material.color.copy(c);}});}
 let vRifle=VW.rifle;
-const vSleeve=smat(0x343a3f,0.95),vCuff=smat(0x2b4a7c,0.6,0.2);const vArmL=new THREE.Group();vg.add(vArmL);/* support hand: leaves the gun for the mag change */
+const vSleeve=smat(0x343a3f,0.95),vCuff=smat(0x2b4a7c,0.6,0.2);const vArmR=new THREE.Group(),vArmL=new THREE.Group();vg.add(vArmR,vArmL);/* support hand: leaves the gun for the mag change */
 (function(){const rH=[0,-0.095,0.1],lH=[0,-0.04,-0.3];
-  limb(rH,[0.1,-0.2,0.3],0.075,vSleeve,vg,false);limb([0.1,-0.2,0.3],[0.17,-0.32,0.6],0.09,vSleeve,vg,false);bx(0.07,0.085,0.095,MAT.glove,...rH,vg,false);
+  limb(rH,[0.1,-0.2,0.3],0.075,vSleeve,vArmR,false);limb([0.1,-0.2,0.3],[0.17,-0.32,0.6],0.09,vSleeve,vArmR,false);bx(0.07,0.085,0.095,MAT.glove,...rH,vArmR,false);
   limb(lH,[-0.13,-0.17,-0.1],0.075,vSleeve,vArmL,false);limb([-0.13,-0.17,-0.1],[-0.24,-0.3,0.2],0.09,vSleeve,vArmL,false);bx(0.075,0.07,0.1,MAT.glove,...lH,vArmL,false);
-  const c1=limb([0.05,-0.15,0.2],[0.08,-0.175,0.26],0.085,vCuff,vg,false);const c2=limb([-0.07,-0.11,-0.2],[-0.1,-0.15,-0.14],0.085,vCuff,vArmL,false);})();
+  const c1=limb([0.05,-0.15,0.2],[0.08,-0.175,0.26],0.085,vCuff,vArmR,false);const c2=limb([-0.07,-0.11,-0.2],[-0.1,-0.15,-0.14],0.085,vCuff,vArmL,false);})();
+/* Hecklers (akimbo): each pistol gets its own static hand and arm. The rifle-style sprint cant was removed and there is
+   no per-stride swing, so running keeps the pair at the hip without drifting or pumping. */
+const AKH=[0,1].map(i=>{const d=i?-1:1,gx=i?GSPEC.mp.lh[0]:0;
+  const g=new THREE.Group();vg.add(g);
+  const H=[gx,-0.095,0.1],E=[gx+d*0.1,-0.2,0.3],S=[gx+d*0.17,-0.32,0.6];
+  limb(H,E,0.075,vSleeve,g,false);limb(E,S,0.09,vSleeve,g,false);
+  bx(0.07,0.085,0.095,MAT.glove,...H,g,false);
+  limb([gx+d*0.05,-0.15,0.2],[gx+d*0.08,-0.175,0.26],0.085,vCuff,g,false);
+  const hold=new THREE.Group();hold.position.set(gx,0,0);g.add(hold);
+  return{pivot:g,hold,gun:null};});
+const akProxy={g:AKH[0].pivot,tip:null,tip2:null,sightY:VW.mp.sightY};
+function buildAkHands(parts,glow){const single=Object.assign({},GSPEC.mp,{twin:false});
+  const P=Object.assign({sight:single.sight,barrel:'std',muzzle:'hider',mag:'std',stock:'std'},GDEFP.mp||{},parts||{});
+  for(let i=0;i<2;i++){const h=AKH[i];if(h.gun){h.hold.remove(h.gun.g);freeTree(h.gun.g);}h.gun=buildPistol(h.hold,false,'mp',P,glow,false,single);}
+  akProxy.tip=AKH[0].gun.tip;akProxy.tip2=AKH[1].gun.tip;}
+buildAkHands(null,null);
 let vtip=vRifle.tip;
 const flashMat=new THREE.MeshBasicMaterial({color:raw(0xffe2a8),transparent:true,opacity:0.55,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});
 const mflash=new THREE.Group();for(let i=0;i<3;i++){const q=new THREE.Mesh(new THREE.PlaneGeometry(0.1,0.03),flashMat);q.rotation.z=i*Math.PI/3;mflash.add(q);}mflash.visible=false;vg.add(mflash);
-function showWeapon(k){if(me.vwK!==k){me.vwK=k;me.drawT=0.36;me.boltT=0;me.chgT=0;me.bq=0;me.heatT=0;}for(const key of WKEYS)VW[key].g.visible=key===k;vRifle=VW[k]||VW.rifle;vtip=vRifle.tip;vRifle.g.updateMatrix();mflash.position.copy(vtip.position).applyMatrix4(vRifle.g.matrix);mflash.position.z-=0.03;}
+function showWeapon(k){if(me.vwK!==k){me.vwK=k;me.drawT=0.36;me.boltT=0;me.chgT=0;me.bq=0;me.heatT=0;}for(const key of WKEYS)VW[key].g.visible=key===k;
+  const ak=k==='mp';VW.mp.g.visible=false;for(const h of AKH)h.pivot.visible=ak;vArmR.visible=vArmL.visible=!ak;
+  vRifle=ak?akProxy:(VW[k]||VW.rifle);vtip=vRifle.tip;
+  vg.updateMatrixWorld(true);vtip.getWorldPosition(mflash.position);vg.worldToLocal(mflash.position);mflash.position.z-=0.03;}
 showWeapon('rifle');
 // The muzzle light hangs off the camera, not the viewmodel: hiding the viewmodel (menu, death) would change the light count and recompile every lit shader.
 const muzzle=new THREE.PointLight(raw(0xffd29a),0,7,1);muzzle.position.set(0.156,-0.078,-0.702);camera.add(vm,muzzle);scene.add(camera);
@@ -12204,7 +12223,8 @@ function myW(k){if(!W[k])k='rifle';return zrWMod(modW(k,effParts(k)),k);}
 function freeTree(o){o.traverse(n=>{if(n.geometry)n.geometry.dispose();});}
 function gunModel(parent,k,parts,glowId,shadow){const gl=GLOWS.find(q=>q.id===glowId);
   const r=buildGun(parent,shadow,k,parts,gl&&gl.hex!=null?gl.hex:GUNGLOW[k]);r.sightY=r.g.userData.sightY;return r;}
-function rebuildVW(){for(const k of WKEYS){const o=VW[k];if(o){vg.remove(o.g);freeTree(o.g);}VW[k]=gunModel(vg,k,effParts(k),buildOf(k).g,false);}showWeapon(me.w);}
+function rebuildVW(){for(const k of WKEYS){const o=VW[k];if(o){vg.remove(o.g);freeTree(o.g);}VW[k]=gunModel(vg,k,effParts(k),buildOf(k).g,false);}
+  const gl=GLOWS.find(q=>q.id===buildOf('mp').g);buildAkHands(effParts('mp'),gl&&gl.hex!=null?gl.hex:GUNGLOW.mp);showWeapon(me.w);}
 
 /* ---------- experience from matches ---------- */
 const XPL={k:'Kills',dn:'Downs',fin:'Finishes',hs:'Headshots',as:'Assists',rv:'Revives',pl:'Charges armed',df:'Charges defused',cap:'Center captures',zk:'Revenants dropped',wv:'Waves cleared',zb:'Headliners dropped'};
@@ -13474,7 +13494,7 @@ function localTick(dt){
   if(Math.abs(camera.fov-me.fov)>0.05){camera.fov=me.fov;camera.updateProjectionMatrix();}
   // viewmodel
   vm.visible=alive;
-  const a=me.ads,sk=me.sprintK*(1-a),mh=me.mantle?Math.sin(Math.PI*me.mantle.t):0,h=1-a,hs=1-0.7*a;
+  const a=me.ads,sk=me.sprintK*(1-a),ak=myW(me.w).akimbo?1:0,skR=sk*(1-ak),mh=me.mantle?Math.sin(Math.PI*me.mantle.t):0,h=1-a,hs=1-0.7*a;
   const bx=Math.cos(me.bob)*(0.012+0.014*sk)*me.bobAmp*(1-0.85*a)*RM,by=Math.abs(Math.sin(me.bob))*(0.012+0.01*sk)*me.bobAmp*(1-0.85*a)*RM;
   /* reload in beats: roll the gun over, tug the mag out (support hand leaves), seat the new one, roll back, and slam the bolt if it ran dry */
   let rlE=0,rlY=0,rlP=0,rlZ=0,rlR=0,hand=0;
@@ -13486,12 +13506,12 @@ function localTick(dt){
   const ix=Math.sin(me.idleT*0.85)*0.004*still*hs*RM,iy=Math.sin(me.idleT*1.7+0.5)*0.003*still*hs*RM;/* breathing: a slow figure of eight */
   const kz=me.kP*0.45*(1-0.45*a),kr=(me.kUp*0.045+me.kP*0.22)*(1-0.65*a),sl=me.slK*h;
   {const lh=(GSPEC[me.w]||GSPEC.rifle).lh;vArmL.position.set((lh?lh[0]:0)-0.05*hand,(lh?lh[1]:0)-0.34*hand,(lh?lh[2]:0)+0.1*hand);}vArmL.rotation.x=-0.5*hand;
-  vg.position.set(((GSPEC[me.w]||GSPEC.rifle).hx??0.23)*h+bx+sk*0.05-me.swayX*0.012*hs+ix+me.roll*0.25*h*RM-rlE*0.035-sl*0.03-btE*0.015,
-    -0.215+((GSPEC[me.w]||GSPEC.rifle).vy||0)*(1-a)+(0.215-vRifle.sightY)*a-by-rlE*0.075+rlY-sk*0.07-me.land*0.4*RM-mh*0.22+me.swayY*0.008*hs+iy-me.vyLag*0.0035*(1-0.8*a)*RM-0.01*adsT-sl*0.025-btE*0.02-dr*dr*0.3,
+  vg.position.set(((GSPEC[me.w]||GSPEC.rifle).hx??0.23)*h+bx+skR*0.05-me.swayX*0.012*hs+ix+me.roll*0.25*h*RM-rlE*0.035-sl*0.03-btE*0.015,
+    -0.215+((GSPEC[me.w]||GSPEC.rifle).vy||0)*(1-a)+(0.215-vRifle.sightY)*a-by-rlE*0.075+rlY-skR*0.07-me.land*0.4*RM-mh*0.22+me.swayY*0.008*hs+iy-me.vyLag*0.0035*(1-0.8*a)*RM-0.01*adsT-sl*0.025-btE*0.02-dr*dr*0.3,
     -0.5+kz+rlZ+btZ);
-  vg.rotation.set(kr-sk*0.3+rlE*0.22+rlP+me.swayY*0.03*hs+iy*1.5-me.vyLag*0.008*(1-0.8*a)*RM-dr*0.8,
-    sk*0.75+me.swayX*0.045*hs+ix*1.5+me.kYaw*(1-0.6*a)+rlE*0.15+btE*0.12,
-    rlE*0.4+rlR-me.roll*1.5*RM-me.swayX*0.03+me.kRoll*(1-0.6*a)-0.11*adsT+sl*0.32-btE*0.3+Math.sin(me.bob)*0.05*sk*me.bobAmp*RM+dr*0.5);
+  vg.rotation.set(kr-skR*0.3+rlE*0.22+rlP+me.swayY*0.03*hs+iy*1.5-me.vyLag*0.008*(1-0.8*a)*RM-dr*0.8,
+    skR*0.75+me.swayX*0.045*hs+ix*1.5+me.kYaw*(1-0.6*a)+rlE*0.15+btE*0.12,
+    rlE*0.4+rlR-me.roll*1.5*RM-me.swayX*0.03+me.kRoll*(1-0.6*a)-0.11*adsT+sl*0.32-btE*0.3+Math.sin(me.bob)*0.05*skR*me.bobAmp*RM+dr*0.5);
   const fl=me.sinceShot<0.022&&a<0.3&&!myW(me.w).supp;mflash.visible=fl;if(fl){mflash.rotation.z=Math.random()*3;const sc=0.6+Math.random()*0.5;mflash.scale.set(sc,sc,sc);}
   muzzle.intensity=me.sinceShot<0.04&&!myW(me.w).supp?MUZZLE_I:0;
   if(P.hp<me.lastHp&&alive){flashT=0.35;padRumble(180,0.6,0.4);hurtSound();me.shake=1;me.rcP+=0.012;dmgDirAdd(P,me.lastHp-P.hp);}
