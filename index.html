@@ -172,6 +172,9 @@ body:not(.zrmode) #zrsb{display:none}
 #radbar{position:relative;flex:1 1 60px;min-width:50px;height:6px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden}#radbar::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.6)}
 #radfill{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffe066,#ff9a1a)}#radtx{font-weight:600;letter-spacing:.03em;white-space:nowrap}#radm.boost #radtx{color:#ffe27a}
 #radm.sick{color:#ff6a4a;animation:radp .5s infinite alternate}#radm.sick #radfill{background:#ff3a20}@keyframes radp{from{opacity:1}to{opacity:.55}}
+#mapind{display:flex;align-items:center;gap:6px;font:700 11px/1 'Saira Condensed','Arial Narrow',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#7fffe8;text-shadow:0 1px 2px rgba(0,0,0,.75)}#mapind[hidden]{display:none}
+#mapind.zg{color:#9ce8ff}#vhsover{inset:0;pointer-events:none;opacity:0;z-index:5;background:repeating-linear-gradient(0deg,rgba(62,240,212,.14) 0 2px,rgba(0,0,0,0) 2px 6px),radial-gradient(circle at 50% 50%,rgba(62,240,212,.04),rgba(10,36,42,.42));mix-blend-mode:screen;transition:opacity .12s}
+#vhsover.on{opacity:1;animation:vhsrip .85s steps(10) forwards}@keyframes vhsrip{0%{opacity:.95;transform:skewX(-3deg) translateY(-4px);filter:hue-rotate(25deg)}25%{opacity:.85;transform:skewX(2.5deg) translateY(3px)}55%{opacity:.6;transform:skewX(-1.5deg) translateY(-2px)}80%{opacity:.25;transform:skewX(.8deg)}100%{opacity:0;transform:none}}
 #hpbar{height:8px;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden}
 #hpfill{height:100%;width:100%;background:var(--good);transition:width .12s}
 #dashpips{display:flex;align-items:center;gap:5px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
@@ -792,6 +795,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
   <div id="hpnum" class="num">100</div>
   <div id="hpbar"><div id="hpfill"></div></div>
   <div id="radm" hidden><span>RAD</span><div id="radbar"><i id="radfill"></i></div><b id="radtx"></b></div>
+  <div id="mapind" hidden></div>
   <div id="dashpips" title="Dash charges"><span>Dash</span></div>
   <div id="zoneline"></div>
 </div>
@@ -803,7 +807,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
 <div class="hud" id="hitmark"></div>
 <canvas class="hud" id="ring" width="120" height="120" style="width:60px;height:60px" hidden></canvas>
 <div class="hud" id="prompt" hidden></div>
-<canvas class="hud" id="dmgdir" aria-hidden="true"></canvas><div class="hud" id="flash"></div><div class="hud" id="blastfl"></div>
+<canvas class="hud" id="dmgdir" aria-hidden="true"></canvas><div class="hud" id="flash"></div><div class="hud" id="blastfl"></div><div class="hud" id="vhsover" aria-hidden="true"></div>
 <div class="hud" id="zrcap" aria-live="polite"></div><div class="hud" id="vosub" aria-live="polite"></div>
 <div class="hud" id="zrwcard" hidden></div>
 <div class="hud" id="zrboss" hidden><b>The Juggernaut</b><div class="zbb"><i id="zrbossF"></i></div><span>Plating turns bullets from the front. Hit it in the back</span></div>
@@ -6497,6 +6501,8 @@ const CFG={roundTime:75,buy:3,post:6,overT:10,multiT:5,fuse:25,arm:5,defuse:7,re
 Object.assign(CFG,{zShHp:60,zShSpd:1.6,zShDmg:20,zSpHp:40,zSpSpd:6.2,zSpDmg:12,zReach:1.25,zCrHp:35,zCrSpd:1.5,zCrDmg:10,zBlHp:150,zBlSpd:1.25,zBlDmg:45,zBlR:3.6,zrBreak:10,zJgHp:2400,zJgSpd:1.5,zJgDmg:40,zJgChg:11,zJgChgDmg:50,zSpiHp:80,zSpiSpd:1.9,zSpiDmg:12,zSpiGlob:15,zSpiCd:3.4,zShieldHp:100,zMaHp:2600,zMaSpd:1.7,zMaDmg:30,zMaRegrow:12,zMaWallCd:9,zMaWallT:7,zMaWallDps:25,zMaWallHit:15,zSpiWind:0.75,zAcidDps:12,zAcidT:4,zAcidR:1.5,zrRevHP:50,zrBleed:15});
 Object.assign(CFG,{radIn:12,radOut:5,radDecon:45,radHurt:5,radBoost:1.25,radMut:8});
 Object.assign(CFG,{ehPullP:1.8,ehPullZ:2.6,ehPullG:9,ehBossDps:120});/* Event Horizon: the black hole's pull at its core (m/s, falling off to nothing at 14 m) on players and on Revenants, its pull on acid globs (m/s per s), and what it does a second to a headliner that won't go in whole *//* Fallout radiation: meter fill per s in a hot zone, drain outside / in a decon shower, burn per s when full, damage boost over half, Revenant mutation time */
+Object.assign(CFG,{chSlow:0.4,chDrift:1});/* Chronofield: speed multiplier inside time-dilation bubbles and their drift speed across the map (0 = still) */
+Object.assign(CFG,{orbGrav:0.45,orbPadV:8.2,orbPullP:4.5,orbPullZ:8.5});/* Low Orbit: gravity scale, jump pad launch speed (m/s), and Hull Breach pull on players and Revenants */
 const SITES={A:{x:22,z:-9},B:{x:22,z:9}};
 /* weapons: the rifle reads CFG so the sandbox sliders tune it. near/far = full damage up to near m, down to fall x at far m */
 const W={
@@ -6592,6 +6598,24 @@ const MAPS={
     single:[[0,9,2,1.2,1],[0,-9,2,1.2,1]],
     rad:[[0,0,5.5],[15,8,3]],decon:[[13,19.3],[13,-19.3]],/* hot zones [x,z,r] and decon showers on the long walls, point-mirrored */
     zs:{core:[[22,-5],[8,-13]],rain:1}},
+  /* Week 2 (Containment Week): the Reach's temporal testing ground; bubbles of slowed time sit on the floor (see chronoAt) */
+  chrono:{name:'Chronofield',week:2,cap:'Drifting slowed-time bubbles roam the floor. Anything inside moves at 40% speed; bullets pass right through.',sites:[22,9],
+    theme:{title:'Chronofield',tag:'Temporal cyan and amber telemetry',low:0x3ef0d4,high:0xffc857,wall:0x2ad4c0,a:0x3ef0d4,b:0xffc857,floor:0xdcf8f2,bg:0x061218,hor:0x164a56,mid:0x0a202c,hemi:0x9de8e0},
+    solids:[[10.5,10,5.5,1.2,3.2],[19,-2,1.2,5.5,3.2]],
+    cover:[[5.5,5.5,2,1.2,1],[6.5,-5.5,1.2,2.5,2.5],[13.5,1.5,2,2,2.5],[15.5,15.5,3,1.2,1],[25,4.5,2,2,2.5],[25.5,-14,2,2,2.5],[28.5,-1,1.2,2.5,1],[16.5,-16,2.5,1.2,1],
+      [29.5,7.5,2,2,1],[4,15.5,1.2,3,1],[10,-14.5,2,1.2,1],[18,12.5,1.2,2.5,2.5]],
+    single:[[0,9.5,2.4,1.2,1],[0,-9.5,2.4,1.2,1]],
+    chrono:[[0,0,3.4],[14.5,7.5,2.8],[14.5,-10.5,2.6]],/* time-dilation bubbles [x,z,r], point-mirrored */
+    zs:{rewind:1,echo:1}},
+  /* Week 2 (Containment Week): orbital station stadium at 45% gravity with jump pads and a turning planet below (see orbHost) */
+  orbit:{name:'Low Orbit',week:2,cap:'Low gravity under an orbital sky, with jump pads across the deck and a turning planet below.',sites:[22,9],
+    theme:{title:'Low Orbit',tag:'Orbital cyan and EVA orange',low:0x7ee8ff,high:0xff7b29,wall:0x5cc8ff,a:0x7ee8ff,b:0xff7b29,floor:0xdceeff,bg:0x03050c,hor:0x0a1c3a,mid:0x040814,hemi:0xb8d8ff},
+    solids:[[13,6.5,5.5,1.2,3.2],[20,-2.5,1.2,5.5,3.2]],
+    cover:[[6.5,4.5,2,1.2,1],[6.5,-5.5,1.2,2.5,2.5],[16,1.5,2,2,2.5],[16,15.5,3,1.2,1],[25,4.5,2,2,2.5],[25.5,-14,2,2,2.5],[28.5,-5.5,1.2,2.5,1],[17,-16,2.5,1.2,1],
+      [29.5,7.5,2,2,1],[5.5,15.5,1.2,3,1],[9.5,-15,2,1.2,1],[24,15,2.5,1.2,1]],
+    single:[[0,10.5,2.4,1.2,1],[0,-10.5,2.4,1.2,1]],
+    orbit:{pads:[[30,0],[11,10.5],[11,-10.5]],lanes:[[-15,3],[15,3]]},/* mirrored jump pads and zero-G Null Lanes [cx,halfWidth] */
+    zs:{breach:1,null:1}},
   /* Week 2 (Containment Week): a micro black hole hangs in a gravity cage in the middle and pulls on everything near it (see ehHost) */
   horizon:{name:'Event Horizon',week:2,cap:'A caged micro black hole pulls on everything nearby. Cross the red ring and it tears you apart.',sites:[22,9],
     theme:{title:'Event Horizon',tag:'Singularity violet and accretion gold',low:0xb47cff,high:0xffa040,wall:0x8a5cff,a:0xb47cff,b:0xffa040,floor:0xe8ddff,bg:0x07050f,hor:0x2a1650,mid:0x0e0820,hemi:0xc8b8ff},
@@ -6608,7 +6632,7 @@ const MAP={id:''};
    - crane (Yard): one container (dyn box, never cover) sits in one of three lane slots, then is lifted, carried and lowered into another
    - pour (Foundry): the center channel |x|<x, |z|<z warns, then floods; standing on the floor in it burns (host), bots path around it
    - panes (Atrium): tall glass (wall boxes with .pane) that stops bullets but not sight; S.pane hp, S.paneR rebuild timers */
-const MF={crane:null,pour:null,panes:[],block:false,zs:null,rad:null,eh:null};
+const MF={crane:null,pour:null,panes:[],block:false,zs:null,rad:null,eh:null,chrono:null,orbit:null};
 const FO_RAIN_R=2.4;/* Fallout Rain circle radius (ZS.RAIN_R; zsBuild needs it before ZS exists) */
 const PANE_H=2.6,PANE_HP=150,PANE_REGEN=9,POUR_DPS=45;
 const CRANE_P=30,CRANE_HOLD=23,CRANE_LIFT=2,CRANE_MOVE=2.5,CRANE_UP=7;/* the drop takes the rest of the period (2.5 s) */
@@ -6638,6 +6662,8 @@ function buildBoxes(id){const M=MAPS[id]||MAPS.yard;MAP.id=MAPS[id]?id:'yard';BO
   if(M.cage){const C=M.cage;for(const sx of [1,-1])for(const sz of [1,-1]){const b=addSolid(sx*C.d,sz*C.d,C.w,C.w,C.h);b.mid=true;b.h0=b.y1;b.cage=true;}}/* drawn by ehVis */
   MF.rad=null;if(M.rad){const zones=[],decon=[];for(const q of M.rad)for(const k of (q[0]||q[1]?[1,-1]:[1]))zones.push({x:k*q[0],z:k*q[1],r:q[2]});
     for(const q of M.decon||[])for(const k of [1,-1])decon.push({x:k*q[0],z:k*q[1]});MF.rad={zones,decon};}
+  MF.chrono=null;if(M.chrono){const bubbles=[];for(const q of M.chrono)for(const k of (q[0]||q[1]?[1,-1]:[1]))bubbles.push({x:k*q[0],z:k*q[1],r:q[2]});MF.chrono={bubbles};}
+  MF.orbit=null;if(M.orbit){const pads=[];for(const q of M.orbit.pads||[])for(const k of [1,-1])pads.push({x:k*q[0],z:k*q[1]});MF.orbit={pads,lanes:(M.orbit.lanes||[]).map(l=>[l[0],l[1]])};}
   M.cover.forEach(b=>{addBox(b[0],b[1],b[2],b[3],b[4]);addBox(-b[0],-b[1],b[2],b[3],b[4]);});
   (M.single||[]).forEach(b=>addBox(b[0],b[1],b[2],b[3],b[4]));
   MF.crane=null;MF.panes.length=0;MF.pour=M.pour||null;MF.block=false;
@@ -6781,7 +6807,7 @@ function envHurt(p,d,why){if(!S||S.phase!=='live'||!p)return;if(SB.on&&SB.god&&!
   else if(p.st==='down'&&S.mode==='zone'){p.dhp-=d;if(p.dhp<=0)die(p,null,why);}}
 function damagePane(i,d){if(!S||S.phase!=='live'||!S.pane||!(S.pane[i]>0)||(MF.panes[i]&&MF.panes[i].ptl))return;S.pane[i]=Math.max(0,S.pane[i]-d);
   if(S.pane[i]<=0){if(!S.paneR)S.paneR=S.pane.map(()=>0);S.paneR[i]=PANE_REGEN;}}
-function mfHost(dt){if(S.mode==='zr'||S.range)zsHost(dt);foHost(dt);ehHost(dt);if(S.range)return;const t=S.mft||0;
+function mfHost(dt){if(S.mode==='zr'||S.range)zsHost(dt);foHost(dt);orbHost(dt);ehHost(dt);if(S.range)return;const t=S.mft||0;
   if(MF.pour&&pourAt(t)>0){const P=MF.pour;/* bots on the channel floor head for the nearest bank (escape overrides fighting moves) */
     const sd=pourSide(t);for(const p of S.players){if(!p.bot||p.st!=='alive'||!inPour(p.x,p.z,0.4,t)||(p.y||0)>0.3)continue;const m=botMem[p.s];if(!m||m.esc)continue;
       const sz=p.z>=0?1:-1,opts=[{x:p.x,z:sz*(P.z+1.4)},{x:p.x,z:-sz*(P.z+1.4)},{x:-sd*1.6,z:p.z}];
@@ -6803,9 +6829,12 @@ const ZST={yard:[{k:'drop',n:'Container Drop',d:'the crane drops containers into
   atrium:[{k:'portal',n:'Portal Panes',d:'the glass opens onto its twin across the floor. Walk or shoot through'},{k:'scan',n:'Security Scan',d:'anyone the scan line catches in the open is marked for the horde'}],
   warren:[{k:'shut',n:'Shutter Maze',d:'shutters drop and lift, rerouting the maze'},{k:'hatch',n:'Hatches',d:'Revenants climb out of floor hatches. Hold Use on one to weld it shut'}],
   fallout:[{k:'core',n:'Core Vent',d:'the reactor vents into a new quarter of the floor. Watch for the flashing ring'},{k:'rain',n:'Fallout Rain',d:'debris falls through the roof onto the marked circles'}],
+  chrono:[{k:'rewind',n:'Rewind',d:'every 25 s broken cover snaps back to how it stood 10 s ago'},{k:'echo',n:'Echoes',d:'ghosts of you from 5 s ago draw Revenants away'}],
+  orbit:[{k:'breach',n:'Hull Breach',d:'a side airlock blows and decompression drags everything toward space'},{k:'null',n:'Null Lanes',d:'two zero-gravity strips float players and Revenants across'}],
   horizon:[{k:'pulse',n:'Collapse Pulse',d:'the core inhales hard, then blasts everything back. Dash against the pull or ride the blast'},{k:'orb',n:'Orbiting Debris',d:'cover lifts off the floor and circles the core, so it keeps moving'}]};
 const ZS={DROP_P:24,DROP_HURT:40,MAG_P:15,MAG_LAP:30,MAG_R:4.5,MAG_Y:2.2,MAG_DMG:120,VENT_P:8,VENT_V:12.3,VENT_DMG:60,DOOR_P:20,PTL_P:12,SCAN_P:20,SCAN_V:16,
   SHUT_P:40,HATCH_P:12,HATCH_R:1.6,HATCH_WELD:2,HATCH_FV:10,MARK_T:5,CORE_P:22,CORE_W:3,CORE_R:4,CORE_K:1.6,RAIN_P:16,RAIN_W:3,RAIN_ON:6,RAIN_R:FO_RAIN_R,RAIN_K:2,RAIN_DPS:14,RAIN_ZDPS:30,
+  REW_P:25,REW_W:2.5,REW_BACK:10,ECHO_BACK:5,BREACH_P:24,BREACH_AT:16,BREACH_W:3,BREACH_ON:5,
   PULSE_P:20,PULSE_AT:14,PULSE_IN:3,PULSE_K:2.6,PULSE_R:18,PULSE_V:13,PULSE_ZV:9,ORB_W:Math.PI*2/36,ORB_LIFT:2,link:null};
 function zsWant(Z){if(!Z||!ZST[MAP.id])return'';const ph=Z.ph;if(ph==='surge'||ph==='boss')return'ab';if(ph!=='wave'&&ph!=='break')return'';
   const n=ph==='break'?Z.w+1:Z.w;if(n<2)return'';const first=Z.seg%2?'a':'b';if(Z.nw<=2)return first;return n===2?first:first==='a'?'b':'a';}
@@ -6832,6 +6861,24 @@ function rainAt(t){const C=MF.zs.rainC,N=C.length;if(N<4)return null;const n=Mat
 function pulseAt(t){const n=Math.floor(t/ZS.PULSE_P),u=t-n*ZS.PULSE_P,b=ZS.PULSE_AT+ZS.PULSE_IN;return{n,u,ph:u<ZS.PULSE_AT?0:u<b?1:2,k:clamp((u-ZS.PULSE_AT)/ZS.PULSE_IN,0,1),since:u-b};}
 /* Orbiting Debris: the pieces rise over ORB_LIFT s, then circle the core at ORB_W rad/s */
 function orbAt(t){return{lift:clamp(t/ZS.ORB_LIFT,0,1),a:t*ZS.ORB_W};}
+/* Chronofield Rewind: warns REW_W s before every REW_P s mark, then snaps broken cover back REW_BACK s */
+function rewAt(t){const n=Math.floor(t/ZS.REW_P),u=t-n*ZS.REW_P;return{n,u,ph:u>=ZS.REW_P-ZS.REW_W?1:0};}
+/* Chronofield: deterministic drifting paths for each bubble (driven by S.mft, point-mirrored, still at t=0) */
+function chClock(){return S&&S.phase==='live'?(typeof mfT==='function'?mfT():S.mft||0):0;}
+function chBubPos(q,i,t){const s=(t||0)*(CFG.chDrift||0);if(!s)return{x:q.x,z:q.z};
+  if(i===0)return{x:Math.sin(s*0.18)*11,z:Math.sin(s*0.36)*7.5};/* center bubble: figure-8 across midfield */
+  const sg=(i&1)?1:-1,pair=(i-1)>>1;
+  if(pair===0)return{x:q.x+sg*Math.sin(s*0.15)*8.5,z:q.z-sg*(1-Math.cos(s*0.15))*4.5};
+  return{x:q.x-sg*Math.sin(s*0.13)*9.5,z:q.z+sg*(1-Math.cos(s*0.13))*5.0};}
+/* Chronofield: time scale inside any bubble (CFG.chSlow, 0.4x), 1 outside */
+function chronoAt(x,z){const C=MF.chrono;if(!C)return 1;const t=chClock();
+  for(let i=0;i<C.bubbles.length;i++){const q=C.bubbles[i],p=chBubPos(q,i,t);if(hyp(x,z,p.x,p.z)<q.r)return CFG.chSlow;}return 1;}
+/* Low Orbit: Hull Breach timeline (alternates north z=-20 and south z=+20 airlocks), Null Lanes, gravity scale and jump pads */
+function breachAt(t){const n=Math.floor(t/ZS.BREACH_P),u=t-n*ZS.BREACH_P;return{n,u,side:n%2?1:-1,ph:u<ZS.BREACH_AT?0:u<ZS.BREACH_AT+ZS.BREACH_W?1:2};}
+function nullLaneAt(x,z){const O=MF.orbit;if(!O||!zsOn('null'))return false;for(const l of O.lanes)if(Math.abs(x-l[0])<l[1])return true;return false;}
+function gravAt(x,z){if(nullLaneAt(x,z))return 0;return MF.orbit?CFG.orbGrav:1;}
+function padAt(x,z){const O=MF.orbit;if(!O)return null;for(const q of O.pads)if(hyp(x,z,q.x,q.z)<1.25)return q;return null;}
+function breachPull(x,z,side,m){const tx=0,tz=side*20,dx=tx-x,dz=tz-z,d=Math.hypot(dx,dz)||1;const f=(0.38+0.62*Math.pow(clamp(1-d/44,0,1),1.2))*m;return{x:dx/d*f,z:dz/d*f,d};}
 function rainIn(r,x,z){const C=MF.zs.rainC;for(const i of r.pick){const c=C[i];if(hyp(x,z,c[0],c[1])<ZS.RAIN_R||hyp(x,z,-c[0],-c[1])<ZS.RAIN_R)return true;}return false;}
 function shutAt(t){const u=t%ZS.SHUT_P,h=ZS.SHUT_P/2;return[u<h?1:u<h+0.8?1-(u-h)/0.8:u>=ZS.SHUT_P-0.8?(u-(ZS.SHUT_P-0.8))/0.8:0,slabAt(u,h,ZS.SHUT_P,0.8)];}
 /* the layout pieces, made by buildBoxes (MAPS[id].zs) */
@@ -6905,6 +6952,37 @@ function foHost(dt){const R=MF.rad;if(!R||!S||S.phase!=='live')return;
   if(zsOn('rain')){const r=rainAt(zsT());if(r&&r.ph===1){for(const p of S.players)if(p.st==='alive'&&(p.y||0)<2.4&&rainIn(r,p.x,p.z))envHurt(p,ZS.RAIN_DPS*dt,'was buried by fallout');
       for(const o of ZB.list)if(o.st!=='dead'&&o.st!=='rise'&&rainIn(r,o.x,o.z))zsHurt(o,ZS.RAIN_ZDPS*dt);}}
   for(const o of ZB.list){if(o.st==='dead'||o.elite||ZTYPES[o.t].boss)continue;const k=radAt(o.x,o.z);o.radT=Math.max(0,(o.radT||0)+(k>0?dt:-dt*0.5));if(o.radT>=CFG.radMut)zMutate(o);}}
+/* ---------- Low Orbit (host). 45% gravity, jump pads, long Sprinter leaps, Hull Breach decompression and zero-G Null Lanes. ---------- */
+function orbHost(dt){const O=MF.orbit;if(!O||!S||S.phase!=='live')return;
+  const br=zsOn('breach')?breachAt(zsT()):null,pullOn=!!br&&br.ph===2,nlOn=zsOn('null');
+  for(const p of S.players){if(!p.bot||p.st!=='alive'||(S.range&&!p.rgId))continue;const m=botMem[p.s];if(!m)continue;
+    m.padCd=Math.max(0,(m.padCd||0)-dt);
+    if(m.padCd<=0&&(p.y||0)<0.35&&padAt(p.x,p.z)){m.padCd=0.75;m.vy=CFG.orbPadV;p.y=0.05;m.wr=0;m.kvx=(m.kvx||0)*0.5;m.kvz=(m.kvz||0)*0.5;}
+    if(nlOn&&nullLaneAt(p.x,p.z)){const tgtY=1.2;p.y=Math.max(0.1,(p.y||0)+(tgtY-(p.y||0))*Math.min(1,dt*2.5));m.vy*=Math.max(0,1-3*dt);
+      if(Math.hypot(m.kvx||0,m.kvz||0)<1.8){m.kvx=-Math.sin(p.yaw||0)*4.2;m.kvz=-Math.cos(p.yaw||0)*4.2;}}
+    if(pullOn){const q=breachPull(p.x,p.z,br.side,CFG.orbPullP);const pos={x:p.x,z:p.z};moveCircle(pos,q.x*dt,q.z*dt,0.4,p.y||0);p.x=pos.x;p.z=clamp(pos.z,-19.1,19.1);}}
+  const T=zTargets();
+  for(const o of ZB.list){if(o.st==='dead'||o.st==='rise')continue;const boss=!!ZTYPES[o.t].boss,whole=!boss||(o.t==='matri'&&(o.gen|0)>=1);
+    o.padCd=Math.max(0,(o.padCd||0)-dt);o.leapCd=Math.max(0,(o.leapCd||0)-dt);
+    const inNull=nlOn&&nullLaneAt(o.x,o.z);o.zg=inNull&&!boss?1:0;
+    if(o.zg){/* Revenants drift helplessly through Null Lanes */
+      if(Math.hypot(o.vx||0,o.vz||0)<1.4){const a=o.yaw||0;o.vx=-Math.sin(a)*2.6;o.vz=-Math.cos(a)*2.6;}
+      const ty=1.5+0.45*Math.sin(S.clock*1.5+o.seed);o.y=(o.y||0)+(ty-(o.y||0))*Math.min(1,dt*2.5);o.vy=0;
+      const nx=o.x+o.vx*dt,nz=o.z+o.vz*dt;if(freeAt(nx,nz)){o.x=nx;o.z=nz;}else{o.vx*=-0.4;o.vz*=-0.4;}}
+    else{
+      if(!boss&&o.padCd<=0&&(o.y||0)<0.3&&padAt(o.x,o.z)){o.padCd=1.2;o.vy=CFG.orbPadV*0.85;o.y=0.06;}
+      /* Sprinters leap from much further away in low gravity */
+      if(o.t==='sprint'&&ZB.hunt&&o.leapCd<=0&&(o.y||0)<0.1&&zLimbs(o).legs===2){let tg=null,td=1e9;
+        for(const p of T){const d=hyp(p.x,p.z,o.x,o.z);if(d<td){td=d;tg=p;}}
+        if(tg&&td>4.5&&td<11.5&&losPts(o.x,1.2,o.z,tg.x,(tg.y||0)+1.2,tg.z)){const ux=(tg.x-o.x)/td,uz=(tg.z-o.z)/td;
+          o.vx=ux*9.5;o.vz=uz*9.5;o.vy=5.8;o.y=0.08;o.leapCd=3.2;o.yaw=Math.atan2(-ux,-uz);zVoice(o,'zCall',0.8);}}
+      if((o.y||0)>0||(o.vy||0)>0){o.vy=(o.vy||0)-CFG.grav*CFG.orbGrav*dt;o.y=(o.y||0)+o.vy*dt;
+        const g=groundAt(o.x,o.z,o.y);if(o.y<=g){o.y=g;o.vy=0;}else if(o.y>ROOF_Y-2.2){o.y=ROOF_Y-2.2;if(o.vy>0)o.vy=0;}}}
+    if(pullOn&&whole){const q=breachPull(o.x,o.z,br.side,CFG.orbPullZ);const nx=o.x+q.x*dt,nz=o.z+q.z*dt;
+      if(freeAt(nx,nz)||(Math.abs(nx)<3.6&&br.side*nz>17)){o.x=nx;o.z=nz;}
+      if(Math.abs(o.x)<3.4&&br.side*o.z>18.2){const dau=o.t==='matri';if(dau)o.gen=2;/* vented whole */zKill(o,false,null);
+        for(let i=0;i<14;i++)zPix(o.x,0.5+Math.random()*1.4,o.z,(Math.random()-.5)*2.5,1+Math.random()*2,br.side*(7+Math.random()*5),0.06,0.6,0.9,1,true,0.6);
+        if(dau)feed('A daughter was pulled out into space');}}}}
 /* ---------- Event Horizon (host). The black hole pulls players a little and Revenants and acid globs more (ehPull); anything that
    crosses the inner ring is torn apart: players go down (or die in deathmatch), Revenants are gone, and a Matriarch daughter goes in
    whole, so you can feed her copies to it. A headliner that won't fit (the Matriarch herself, the Juggernaut) is not pulled and takes
@@ -6942,10 +7020,10 @@ function ehHost(dt){const E=MF.eh;if(!E||!S||S.phase!=='live')return;
         for(const dd of [5.5,7,4.5]){const ex=E.x+Math.cos(a)*dd,ez=E.z+Math.sin(a)*dd;if(freeAt(ex,ez)){c.x=ex;c.z=ez;break;}}}}
     else o.hp=Math.max(1,Math.round(o.reg.torso.hp));}}
 function zsHost(dt){const Z=zsZ();if(!Z)return;const want=S.range?(ZST[MAP.id]?RG.stg||'':''):zsWant(Z);
-  if(want!==(Z.stg||'')||Z.stm!==MAP.id){Z.stg=want;Z.stm=MAP.id;Z.stt=0;Z.hat=MF.zs.hatch.length?MF.zs.hatch.map(()=>0):null;Z.mk={};Z.mkn={};for(const k in ZSH)delete ZSH[k];}
+  if(want!==(Z.stg||'')||Z.stm!==MAP.id){Z.stg=want;Z.stm=MAP.id;Z.stt=0;Z.hat=MF.zs.hatch.length?MF.zs.hatch.map(()=>0):null;Z.mk={};Z.mkn={};Z.ech=null;for(const k in ZSH)delete ZSH[k];}
   else Z.stt=(Z.stt||0)+dt;
   if(Z.mk)for(const k in Z.mk){Z.mk[k]=Math.max(0,Z.mk[k]-dt);if(Z.mk[k]<=0)delete Z.mk[k];}
-  if(!want)return;const t=Z.stt,P=S.players,live=ZB.list.filter(o=>o.st!=='dead');
+  if(!want){Z.ech=null;return;}const t=Z.stt,P=S.players,live=ZB.list.filter(o=>o.st!=='dead');
   if(zsOn('drop')){const d=dropAt(t);if(d&&d.ph===2&&ZSH.drop!==d.n){ZSH.drop=d.n;const c=MF.zs.dropC[d.i],C=MF.crane||{w:2.4,d:4.5};
       for(const k of [1,-1]){const x=k*c[0],z=k*c[1],in_=(px,pz,r)=>Math.abs(px-x)<C.w/2+r&&Math.abs(pz-z)<C.d/2+r;
         for(const o of live)if(in_(o.x,o.z,0.3)){if(ZTYPES[o.t].boss)zsHurt(o,300);else zKill(o,false,null);}
@@ -6968,7 +7046,22 @@ function zsHost(dt){const Z=zsZ();if(!Z)return;const want=S.range?(ZST[MAP.id]?R
   if(zsOn('hatch')&&Z.hat){const n=t<2?-1:Math.floor((t-2)/ZS.HATCH_P);if(n>=0&&ZSH.hatch!==n){ZSH.hatch=n;const H=MF.zs.hatch,al=P.filter(p=>p.st==='alive'),sc=[];
       /* open the two shut hatches nearest the players (not right under them) */
       for(let i=0;i<H.length;i++)if(Z.hat[i]===0){let d=99;for(const p of al){const e=hyp(p.x,p.z,H[i].x,H[i].z);if(e>=6&&e<d)d=e;}sc.push([d+Math.random()*6,i]);}
-      sc.sort((a,b)=>a[0]-b[0]);for(const q of sc.slice(0,2))Z.hat[q[1]]=1;}}}
+      sc.sort((a,b)=>a[0]-b[0]);for(const q of sc.slice(0,2))Z.hat[q[1]]=1;}}
+  /* Chronofield: Rewind snaps broken cover back to how it stood 10 s ago */
+  if(zsOn('rewind')&&S.cover&&S.cover.length){const H=ZSH.covH||(ZSH.covH=[]);
+    if(!H.length||t-H[H.length-1][0]>=0.5){H.push([t,S.cover.slice()]);while(H.length>32&&t-H[0][0]>ZS.REW_BACK+4)H.shift();}
+    const rw=rewAt(t);if(rw.n>0&&ZSH.rew!==rw.n){ZSH.rew=rw.n;let snap=H[0][1];const tgt=t-ZS.REW_BACK;
+      for(const e of H)if(e[0]<=tgt)snap=e[1];let any=false;
+      for(let i=0;i<S.cover.length;i++){if(snap[i]>S.cover[i]){const was0=S.cover[i]<=0;S.cover[i]=snap[i];if(S.regen&&S.regen[i]>0)S.regen[i]=0;any=true;
+          if(was0&&COVER[i]){const b=COVER[i];mfPushOut(b);for(const o of live)if(o.x>b.x0-0.35&&o.x<b.x1+0.35&&o.z>b.z0-0.35&&o.z<b.z1+0.35){const c=nearestFree(...cellOf(o.x,o.z));o.x=c[0]-50+0.5;o.z=c[1]-20+0.5;o.wp=null;}}}}
+      if(any){mfNav();ZB.grid=(ZB.grid|0)+1;}}}
+  /* Chronofield: Echoes replay each player 5 s behind as decoys that draw Revenants */
+  if(zsOn('echo')){const H=ZSH.echH||(ZSH.echH={}),ech=[];const r1=v=>Math.round(v*10)/10;
+    for(const p of P){if(p.st!=='alive'||(S.range&&p.bot&&!p.rgId))continue;const q=H[p.s]||(H[p.s]=[]);
+      if(!q.length||t-q[q.length-1][0]>=0.1){q.push([t,p.x,p.y||0,p.z,p.yaw||0]);while(q.length>80&&t-q[0][0]>ZS.ECHO_BACK+2)q.shift();}
+      if(t-q[0][0]>=0.8){const tgt=t-ZS.ECHO_BACK;let s0=q[0];for(const e of q)if(e[0]<=tgt)s0=e;else break;
+        ech.push([r1(s0[1]),r1(s0[2]),r1(s0[3]),Math.round(s0[4]*100)/100,p.s]);}}
+    Z.ech=ech.length?ech:null;}else if(Z.ech)Z.ech=null;}
 /* bots get the same stage hazards players do (players run their own in zsLocal): vents throw them up, the magnet lifts them,
    and they walk out from under a container while its shadow warns */
 function zsBots(t){for(const p of S.players){if(!p.bot||p.st!=='alive')continue;const m=botMem[p.s];if(!m)continue;const y=p.y||0;
@@ -7202,21 +7295,21 @@ function botThink(b,dt){
       const ang=Math.atan2(tgt.z-b.z,tgt.x-b.x),px=-Math.sin(ang),pz=Math.cos(ang),run=CFG.dash*CFG.dashT+1;
       for(const sd of [m.strafeDir,-m.strafeDir]){const ex=b.x+px*sd*run,ez=b.z+pz*sd*run;
         if(Math.abs(ex)<48&&Math.abs(ez)<18&&freeAt(ex,ez)&&segClear(b.x,b.z,ex,ez)){m.dashN--;m.dashT=CFG.dashT;m.dx=px*sd;m.dz=pz*sd;m.strafeDir=sd;m.dashGap=0.7+Math.random()*1.6;b.ds=((b.ds|0)+1)%1000;break;}}}}
-  const L=Math.hypot(mvx,mvz);
-  if(m.dashT>0){m.dashT-=dt;const pos={x:b.x,z:b.z};moveCircle(pos,m.dx*CFG.dash*dt,m.dz*CFG.dash*dt,0.4,b.y);b.x=pos.x;b.z=pos.z;m.sExp=0;m.sx=b.x;m.sz=b.z;}
-  else if(m.wr){const sp=CFG.sprint*wOf(b.w).move;m.wrT-=dt;
-    const pos={x:b.x,z:b.z};moveCircle(pos,(m.tx*sp-m.nx*4)*dt,(m.tz*sp-m.nz*4)*dt,0.4,b.y);b.x=pos.x;b.z=pos.z;
-    m.vy=Math.max(-1.5,m.vy-CFG.grav*CFG.wallGrav*dt);b.y=Math.max(0,b.y+m.vy*dt);
+  const L=Math.hypot(mvx,mvz),cdt=dt*chronoAt(b.x,b.z);
+  if(m.dashT>0){m.dashT-=cdt;const pos={x:b.x,z:b.z};moveCircle(pos,m.dx*CFG.dash*cdt,m.dz*CFG.dash*cdt,0.4,b.y);b.x=pos.x;b.z=pos.z;m.sExp=0;m.sx=b.x;m.sz=b.z;}
+  else if(m.wr){const sp=CFG.sprint*wOf(b.w).move;m.wrT-=cdt;
+    const pos={x:b.x,z:b.z};moveCircle(pos,(m.tx*sp-m.nx*4)*cdt,(m.tz*sp-m.nz*4)*cdt,0.4,b.y);b.x=pos.x;b.z=pos.z;
+    m.vy=Math.max(-1.5,m.vy-CFG.grav*CFG.wallGrav*cdt);b.y=Math.max(0,b.y+m.vy*cdt);
     const wl=wallNear(b.x,b.z,1.6,b.y);
     if(!wl||wl.b!==m.wrB||m.wrT<=0||b.y<=0){m.wr=0;b.wr=0;m.wrCd=3+Math.random()*4;m.kvx=m.tx*sp*0.8;m.kvz=m.tz*sp*0.8;
       // kick off only toward open floor, so bots don't land on crates they can't path from
       const kx=m.tx*sp+m.nx*CFG.wallKick,kz=m.tz*sp+m.nz*CFG.wallKick;
       if(b.y>0.3&&Math.random()<(tgt?0.7:0.4)&&freeAt(b.x+kx*0.75,b.z+kz*0.75)&&segClear(b.x,b.z,b.x+kx*0.75,b.z+kz*0.75)){m.kvx=kx;m.kvz=kz;m.vy=CFG.jump*0.95;}
       m.path=null;}}
-  else if(air){const pos={x:b.x,z:b.z};moveCircle(pos,m.kvx*dt,m.kvz*dt,0.4,b.y);b.x=pos.x;b.z=pos.z;
-    m.vy-=CFG.grav*dt;b.y+=m.vy*dt;const g=groundAt(b.x,b.z,b.y);if(b.y<=g){b.y=g;m.vy=0;m.kvx=m.kvz=0;}}
-  else if(L>0.01){const sp=6*dt/Math.max(1,L);const pos={x:b.x,z:b.z};moveCircle(pos,mvx*sp,mvz*sp,0.4,b.y);b.x=pos.x;b.z=pos.z;
-    botStuck(b,m,6*dt*Math.min(1,L),mvx/L,mvz/L);}
+  else if(air){const pos={x:b.x,z:b.z};moveCircle(pos,m.kvx*cdt,m.kvz*cdt,0.4,b.y);b.x=pos.x;b.z=pos.z;
+    m.vy-=CFG.grav*gravAt(b.x,b.z)*cdt;b.y+=m.vy*cdt;const g=groundAt(b.x,b.z,b.y);if(b.y<=g){b.y=g;m.vy=0;m.kvx=m.kvz=0;}}
+  else if(L>0.01){const sp=6*cdt/Math.max(1,L);const pos={x:b.x,z:b.z};moveCircle(pos,mvx*sp,mvz*sp,0.4,b.y);b.x=pos.x;b.z=pos.z;
+    botStuck(b,m,6*cdt*Math.min(1,L),mvx/L,mvz/L);}
   else{m.sExp=0;m.sx=b.x;m.sz=b.z;}
   m.lx=b.x;m.lz=b.z;
   let want=b.yaw;
@@ -7489,11 +7582,11 @@ const SKY=(function(){const geo=new THREE.SphereGeometry(300,32,16),pos=geo.attr
     for(let y=4;y<128;y+=8)for(let x=4;x<64;x+=8){g.globalAlpha=0.75+Math.random()*0.25;g.fillStyle=Math.random()<0.12?'#c9dcef':glass;g.fillRect(x,y,4,5);}g.globalAlpha=1;
     const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.colorSpace=THREE.SRGBColorSpace;t.magFilter=THREE.NearestFilter;return new THREE.MeshLambertMaterial({map:t});});
   // night material -> day material; looked up by material, because mergeChildren later replaces these meshes with merged ones
-  const swap=new Map(winMat.map((m,i)=>[m,dayMat[i]]));
+  const swap=new Map(winMat.map((m,i)=>[m,dayMat[i]])),city=new THREE.Group();scene.add(city);
   for(let i=0;i<54;i++){const a=i/54*Math.PI*2+rnd()*0.08,r=85+rnd()*70,w=9+rnd()*14,d=9+rnd()*14,h=22+rnd()*70+(i%9===0?45:0);
     const geo=new THREE.BoxGeometry(w,h,d),uv=geo.attributes.uv,rx=Math.round(w/8),ry=Math.round(h/16);for(let k=0;k<uv.count;k++)uv.setXY(k,uv.getX(k)*rx,uv.getY(k)*ry);
-    const m=new THREE.Mesh(geo,winMat[i%4]);m.position.set(Math.cos(a)*r*1.25,h/2-3,Math.sin(a)*r);m.rotation.y=rnd()*0.6;scene.add(m);
-    if(i%3===0){const col=[NEON.mg,NEON.cy,NEON.am][i%9/3|0];const s=new THREE.Mesh(new THREE.BoxGeometry(0.7,h*0.55,0.7),neonMat[col]||(neonMat[col]=new THREE.MeshBasicMaterial({color:lin(col),toneMapped:false})));s.position.set(m.position.x-Math.cos(a)*(w/2+0.6),h*0.55,m.position.z-Math.sin(a)*(d/2+0.6));scene.add(s);}}
+    const m=new THREE.Mesh(geo,winMat[i%4]);m.position.set(Math.cos(a)*r*1.25,h/2-3,Math.sin(a)*r);m.rotation.y=rnd()*0.6;city.add(m);
+    if(i%3===0){const col=[NEON.mg,NEON.cy,NEON.am][i%9/3|0];const s=new THREE.Mesh(new THREE.BoxGeometry(0.7,h*0.55,0.7),neonMat[col]||(neonMat[col]=new THREE.MeshBasicMaterial({color:lin(col),toneMapped:false})));s.position.set(m.position.x-Math.cos(a)*(w/2+0.6),h*0.55,m.position.z-Math.sin(a)*(d/2+0.6));city.add(s);}}
   // sun disc and a few soft clouds, shown only in daytime
   const blob=(stops)=>{const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),gr=g.createRadialGradient(64,64,0,64,64,64);stops.forEach(([o,a])=>gr.addColorStop(o,a));g.fillStyle=gr;g.fillRect(0,0,128,128);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;};
   const sunDisc=new THREE.Sprite(new THREE.SpriteMaterial({map:blob([[0,'rgba(255,253,240,1)'],[0.18,'rgba(255,248,225,1)'],[0.24,'rgba(255,236,190,.45)'],[1,'rgba(255,230,180,0)']]),fog:false,depthWrite:false,toneMapped:false}));
@@ -7502,7 +7595,7 @@ const SKY=(function(){const geo=new THREE.SphereGeometry(300,32,16),pos=geo.attr
   for(let i=0;i<26;i++){const a=rnd()*Math.PI*2,e=0.32+rnd()*0.55,R=270,cl=new THREE.Sprite(new THREE.SpriteMaterial({map:cloudTex,color:lin(0xf4f7fb),fog:false,depthWrite:false,transparent:true,opacity:0.55+rnd()*0.3}));
     cl.position.set(Math.cos(a)*Math.cos(e)*R,Math.sin(e)*R,Math.sin(a)*Math.cos(e)*R);cl.scale.set(60+rnd()*70,18+rnd()*14,1);clouds.add(cl);}
   clouds.visible=false;scene.add(clouds);
-  return{dome,grad,nightCols,dayCols,stars,swap,signMats:new Set(Object.values(neonMat)),sunDisc,clouds};
+  return{dome,grad,nightCols,dayCols,stars,swap,signMats:new Set(Object.values(neonMat)),sunDisc,clouds,city};
 })();
 /* r155+ lighting is physically based: ambient and directional intensities are r128 values times PI, and point lights
    fall off with inverse square instead of a linear ramp to their range, so their intensities are matched by eye.
@@ -8494,8 +8587,10 @@ function applyTod(){const k=TODS[TOD.force]?TOD.force:TODS[OPT.tod]?OPT.tod:'nig
   FOGC.copy(lin(P.bg));scene.fog.color.copy(FOGC);
   hemi.color.copy(lin(P.hemi[0]));hemi.groundColor.copy(lin(P.hemi[1]));hemi.intensity=P.hemi[2]*Math.PI*DK[0];
   sun.color.copy(lin(P.sun[0]));sun.intensity=P.sun[1]*Math.PI*DK[1];sun.position.set(...P.sunPos);renderer.shadowMap.needsUpdate=true;
-  SKY.dome.geometry.attributes.color.array.set(day?SKY.dayCols:SKY.nightCols);SKY.dome.geometry.attributes.color.needsUpdate=true;
-  SKY.stars.visible=!day;SKY.clouds.visible=day;SKY.sunDisc.visible=day;SKY.sunDisc.position.set(...P.sunPos).normalize().multiplyScalar(260);
+  const orb=!!MF.orbit;
+  SKY.dome.geometry.attributes.color.array.set(day&&!orb?SKY.dayCols:SKY.nightCols);SKY.dome.geometry.attributes.color.needsUpdate=true;
+  SKY.stars.visible=!day||orb;SKY.clouds.visible=day&&!orb;SKY.sunDisc.visible=day;SKY.sunDisc.position.set(...P.sunPos).normalize().multiplyScalar(260);
+  if(SKY.city)SKY.city.visible=!orb;
   const back=new Map([...SKY.swap].map(([n,d])=>[d,n]));
   scene.traverse(o=>{if(!o.isMesh)return;if(day&&SKY.swap.has(o.material))o.material=SKY.swap.get(o.material);else if(!day&&back.has(o.material))o.material=back.get(o.material);if(SKY.signMats.has(o.material))o.visible=!day;});
   for(const [m,v] of emiBase)m.emissiveIntensity=v*P.emi;
@@ -8543,10 +8638,10 @@ const hexCss=h=>'#'+h.toString(16).padStart(6,'0');
    (y>=4.3, at most 0.6 m out) or flush with them, under the roof (bottom >=11.3; the flyover tops out at 10.5) or flat on the floor.
    Each map's dressing is built the first time it is shown, merged per material, and then only shown or hidden. */
 const ML={cv:{},grp:{},cur:'',pts:null,pv:null,flick:[],spin:[],halo:[],t:0};
-const ML_FLOOR={yard:[0.86,0.05],foundry:[0.42,0.6],atrium:[0.22,0.2],warren:[0.7,0.12],fallout:[0.72,0.25],horizon:[0.35,0.55]};/* roughness, metalness */
+const ML_FLOOR={yard:[0.86,0.05],foundry:[0.42,0.6],atrium:[0.22,0.2],warren:[0.7,0.12],fallout:[0.72,0.25],chrono:[0.32,0.45],orbit:[0.38,0.55],horizon:[0.35,0.55]};/* roughness, metalness */
 const ML_AIR={/* drifting particles: colour, count, size, rise speed (m/s), wander */
   yard:{c:0xc8d4ff,n:90,s:0.05,v:-0.05,w:0.25,op:0.35},foundry:{c:0xff8a2a,n:260,s:0.07,v:0.9,w:0.5,op:0.9},
-  atrium:{c:0xd8f0ff,n:140,s:0.04,v:0.04,w:0.12,op:0.55},warren:{c:0x9dff2e,n:200,s:0.06,v:0.12,w:0.3,op:0.6},fallout:{c:0xffd890,n:170,s:0.05,v:0.06,w:0.18,op:0.5},horizon:{c:0xd0c0ff,n:160,s:0.04,v:0.02,w:0.1,op:0.5}};
+  atrium:{c:0xd8f0ff,n:140,s:0.04,v:0.04,w:0.12,op:0.55},warren:{c:0x9dff2e,n:200,s:0.06,v:0.12,w:0.3,op:0.6},fallout:{c:0xffd890,n:170,s:0.05,v:0.06,w:0.18,op:0.5},chrono:{c:0x7fffe8,n:150,s:0.05,v:0.03,w:0.08,op:0.55},orbit:{c:0xd0f0ff,n:120,s:0.04,v:0.015,w:0.06,op:0.45},horizon:{c:0xd0c0ff,n:160,s:0.04,v:0.02,w:0.1,op:0.5}};
 function mlRnd(seed){let s=seed;return()=>{s=(s*16807)%2147483647;return s/2147483647;};}
 function mlCrack(g,r,x,y,a,len,w){g.lineWidth=w;g.beginPath();g.moveTo(x,y);for(let i=0;i<len;i+=6){a+=(r()-.5)*0.8;x+=Math.cos(a)*6;y+=Math.sin(a)*6;g.lineTo(x,y);}g.stroke();}
 /* floor (512 px = 4 m square) and wall (512 px = 8 m along, 4 m up) canvases per map: [floor colour, floor glow, wall colour, wall glow] */
@@ -8634,6 +8729,30 @@ const ML_DRAW={
       g.fillStyle='rgba(200,150,30,.5)';g.fillRect(0,s*0.7,s,18);g.fillStyle='rgba(20,16,8,.7)';chev(g,s*0.7,18,30);
       for(let i=0;i<14;i++){const x=r()*s,L=60+r()*200,gr=g.createLinearGradient(0,0,0,L);gr.addColorStop(0,'rgba(50,40,16,.5)');gr.addColorStop(1,'rgba(50,40,16,0)');g.fillStyle=gr;g.fillRect(x,0,3+r()*8,L);}});
     const we=lineCanvas(512,(g,s)=>{g.fillStyle='#fff';g.fillRect(0,s*0.7-6,s,3);g.globalAlpha=0.5;for(let x=40;x<s;x+=128)g.fillRect(x,s*0.7+24,48,3);g.globalAlpha=1;});
+    return[fc,fe,wc,we];},
+  chrono(){const r=mlRnd(83);
+    const fc=grainCanvas(512,'#1e2a30',12,(g,s)=>{// Reach temporal test bay: brushed slate deck with metric ticks and concentric calibration arcs
+      g.strokeStyle='rgba(0,0,0,.5)';g.lineWidth=3;for(const p of [0,256]){g.beginPath();g.moveTo(p,0);g.lineTo(p,s);g.stroke();g.beginPath();g.moveTo(0,p);g.lineTo(s,p);g.stroke();}
+      g.strokeStyle='rgba(62,240,212,.14)';g.lineWidth=2;g.beginPath();g.arc(256,256,170,0,7);g.stroke();g.beginPath();g.arc(256,256,92,0,7);g.stroke();
+      g.fillStyle='rgba(255,200,87,.22)';for(let i=0;i<16;i++){const a=i/16*6.283;g.fillRect(256+Math.cos(a)*170-2,256+Math.sin(a)*170-2,4,4);}
+      for(let i=0;i<10;i++){g.fillStyle='rgba(255,255,255,.04)';g.fillRect(r()*s,r()*s,32+r()*48,2);}});
+    const fe=lineCanvas(512,(g,s)=>{g.strokeStyle='#fff';g.globalAlpha=0.26;g.lineWidth=2;g.beginPath();g.arc(256,256,170,0,7);g.stroke();g.globalAlpha=0.18;g.fillStyle='#fff';g.fillRect(0,0,s,2);g.fillRect(0,0,2,s);g.globalAlpha=1;});
+    const wc=grainCanvas(512,'#202d34',12,(g,s)=>{// vertical chrono-capacitor lab panels, teal telemetry band, gold calibration marks
+      for(let x=0;x<s;x+=128){g.fillStyle=`rgba(${r()<.5?'255,255,255':'0,0,0'},${r()*0.05})`;g.fillRect(x+3,3,122,s-6);g.strokeStyle='rgba(0,0,0,.55)';g.lineWidth=3;g.strokeRect(x+2,2,124,s-4);}
+      g.fillStyle='rgba(62,240,212,.35)';g.fillRect(0,s*0.64,s,7);g.fillStyle='rgba(255,200,87,.45)';for(let x=16;x<s;x+=32)g.fillRect(x,s*0.64+14,14,4);});
+    const we=lineCanvas(512,(g,s)=>{g.fillStyle='#fff';g.fillRect(0,s*0.64,s,7);g.globalAlpha=0.45;for(let x=20;x<s;x+=128)g.fillRect(x,s*0.28,88,3);g.globalAlpha=1;});
+    return[fc,fe,wc,we];},
+  orbit(){const r=mlRnd(109);
+    const fc=grainCanvas(512,'#2c333e',10,(g,s)=>{// orbital station composite deck plates with white/orange EVA safety lanes and tie-down lugs
+      g.strokeStyle='rgba(0,0,0,.5)';g.lineWidth=3;for(const p of [0,256]){g.beginPath();g.moveTo(p,0);g.lineTo(p,s);g.stroke();g.beginPath();g.moveTo(0,p);g.lineTo(s,p);g.stroke();}
+      g.fillStyle='rgba(255,123,41,.38)';g.fillRect(0,242,s,10);g.fillStyle='rgba(220,240,255,.22)';g.fillRect(0,236,s,3);
+      for(const [x,y] of [[64,64],[192,64],[64,192],[192,192],[320,320],[448,320],[320,448],[448,448]]){g.strokeStyle='rgba(140,210,255,.22)';g.lineWidth=2;g.strokeRect(x-10,y-10,20,20);}
+      for(let i=0;i<8;i++){g.fillStyle='rgba(255,255,255,.04)';g.fillRect(r()*s,r()*s,44+r()*50,3);}});
+    const fe=lineCanvas(512,(g,s)=>{g.fillStyle='#fff';g.globalAlpha=0.28;g.fillRect(0,244,s,4);g.globalAlpha=0.16;g.fillRect(0,0,s,2);g.fillRect(0,0,2,s);g.globalAlpha=1;});
+    const wc=grainCanvas(512,'#343c48',10,(g,s)=>{// pressurized hull bulkheads with rib struts and orange EVA hazard strip
+      for(let y=0;y<s;y+=128)for(let x=0;x<s;x+=128){g.fillStyle=`rgba(${r()<.5?'255,255,255':'0,0,0'},${r()*0.05})`;g.fillRect(x+4,y+4,120,120);g.strokeStyle='rgba(0,0,0,.55)';g.lineWidth=3;g.strokeRect(x+2,y+2,124,124);}
+      g.fillStyle='rgba(255,123,41,.48)';g.fillRect(0,s*0.68,s,12);g.fillStyle='rgba(126,232,255,.38)';g.fillRect(0,s*0.68-8,s,4);});
+    const we=lineCanvas(512,(g,s)=>{g.fillStyle='#fff';g.fillRect(0,s*0.68-8,s,4);g.globalAlpha=0.45;for(let x=24;x<s;x+=128)g.fillRect(x,s*0.32,76,3);g.globalAlpha=1;});
     return[fc,fe,wc,we];},
   horizon(){const r=mlRnd(97);
     const fc=grainCanvas(512,'#1c1a26',14,(g,s)=>{// polished containment deck: 2 m hex-cut plates, faint gravimetric survey lines, scuffs
@@ -8771,6 +8890,29 @@ const ML_BUILD={
     const board=(w,h)=>mlBoard(w,h,(g,W,H)=>{g.fillStyle='#e2a81c';g.fillRect(0,0,W,H);g.strokeStyle='#151515';g.lineWidth=10;g.strokeRect(8,8,W-16,H-16);foTrefoil(g,W/2,H*0.42,H*0.27,'#151515');
       g.font=`700 ${Math.round(H*0.12)}px "Saira Condensed","Arial Narrow",sans-serif`;g.fillStyle='#151515';g.textAlign='center';g.fillText('RADIATION AREA',W/2,H*0.86);},0.35);
     for(const f of [WF_S,WF_N])for(const u of [-24,24])mlWallDecal(grp,board(1.6,1.6),f,u,6.3,1.6,1.6,0.09);
+    for(const f of [WF_W,WF_E])for(const u of [-10,10])mlWallDecal(grp,board(1.4,1.4),f,u,5.6,1.4,1.4,0.09);
+    mlFinish(grp,K,M);},
+  /* Chronofield: Reach temporal capacitor columns along the walls, glowing cyan/gold ring emitters, TEMPORAL BAY boards */
+  chrono(grp){const K={steel:[],brass:[],flick:[],cyan:[]},M={steel:smat(0x28363e,0.45,0.7),brass:smat(0x9a7d3a,0.35,0.85),flick:mlGlowM(0xffc857),cyan:mlGlowM(0x3ef0d4)};
+    for(const f of [WF_S,WF_N]){mlPipe(K.steel,f,-46,46,6.0,0.09,0.05,8);
+      for(let u=-42;u<=42;u+=7){mlWall(K.steel,f,u,5.1,0.48,1.8,0.28);for(const y of [4.55,5.1,5.65])mlWall(K.brass,f,u,y,0.62,0.1,0.38);mlWall(K.cyan,f,u,6.25,0.34,0.08,0.32);}
+      for(const u of [-32,-12,12,32]){mlWall(K.steel,f,u,7.0,0.34,0.34,0.22);const b=new THREE.SphereGeometry(0.13,10,8);const [x,z]=mlAt(f,u,0.32);b.translate(x,7.2,z);K.flick.push(b);}}
+    const board=(w,h)=>mlBoard(w,h,(g,W,H)=>{g.fillStyle='#0c1e24';g.fillRect(0,0,W,H);g.strokeStyle='#3ef0d4';g.lineWidth=8;g.strokeRect(8,8,W-16,H-16);
+      g.strokeStyle='#ffc857';g.lineWidth=6;g.beginPath();g.arc(W/2,H*0.41,H*0.24,0,7);g.stroke();
+      g.beginPath();g.moveTo(W/2,H*0.41);g.lineTo(W/2,H*0.24);g.moveTo(W/2,H*0.41);g.lineTo(W/2+H*0.14,H*0.47);g.stroke();
+      g.font=`700 ${Math.round(H*0.115)}px "Saira Condensed","Arial Narrow",sans-serif`;g.fillStyle='#d8fff6';g.textAlign='center';g.fillText('CHRONOFIELD · REACH',W/2,H*0.86);},0.4);
+    for(const f of [WF_S,WF_N])for(const u of [-22,22])mlWallDecal(grp,board(1.6,1.6),f,u,6.3,1.6,1.6,0.09);
+    for(const f of [WF_W,WF_E])for(const u of [-10,10])mlWallDecal(grp,board(1.4,1.4),f,u,5.6,1.4,1.4,0.09);
+    mlFinish(grp,K,M);},
+  /* Low Orbit: pressurized bulkhead trusses, EVA orange strips, airlock frames and LOW ORBIT 0.45G boards */
+  orbit(grp){const K={hull:[],trim:[],flick:[],cyan:[]},M={hull:smat(0x525c6c,0.42,0.7),trim:smat(0xd8621c,0.5,0.4),flick:mlGlowM(0xff7b29),cyan:mlGlowM(0x7ee8ff)};
+    for(const f of [WF_S,WF_N]){mlPipe(K.hull,f,-46,46,6.15,0.11,0.05,8);
+      for(let u=-42;u<=42;u+=7){if(Math.abs(u)<4)continue;mlWall(K.hull,f,u,5.15,0.44,1.9,0.26);mlWall(K.trim,f,u,5.85,0.52,0.16,0.32);mlWall(K.cyan,f,u,6.35,0.38,0.06,0.3);}
+      for(const u of [-30,-10,10,30]){mlWall(K.hull,f,u,7.0,0.36,0.36,0.22);const b=new THREE.SphereGeometry(0.13,10,8);const [x,z]=mlAt(f,u,0.32);b.translate(x,7.22,z);K.flick.push(b);}}
+    const board=(w,h)=>mlBoard(w,h,(g,W,H)=>{g.fillStyle='#101824';g.fillRect(0,0,W,H);g.strokeStyle='#7ee8ff';g.lineWidth=8;g.strokeRect(8,8,W-16,H-16);
+      g.fillStyle='#ff7b29';g.fillRect(20,24,W-40,16);g.strokeStyle='#7ee8ff';g.lineWidth=5;g.beginPath();g.arc(W/2,H*0.5,H*0.2,0,7);g.stroke();
+      g.font=`700 ${Math.round(H*0.115)}px "Saira Condensed","Arial Narrow",sans-serif`;g.fillStyle='#e8f6ff';g.textAlign='center';g.fillText('LOW ORBIT · 0.45G',W/2,H*0.87);},0.4);
+    for(const f of [WF_S,WF_N])for(const u of [-20,20])mlWallDecal(grp,board(1.6,1.6),f,u,6.3,1.6,1.6,0.09);
     for(const f of [WF_W,WF_E])for(const u of [-10,10])mlWallDecal(grp,board(1.4,1.4),f,u,5.6,1.4,1.4,0.09);
     mlFinish(grp,K,M);},
   /* Event Horizon: gravimetric coil rings along the long walls, violet field emitters, gold beacons, GRAVITY WELL boards */
@@ -9256,8 +9398,8 @@ const GLFX=[];for(let i=0;i<3;i++){const m=new THREE.Mesh(new THREE.SphereGeomet
 function glLaunch(s,w){vtip.getWorldPosition(_v);const vp=viewPitch(),vy=viewYaw(),cp=Math.cos(vp);glAdd(_v.x,_v.y,_v.z,-Math.sin(vy)*cp*26,Math.sin(vp)*26+3,-Math.cos(vy)*cp*26,true,s,w);}
 function glAdd(x,y,z,vx,vy,vz,mine,s,w){const g=GLS.find(q=>!q.on);if(!g)return;Object.assign(g,{on:true,x,y,z,vx,vy,vz,t:0,mine,s,w});g.m.position.set(x,y,z);g.m.visible=true;}
 /* fly the grenades: they burst on walls, the floor, a Revenant or an enemy, or after 4 s */
-function glTick(dt){for(const g of GLS){if(!g.on)continue;if(!S){g.on=false;g.m.visible=false;continue;}if(S.phase==='over'){g.on=false;g.m.visible=false;spawnSparks(g.x,g.y,g.z,0xffe14d,6,0,0,0);continue;}/* a match that ends fizzles shots in the air */g.t+=dt;g.vy-=14*dt;
-  const nx=g.x+g.vx*dt,ny=g.y+g.vy*dt,nz=g.z+g.vz*dt,dx=nx-g.x,dy=ny-g.y,dz=nz-g.z,L=Math.hypot(dx,dy,dz)||1e-6;let ex=null;
+function glTick(dt){for(const g of GLS){if(!g.on)continue;if(!S){g.on=false;g.m.visible=false;continue;}if(S.phase==='over'){g.on=false;g.m.visible=false;spawnSparks(g.x,g.y,g.z,0xffe14d,6,0,0,0);continue;}/* a match that ends fizzles shots in the air */const gdt=dt*chronoAt(g.x,g.z);g.t+=gdt;g.vy-=14*gravAt(g.x,g.z)*gdt;
+  const nx=g.x+g.vx*gdt,ny=g.y+g.vy*gdt,nz=g.z+g.vz*gdt,dx=nx-g.x,dy=ny-g.y,dz=nz-g.z,L=Math.hypot(dx,dy,dz)||1e-6;let ex=null;
   const t=rayWorld(g.x,g.y,g.z,dx/L,dy/L,dz/L,L),gr=groundAt(nx,nz,ny);
   if(t<L)ex=[g.x+dx/L*t*0.95,g.y+dy/L*t*0.95,g.z+dz/L*t*0.95];else if(ny<=gr+0.05)ex=[nx,gr+0.1,nz];else if(g.t>4)ex=[nx,ny,nz];
   else{for(const q of ZB.list){if(q.st==='dead'||!q.posed)continue;const zs=zSize(q);if(Math.hypot(q.x-nx,q.z-nz)<0.7*zs&&ny>0&&ny<1.9*zs){ex=[nx,ny,nz];break;}}
@@ -10077,7 +10219,7 @@ function sbTeleport(zi){const P=sbMe();if(!P||P.st!=='alive')return;me.x=ZX[zi];
 let CFG_KNOBBED=null;
 function cfgAuto(){if(!CFG_KNOBBED){CFG_KNOBBED=new Set(['regen']);for(const sc of document.scripts){const t=sc.textContent;if(!t||t.indexOf('SB_KNOBS')<0)continue;
     for(const m of t.matchAll(/\['([A-Za-z0-9]+)','[^'\n]{1,80}',-?[0-9.]+,-?[0-9.]+,[0-9.]+\]/g))CFG_KNOBBED.add(m[1]);}}
-  const fam=[[/^zMa/,'The Matriarch'],[/^zJg/,'The Juggernaut'],[/^zSpi|^zAcid/,'Spitter and acid'],[/^z|^zr/,'Zombie Rumble'],[/^rad/,'Fallout'],[/^eh/,'Event Horizon'],[/^dm/,'Deathmatch'],[/./,'Other rules']];
+  const fam=[[/^zMa/,'The Matriarch'],[/^zJg/,'The Juggernaut'],[/^zSpi|^zAcid/,'Spitter and acid'],[/^z|^zr/,'Zombie Rumble'],[/^rad/,'Fallout'],[/^ch/,'Chronofield'],[/^orb/,'Low Orbit'],[/^eh/,'Event Horizon'],[/^dm/,'Deathmatch'],[/./,'Other rules']];
   const out=new Map();for(const k of Object.keys(CFG0)){if(CFG_KNOBBED.has(k)||!num(CFG0[k]))continue;const g=fam.find(([re])=>re.test(k))[1];
     if(!out.has(g))out.set(g,[]);out.get(g).push([k,autoLabel(k),...autoRange(CFG0[k])]);}
   return [...out];}
@@ -10160,7 +10302,7 @@ const W0={};for(const k of WKEYS){W0[k]={};for(const [f] of W_FIELDS)W0[k][f]=k=
    W_AUTO[k] = [[field, label, lo, hi, step]], built from the defaults at load; W0 keeps their defaults for reset, save and export. */
 const AUTO_SKIP=new Set(['key','wl','lv','lvl','unlock','ord','order','slot','id','zr']);
 const AUTO_LBL={tap:'Tap shot damage',chg:'Charge time (s)',chgMax:'Full charge time (s)',hip:'Hip-fire spread',cmove:'Move speed while charging (x)',ads:'Aim-down-sights time (x)',zoom:'Aim zoom (x)',
-  beamR:'Beam radius (m)',pl:'Pierce length (m)',range:'Range (m)',chain:'Chain jumps',chainR:'Chain reach (m)',splash:'Splash radius (m)',burst:'Shots per burst',burstCd:'Gap inside a burst (s)',pellets:'Pellets',heatUp:'Heat per shot',heatDn:'Cooling per second',speed:'Projectile speed (m/s)',buy:'Buy time (s)',buy1:'First round buy time (s)',post:'After-round pause (s)',overT:'Overtime (s)',multiT:'Multi-kill window (s)',winScore:'Rounds to win',ehPullG:'Black hole pull on grenades and acid globs'};
+  beamR:'Beam radius (m)',pl:'Pierce length (m)',range:'Range (m)',chain:'Chain jumps',chainR:'Chain reach (m)',splash:'Splash radius (m)',burst:'Shots per burst',burstCd:'Gap inside a burst (s)',pellets:'Pellets',heatUp:'Heat per shot',heatDn:'Cooling per second',speed:'Projectile speed (m/s)',buy:'Buy time (s)',buy1:'First round buy time (s)',post:'After-round pause (s)',overT:'Overtime (s)',multiT:'Multi-kill window (s)',winScore:'Rounds to win',ehPullG:'Black hole pull on grenades and acid globs',chSlow:'Time speed inside Chronofield bubbles (x)',chDrift:'Chronofield bubble drift speed (x)',orbGrav:'Low Orbit gravity scale (x)',orbPadV:'Jump pad launch speed (m/s)',orbPullP:'Hull Breach pull on players (m/s)',orbPullZ:'Hull Breach pull on Revenants (m/s)'};
 const AUTO_TOK={z:'',zr:'Rumble',Sh:'Shambler',Sp:'Sprinter',Spi:'Spitter',Cr:'Crawler',Bl:'Bloater',Jg:'Juggernaut',Ma:'Matriarch',Acid:'acid',rad:'rad',eh:'pull',
   Hp:'health',Spd:'speed',Dmg:'damage',Chg:'charge',Cd:'cooldown (s)',T:'time (s)',R:'radius (m)',Wind:'wind-up (s)',Glob:'glob',Pull:'pull',Boss:'boss',Dps:'damage per second',Hit:'hit',
   In:'in',Out:'out',Decon:'decon',Boost:'boost',Mut:'mutate',G:'grab',P:'players',Wall:'wall',Regrow:'regrow',Reach:'reach'};
@@ -10245,7 +10387,7 @@ const MFG=new THREE.Group();scene.add(MFG);
 const MFV={crane:null,pour:null,panes:[],acid:[],flares:[],slot:-2,cph:-1,cn:-1,pph:-1,block:false,cap:'',capT:0,pane:[]};
 const mfEase=k=>k<0.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
 function mfClear(){for(const o of [...MFG.children]){MFG.remove(o);o.traverse(n=>{if(n.geometry)n.geometry.dispose();const ms=n.material?(Array.isArray(n.material)?n.material:[n.material]):[];for(const m of ms)texFree(m);});}
-  MFV.crane=MFV.pour=null;MFV.fo=null;MFV.eh=null;MFV.panes.length=0;MFV.acid.length=0;MFV.slot=-2;MFV.cph=-1;MFV.cn=-1;MFV.pph=-1;MFV.pane.length=0;MFV.capT=0;}
+  MFV.crane=MFV.pour=null;MFV.fo=null;MFV.eh=null;MFV.ch=null;MFV.orb=null;MFV.panes.length=0;MFV.acid.length=0;MFV.slot=-2;MFV.cph=-1;MFV.cn=-1;MFV.pph=-1;MFV.pane.length=0;MFV.capT=0;}
 function mfCanvas(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t;}
 function mfGlow(){return mfCanvas(64,64,(g,w,h)=>{const r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(0.35,'rgba(255,255,255,.45)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,w,h);});}
 function mfBuild(){mfClear();
@@ -10254,6 +10396,8 @@ function mfBuild(){mfClear();
   if(MF.panes.length)mfPaneVis();
   if(MAP.id==='warren')mfAcidVis();
   if(MF.rad)foVis();
+  if(MF.chrono)chVis();
+  if(MF.orbit)orbVis();
   if(MF.eh)ehVis();
   zsVis();
   {const tex=mfGlow();for(let i=0;i<4;i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color:0xffc070,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));s.visible=false;s.scale.setScalar(5);MFG.add(s);MFV.flares[i]={s,t:0};}MFV.flares.length=4;}}
@@ -10389,6 +10533,126 @@ function foTick(dt){const V=MFV.fo;if(!V)return;const now=performance.now()/1000
 function radHud(P){const el=$('radm');if(!el)return;const r=MF.rad&&P&&P.st!=='dead'?P.rad||0:0,show=!!MF.rad&&!!P&&(r>0.5||(P.st==='alive'&&radAt(P.x,P.z)>0));el.hidden=!show;if(!show)return;
   $('radfill').style.width=Math.round(r)+'%';const sick=!!P.rsk,b=r>=50;el.classList.toggle('sick',sick);el.classList.toggle('boost',b&&!sick);
   const tx=sick?'Sick: find a decon shower':b?`+${Math.round((CFG.radBoost-1)*100)}% damage`:'';if($('radtx').textContent!==tx)$('radtx').textContent=tx;}
+function mapIndHud(P){const el=$('mapind');if(!el)return;let txt='',zg=false;
+  if(P&&P.st==='alive'){if(MF.chrono&&chronoAt(me.x,me.z)<0.99)txt=`TIME DILATION · ${Math.round(CFG.chSlow*100)}% SPEED`;
+    else if(MF.orbit){if(typeof nullLaneAt==='function'&&nullLaneAt(me.x,me.z)){txt='ZERO-G · NULL LANE';zg=true;}else txt=`LOW ORBIT · ${Math.round(CFG.orbGrav*100)}% GRAVITY`;}}
+  el.hidden=!txt;if(!txt)return;el.classList.toggle('zg',zg);if(el.textContent!==txt)el.textContent=txt;}
+/* Chronofield: shimmering time-dilation bubbles with Fresnel domes, rotating clock-tick floor rings and suspended motes */
+const CH_DOME_VS='varying vec3 vN,vV;varying vec2 vUv;void main(){vUv=uv;vec4 mv=modelViewMatrix*vec4(position,1.0);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}';
+const CH_DOME_FS=`varying vec3 vN,vV;varying vec2 vUv;uniform float uT;
+void main(){float fr=pow(1.-abs(dot(normalize(vN),normalize(vV))),2.2);
+  float band=smoothstep(.45,.98,sin(vUv.y*28.-uT*1.8)*.5+.5)*.22;
+  float grid=smoothstep(.92,1.,abs(sin(vUv.x*37.699+uT*.15)))*.18;
+  float rim=smoothstep(.0,.12,vUv.y);
+  vec3 col=mix(vec3(.24,.94,.83),vec3(1.,.78,.34),fr*.35);
+  float al=(.07+fr*.42+band+grid)*rim;if(al<.01)discard;gl_FragColor=vec4(col*1.15,al);
+  #include <colorspace_fragment>
+}`;
+const CH_FLOOR_FS=`varying vec2 vUv;uniform float uT;
+void main(){vec2 p=vUv*2.-1.;float r=length(p);if(r>1.)discard;float a=atan(p.y,p.x);
+  float ring=smoothstep(.90,.95,r)*(1.-smoothstep(.97,1.,r));
+  float inner=smoothstep(.60,.63,r)*(1.-smoothstep(.65,.68,r))*.45;
+  float ticks=step(.72,fract(a*24./6.2832+uT*.04))*smoothstep(.82,.92,r)*(1.-smoothstep(.96,1.,r));
+  float hand=smoothstep(.045,0.,abs(sin(a+uT*.25)))*step(0.,cos(a+uT*.25))*smoothstep(.08,.12,r)*(1.-smoothstep(.88,.92,r))*.45;
+  float fill=(1.-r*r)*.12;
+  vec3 col=mix(vec3(.24,.94,.83),vec3(1.,.78,.34),ticks*.7+hand);
+  float al=fill+ring*.7+inner+ticks*.65+hand;if(al<.01)discard;gl_FragColor=vec4(col*1.2,al);
+  #include <colorspace_fragment>
+}`;
+function chVis(){const C=MF.chrono,V=MFV.ch={domes:[],fls:[],motes:null,told:false};const glowT=mfGlow();
+  for(const q of C.bubbles){
+    const dU={uT:{value:0}},dome=new THREE.Mesh(new THREE.SphereGeometry(q.r,28,16,0,Math.PI*2,0,Math.PI/2),
+      new THREE.ShaderMaterial({uniforms:dU,vertexShader:CH_DOME_VS,fragmentShader:CH_DOME_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,toneMapped:false}));
+    dome.position.set(q.x,0.02,q.z);dome.renderOrder=3;MFG.add(dome);V.domes.push({m:dome,U:dU,q});
+    const fU={uT:{value:0}},fl=new THREE.Mesh(new THREE.PlaneGeometry(q.r*2,q.r*2),
+      new THREE.ShaderMaterial({uniforms:fU,vertexShader:MOLTEN_VS,fragmentShader:CH_FLOOR_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));
+    fl.rotation.x=-Math.PI/2;fl.position.set(q.x,0.03,q.z);fl.renderOrder=1;MFG.add(fl);V.fls.push({m:fl,U:fU,q});}
+  // slow suspended temporal motes inside the bubbles
+  const per=Math.round(clamp(OPT.particles,0.3,2)*24),N=C.bubbles.length*per,pos=new Float32Array(N*3),st=[];
+  C.bubbles.forEach((q,bi)=>{for(let i=0;i<per;i++){const a=Math.random()*6.283,rr=Math.sqrt(Math.random())*(q.r-0.3),y=0.25+Math.random()*(q.r*0.72);
+    st.push({bi,r:q.r,a,rr,y,v:0.08+Math.random()*0.16,ph:Math.random()*6});}});
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const pts=new THREE.Points(geo,new THREE.PointsMaterial({map:glowT,color:lin(0x7fffe8),size:0.09,transparent:true,opacity:0.75,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+  pts.frustumCulled=false;MFG.add(pts);V.motes={pts,st,pos};}
+function chTick(dt){const V=MFV.ch,C=MF.chrono;if(!V||!C)return;const now=performance.now()/1000,t=chClock(),bp=[];
+  for(let i=0;i<V.domes.length;i++){const p=chBubPos(C.bubbles[i],i,t);bp.push(p);
+    V.domes[i].m.position.set(p.x,0.02,p.z);V.fls[i].m.position.set(p.x,0.03,p.z);
+    V.domes[i].U.uT.value=now+i*1.7;V.fls[i].U.uT.value=now+i*1.3;}
+  if(V.motes){const P=V.motes,ar=P.pos;let k=0;for(const d of P.st){const p=bp[d.bi];d.a+=dt*d.v;const y=d.y+Math.sin(now*0.6+d.ph)*0.18;
+      ar[k++]=p.x+Math.cos(d.a)*d.rr;ar[k++]=y;ar[k++]=p.z+Math.sin(d.a)*d.rr;}P.pts.geometry.attributes.position.needsUpdate=true;}
+  const P=S&&mySlot()>=0?S.players[mySlot()]:null;
+  if(P&&!V.told&&S.phase==='live'&&P.st==='alive'&&chronoAt(me.x,me.z)<0.99){V.told=true;mfCap(`Time bubble: everything inside moves at ${Math.round(CFG.chSlow*100)}% speed. Bullets pass through normally`,5);}}
+/* Low Orbit: Earth-like turning planet below the stands, glowing jump pads, Hull Breach airlocks and zero-G Null Lanes */
+const ORB_ATMO_FS=`varying vec3 vN,vV;
+void main(){float fr=pow(1.-abs(dot(normalize(vN),normalize(vV))),2.6);
+  gl_FragColor=vec4(vec3(.28,.66,1.)*1.25,fr*.85);
+  #include <colorspace_fragment>
+}`;
+const ORB_NULL_FS=`varying vec2 vUv;uniform float uT;
+void main(){vec2 p=vUv;float g=smoothstep(.92,1.,abs(sin(p.x*18.85)))+smoothstep(.94,1.,abs(sin(p.y*75.-uT*2.2)));
+  float edge=smoothstep(0.,.08,p.x)*(1.-smoothstep(.92,1.,p.x));
+  float al=(.14+g*.28)*edge;if(al<.01)discard;gl_FragColor=vec4(vec3(.5,.9,1.)*1.15,al);
+  #include <colorspace_fragment>
+}`;
+function orbVis(){const O=MF.orbit,V=MFV.orb={planet:null,pads:[],locks:[],lanes:[],wind:null,told:false};
+  // turning Earth-like planet below and beyond the north stands
+  {const r=mlRnd(211),tex=mfCanvas(512,256,(q,W,H)=>{
+      const gr=q.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#d9ecff');gr.addColorStop(0.1,'#0d356e');gr.addColorStop(0.5,'#0a4488');gr.addColorStop(0.9,'#0d356e');gr.addColorStop(1,'#d9ecff');
+      q.fillStyle=gr;q.fillRect(0,0,W,H);
+      for(let i=0;i<22;i++){const x=r()*W,y=36+r()*(H-72),rx=18+r()*56,ry=12+r()*30;q.fillStyle=r()<0.65?'#2a6e44':'#8a7846';
+        q.beginPath();q.ellipse(x,y,rx,ry,r()*3,0,7);q.fill();q.beginPath();q.ellipse(x+W,y,rx,ry,0,0,7);q.fill();q.beginPath();q.ellipse(x-W,y,rx,ry,0,0,7);q.fill();}
+      q.fillStyle='rgba(240,248,255,.5)';for(let i=0;i<42;i++){q.beginPath();q.ellipse(r()*W,18+r()*(H-36),20+r()*64,4+r()*9,(r()-.5)*0.2,0,7);q.fill();}});
+    tex.wrapS=THREE.RepeatWrapping;
+    const pg=new THREE.Group();pg.position.set(0,-95,-245);pg.rotation.z=0.22;
+    const sph=new THREE.Mesh(new THREE.SphereGeometry(155,44,28),new THREE.MeshBasicMaterial({map:tex,fog:false}));pg.add(sph);
+    const atmo=new THREE.Mesh(new THREE.SphereGeometry(162,36,22),new THREE.ShaderMaterial({vertexShader:CH_DOME_VS,fragmentShader:ORB_ATMO_FS,transparent:true,depthWrite:false,side:THREE.BackSide,blending:THREE.AdditiveBlending,fog:false,toneMapped:false}));pg.add(atmo);
+    MFG.add(pg);V.planet=sph;}
+  // jump pads: octagonal base + animated lifting cyan rings
+  const baseM=smat(0x3a4454,0.4,0.75),rimM=new THREE.MeshBasicMaterial({color:lin(0x7ee8ff),toneMapped:false});
+  for(const q of O.pads){const g=new THREE.Group();g.position.set(q.x,0,q.z);MFG.add(g);
+    const base=new THREE.Mesh(new THREE.CylinderGeometry(1.18,1.3,0.12,8),baseM);base.position.y=0.06;base.receiveShadow=true;g.add(base);
+    const top=new THREE.Mesh(new THREE.RingGeometry(0.35,1.02,8),new THREE.MeshBasicMaterial({color:lin(0x7ee8ff),transparent:true,opacity:0.45,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));
+    top.rotation.x=-Math.PI/2;top.position.y=0.13;g.add(top);
+    const rings=[];for(let i=0;i<2;i++){const rg=new THREE.Mesh(new THREE.RingGeometry(0.75,0.92,8),rimM.clone());rg.material.transparent=true;rg.material.depthWrite=false;rg.material.blending=THREE.AdditiveBlending;rg.rotation.x=-Math.PI/2;g.add(rg);rings.push(rg);}
+    V.pads.push({g,rings});}
+  // Hull Breach twin airlocks on north (z=-19.9) and south (z=+19.9) walls
+  const doorM=smat(0x454e5e,0.45,0.75),orgM=smat(0xd8621c,0.5,0.4),voidM=new THREE.MeshBasicMaterial({color:0x010308,fog:false});
+  for(const side of [-1,1]){const g=new THREE.Group();g.position.set(0,0,side*19.92);if(side>0)g.rotation.y=Math.PI;MFG.add(g);
+    const frame=new THREE.Mesh(new THREE.BoxGeometry(6.6,4.5,0.28),orgM);frame.position.set(0,2.25,-0.02);g.add(frame);
+    const hole=new THREE.Mesh(new THREE.PlaneGeometry(5.8,4.0),voidM);hole.position.set(0,2.05,0.14);g.add(hole);
+    const dl=new THREE.Mesh(new THREE.BoxGeometry(2.95,4.0,0.22),doorM);dl.position.set(-1.48,2.05,0.18);g.add(dl);
+    const dr=new THREE.Mesh(new THREE.BoxGeometry(2.95,4.0,0.22),doorM);dr.position.set(1.48,2.05,0.18);g.add(dr);
+    const lampM=new THREE.MeshBasicMaterial({color:lin(0xff7b29),toneMapped:false});
+    const lamp=new THREE.Mesh(new THREE.BoxGeometry(6.0,0.18,0.18),lampM);lamp.position.set(0,4.58,0.16);g.add(lamp);
+    V.locks.push({g,side,dl,dr,lampM});}
+  // Hull Breach rushing decompression wind streaks
+  {const N=90,pos=new Float32Array(N*3),st=[];for(let i=0;i<N;i++)st.push({x:(Math.random()-.5)*44,y:0.4+Math.random()*5.5,z:(Math.random()-.5)*36,sp:14+Math.random()*14});
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+    const pts=new THREE.Points(geo,new THREE.PointsMaterial({map:mfGlow(),color:lin(0xc8eeff),size:0.18,transparent:true,opacity:0.75,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+    pts.frustumCulled=false;pts.visible=false;MFG.add(pts);V.wind={pts,st,pos};}
+  // Null Lanes: two zero-gravity strips across the floor
+  for(const l of O.lanes){const U={uT:{value:0}},fl=new THREE.Mesh(new THREE.PlaneGeometry(l[1]*2,39.4),
+      new THREE.ShaderMaterial({uniforms:U,vertexShader:MOLTEN_VS,fragmentShader:ORB_NULL_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));
+    fl.rotation.x=-Math.PI/2;fl.position.set(l[0],0.032,0);fl.renderOrder=1;fl.visible=false;MFG.add(fl);
+    const wall=new THREE.Mesh(new THREE.BoxGeometry(l[1]*2,4.4,39.2),new THREE.MeshBasicMaterial({color:lin(0x7ee8ff),transparent:true,opacity:0.045,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,toneMapped:false}));
+    wall.position.set(l[0],2.2,0);wall.visible=false;MFG.add(wall);V.lanes.push({fl,wall,U});}}
+function orbTick(dt){const V=MFV.orb,O=MF.orbit;if(!V||!O)return;const now=performance.now()/1000;
+  if(V.planet)V.planet.rotation.y+=dt*0.015;
+  for(let i=0;i<V.pads.length;i++){const p=V.pads[i];for(let j=0;j<p.rings.length;j++){const k=(now*1.1+j*0.5+i*0.13)%1;p.rings[j].position.y=0.14+k*0.95;p.rings[j].material.opacity=(1-k)*0.85;p.rings[j].scale.setScalar(0.85+k*0.25);}}
+  const live=!!S&&S.phase==='live',br=live&&zsOn('breach')?breachAt(zsT()):null,nl=live&&zsOn('null');
+  for(const L of V.locks){const act=!!br&&br.side===L.side,open=act&&br.ph===2?1:0,warn=act&&br.ph===1;
+    L.dl.position.x+=(-1.48-open*2.65-L.dl.position.x)*Math.min(1,dt*8);L.dr.position.x+=(1.48+open*2.65-L.dr.position.x)*Math.min(1,dt*8);
+    L.lampM.color.copy(lin(open?0xff3820:0xff7b29)).multiplyScalar(warn?(Math.sin(now*18)>0?2.4:0.2):open?2.2:0.5);}
+  if(V.wind){const on=!!br&&br.ph===2;V.wind.pts.visible=on;if(on){const ar=V.wind.pos;let k=0;
+      for(const d of V.wind.st){const dx=-d.x,dz=br.side*20-d.z,L=Math.hypot(dx,dz)||1;d.x+=dx/L*d.sp*dt;d.z+=dz/L*d.sp*dt;
+        if(L<2.2||Math.abs(d.z)>19.8){d.x=(Math.random()-.5)*46;d.z=(Math.random()-.5)*34;}ar[k++]=d.x;ar[k++]=d.y;ar[k++]=d.z;}
+      V.wind.pts.geometry.attributes.position.needsUpdate=true;}}
+  for(const ln of V.lanes){ln.fl.visible=ln.wall.visible=nl;if(nl)ln.U.uT.value=now;}
+  if(br){const key=(zsZ().stg||'')+':'+br.n+':'+br.ph;if(V.bkey!==key){const was=V.bkey;V.bkey=key;if(was){
+      if(br.ph===1){mfCap(`Hull Breach: ${br.side<0?'north':'south'} airlock blowing in 3 s!`,3);mfSfx('alarm',0,br.side*20,0.55,{rate:1.15});}
+      else if(br.ph===2){mfCap('Decompression! Lure Revenants into the airlock',4);mfSfx('roll',0,br.side*20,0.65,{rate:0.55});}}}}
+  const P=S&&mySlot()>=0?S.players[mySlot()]:null;
+  if(P&&!V.told&&live&&P.st==='alive'){V.told=true;mfCap(`Low Orbit: ${Math.round(CFG.orbGrav*100)}% gravity. Use the glowing jump pads to clear the deck`,5);}}
 /* Event Horizon: the black hole (a black sphere, a lensing billboard with the photon ring, bent stars and the far side of the disk
    arching over it, a tilted accretion disk), its gravity cage, the swirl on the floor, the red ring round the core, infalling dust,
    and the Collapse Pulse shockwave. The rules are in ehHost / ehLocal. */
@@ -10522,7 +10786,7 @@ function mfTick(dt){mlTick(dt);const live=!!S,off=!!(S&&S.range)||RG.stowed,t=mf
   for(const a of MFV.acid)a.m.material.opacity=0.36+0.14*Math.sin(now*1.3+a.ph);
   for(const f of MFV.flares){if(f.t>0){f.t-=dt;f.s.material.opacity=clamp(f.t/0.09,0,1)*0.55;if(f.t<=0)f.s.visible=false;}}
   if(nav){mfNav();ZB.grid=(ZB.grid|0)+1;}
-  foTick(dt);ehTick(dt);
+  foTick(dt);chTick(dt);orbTick(dt);ehTick(dt);
   zsTick(dt);
   // caption
   if(MFV.capT>0){MFV.capT-=dt;}const el=$('mfcap');if(el){const show=MFV.capT>0&&!!S&&$('menu').hidden;el.hidden=!show;if(show&&el.textContent!==MFV.cap)el.textContent=MFV.cap;}
@@ -10534,7 +10798,7 @@ void main(){vec2 p=vUv*2.-1.;float r=length(p*vec2(1.,0.8)),a=atan(p.y,p.x);floa
   vec3 c=mix(uC,uD,s)*(.5+1.1*s2*(1.-r*.7));float e=smoothstep(1.,.82,max(abs(p.x),abs(p.y)));float al=uA*e*(.6+.4*s);if(al<.01)discard;gl_FragColor=vec4(c*1.5,al);
   #include <colorspace_fragment>
 }`;
-function zsVis(){ZS.link=null;ZSV.drops.length=0;ZSV.mag=null;ZSV.vents.length=0;ZSV.slabs.length=0;ZSV.ptl.length=0;ZSV.scan=null;ZSV.hatch.length=0;ZSV.marks.length=0;ZSV.k={};ZSV.core=null;ZSV.rain=null;ZSV.orb=null;
+function zsVis(){ZS.link=null;ZSV.drops.length=0;ZSV.mag=null;ZSV.vents.length=0;ZSV.slabs.length=0;ZSV.ptl.length=0;ZSV.scan=null;ZSV.hatch.length=0;ZSV.marks.length=0;ZSV.k={};ZSV.core=null;ZSV.rain=null;ZSV.orb=null;ZSV.echo=[];
   const Z=MF.zs;if(!Z)return;const glow=mfGlow(),add=o=>{MFG.add(o);return o;},L=ZST[MAP.id];if(!L)return;
   const hazard=mfCanvas(128,32,(q,w,h)=>{q.fillStyle='#f2b400';q.fillRect(0,0,w,h);q.fillStyle='#111';for(let x=-h;x<w;x+=24){q.beginPath();q.moveTo(x,h);q.lineTo(x+12,h);q.lineTo(x+12+h,0);q.lineTo(x+h,0);q.fill();}});hazard.wrapS=THREE.RepeatWrapping;
   // Yard: the two drop containers and their red landing shadows
@@ -10612,7 +10876,18 @@ function zsVis(){ZS.link=null;ZSV.drops.length=0;ZSV.mag=null;ZSV.vents.length=0
       const e=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(w,h,d)),eM);g.add(e);
       const gl=new THREE.Mesh(new THREE.PlaneGeometry(w*1.8,d*1.8),new THREE.MeshBasicMaterial({map:glow,color:lin(0xb47cff),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));gl.rotation.x=-Math.PI/2;gl.renderOrder=1;add(gl);
       g.visible=false;gl.visible=false;L.push({g,gl,b,ph:Math.random()*6});}
-    ZSV.orb=L;}}
+    ZSV.orb=L;}
+  // Chronofield: Echoes — faint cyan hologram silhouettes replaying players 5 s ago
+  if(MAPS[MAP.id]&&MAPS[MAP.id].zs&&MAPS[MAP.id].zs.echo){
+    const hm=new THREE.MeshBasicMaterial({color:lin(0x3ef0d4),transparent:true,opacity:0.42,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false});
+    const rm=new THREE.MeshBasicMaterial({color:lin(0xffc857),transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false});
+    for(let i=0;i<4;i++){const g=add(new THREE.Group());
+      const torso=new THREE.Mesh(new THREE.BoxGeometry(0.44,0.62,0.24),hm);torso.position.y=1.18;g.add(torso);
+      const head=new THREE.Mesh(new THREE.SphereGeometry(0.15,10,8),hm);head.position.y=1.66;g.add(head);
+      for(const sx of [-0.12,0.12]){const leg=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.82,0.16),hm);leg.position.set(sx,0.44,0);g.add(leg);}
+      for(const sx of [-0.3,0.3]){const arm=new THREE.Mesh(new THREE.BoxGeometry(0.11,0.56,0.13),hm);arm.position.set(sx,1.16,0);g.add(arm);}
+      const ring=new THREE.Mesh(new THREE.RingGeometry(0.38,0.48,28),rm);ring.rotation.x=-Math.PI/2;ring.position.y=0.04;g.add(ring);
+      g.visible=false;ZSV.echo.push({g,ring});}}}
 function zsPlace(b,x,z){const w=b.x1-b.x0,d=b.z1-b.z0;b.x0=x-w/2;b.x1=x+w/2;b.z0=z-d/2;b.z1=z+d/2;}
 /* every frame, from mfTick. Returns nothing: it rebuilds the grids itself when a piece turns solid or open */
 function zsTick(dt){const Z=MF.zs;if(!Z)return;const ZZ=zsZ(),live=!!S&&S.phase==='live'&&!!ZZ,t=live?zsT():0,now=performance.now()/1000,host=!!S&&(net.mode!=='online'||net.host);let nav=false,links=false;
@@ -10688,6 +10963,17 @@ function zsTick(dt){const Z=MF.zs;if(!Z)return;const ZZ=zsZ(),live=!!S&&S.phase=
       V.g.visible=b.y1>0.02;V.g.position.set(x,yb+b.h0/2+0.06*Math.sin(now*1.3+V.ph)*e,z);V.g.rotation.set(0.04*Math.sin(now*0.9+V.ph)*e,0.05*Math.sin(now*0.6+V.ph),0.04*Math.cos(now*0.8+V.ph)*e);
       V.gl.visible=V.g.visible;V.gl.position.set(x,0.03,z);V.gl.material.opacity=0.55*e;}
     if(on&&edge('orb',1))spawnSparks(0,0.3,0,0xb47cff,6,0,1,0);}
+  // Chronofield: Rewind warning and VHS ripple snap
+  if(zsOn('rewind')){const rw=rewAt(t);
+    if(edge('rewW',rw.n*2+rw.ph)){if(rw.ph===1){mfCap('Rewind incoming: broken cover snaps back in 2.5 s',2.5);mfSfx('alarm',0,0,0.32,{rate:1.35});}}
+    if(rw.n>0&&edge('rewN',rw.n)){mfCap('Rewind: cover snapped back 10 seconds',3);mfSfx('roll',0,0,0.45,{rate:1.55});
+      const vhs=$('vhsover');if(vhs){vhs.classList.remove('on');void vhs.offsetWidth;vhs.classList.add('on');}
+      for(const b of COVER)if(b.y1>0)spawnSparks((b.x0+b.x1)/2,b.y1*0.6,(b.z0+b.z1)/2,0x3ef0d4,3,0,1,0);}}
+  // Chronofield: Echoes hologram silhouettes
+  if(ZSV.echo.length){const on=zsOn('echo'),ech=on&&live&&ZZ&&Array.isArray(ZZ.ech)?ZZ.ech:[];
+    for(let i=0;i<ZSV.echo.length;i++){const V=ZSV.echo[i],e=ech[i];V.g.visible=!!e;if(!e)continue;
+      V.g.position.set(e[0],e[1]+0.03*Math.sin(now*6+i),e[2]);V.g.rotation.y=e[3];
+      V.ring.rotation.z=now*2+i;V.g.scale.set(1,0.97+0.03*Math.sin(now*28+i),1);}}
   if(links)zsLinks();
   if(nav){mfNav();ZB.grid=(ZB.grid|0)+1;/* anything a piece closed on steps to the nearest open cell */
     if(host)for(const o of ZB.list)if(o.st!=='dead'&&!freeAt(o.x,o.z)){const c=nearestFree(...cellOf(o.x,o.z));o.x=c[0]-50+0.5;o.z=c[1]-20+0.5;o.wp=null;}}}
@@ -10698,6 +10984,15 @@ function zsLocal(dt,P){me.ptT=Math.max(0,(me.ptT||0)-dt);if(!S||!P||P.st!=='aliv
   if(zsOn('portal')&&me.ptT<=0&&me.y<2.2)for(let i=0;i<MF.panes.length;i++){if(!zsPtlOpen(i)||!zsPaneIn(MF.panes[i],me.x,me.z,0.3))continue;
     const fx=me.x,fz=me.z,e=zsPtlExit(i,zsPtlSide(i,me.vx||0,me.vz||0,me.x,me.z),me.x,me.z);me.x=e.x;me.z=e.z;me.ptT=0.6;me.mantle=null;P.x=me.x;P.z=me.z;
     spawnSparks(fx,1.2,fz,THEME.low,10,0,0,0);spawnSparks(e.x,1.2,e.z,THEME.low,10,0,0,0);dashSound();break;}}
+/* Low Orbit, for your own player: jump pads, Null Lane zero-G float, and Hull Breach decompression pull */
+function orbLocal(dt,P){const O=MF.orbit;if(!O||!S||!P||S.phase!=='live'||P.st==='dead'||me.mantle)return;
+  me.padCd=Math.max(0,(me.padCd||0)-dt);
+  if(P.st==='alive'&&me.padCd<=0&&me.y<0.35&&padAt(me.x,me.z)){me.padCd=0.6;me.vy=CFG.orbPadV;me.ground=false;me.airT=1;me.slideT=0;me.wr=0;spawnSparks(me.x,0.2,me.z,0x7ee8ff,10,0,1,0);dashSound();}
+  if(P.st==='alive'&&nullLaneAt(me.x,me.z)){/* zero-G strip: float gently across at your entry speed */
+    if(me.y<1.1)me.vy=Math.max(me.vy,1.6);else if(me.y>3.2)me.vy=Math.min(me.vy,-0.8);else me.vy*=Math.max(0,1-2.5*dt);
+    me.ground=false;me.airT=1;}
+  if(zsOn('breach')){const br=breachAt(zsT());if(br.ph===2){const q=breachPull(me.x,me.z,br.side,CFG.orbPullP*(P.st==='down'?0.4:1)),pos={x:me.x,z:me.z};
+      moveCircle(pos,q.x*dt,q.z*dt,0.38,me.y);me.x=pos.x;me.z=clamp(pos.z,-19.2,19.2);}}}
 /* Event Horizon, for your own player: the pull, the downed eject out of the core, the Collapse Pulse blast, and moving debris */
 function ehLocal(dt,P){const E=MF.eh;if(!E||!S||!P||S.phase!=='live'||P.st==='dead'||me.mantle)return;const d=hyp(me.x,me.z,E.x,E.z);
   const q=ehPull(me.x,me.z,CFG.ehPullP*(P.st==='down'?0.4:1)),pos={x:me.x,z:me.z};if(q)moveCircle(pos,q.x*dt,q.z*dt,0.38,me.y);
@@ -10714,7 +11009,7 @@ function paneHitFx(b,x,y,z,dx,dy,dz){spawnSparks(x,y,z,0xe2f6ff,5,-dx,-dy,-dz);m
 const MFA={buf:{},loading:false,src:null,g:null,bz:null,bzG:null,cur:'',rev:'',lava:null,lavaG:null,lavaK:0};
 const BUZZ_G=0.7;/* alex_jauk 'High energy buzzing ambience' (Pixabay 195142), ~6 dB under the map beds, every map */
 const MF_BED={yard:['yardBed',0.55],foundry:['foundryBed',0.5],atrium:['atriumBed',0.42]};/* Warren has no bed: Joe removed the dripping water loop (2026-11-21) */
-const MF_REV={yard:[1.8,2.6,0.75],foundry:[2.5,2.3,0.55],atrium:[3.4,2.0,0.9],warren:[0.85,3.4,0.6],fallout:[2.1,2.5,0.62],horizon:[3.0,2.1,0.5]};/* seconds, decay power, brightness */
+const MF_REV={yard:[1.8,2.6,0.75],foundry:[2.5,2.3,0.55],atrium:[3.4,2.0,0.9],warren:[0.85,3.4,0.6],fallout:[2.1,2.5,0.62],chrono:[2.8,2.2,0.78],orbit:[2.2,2.5,0.72],horizon:[3.0,2.1,0.5]};/* seconds, decay power, brightness */
 function mfIR(k){const R=MF_REV[k]||MF_REV.yard,sr=actx.sampleRate,n=Math.floor(sr*R[0]),ir=actx.createBuffer(2,n,sr);
   for(let c=0;c<2;c++){const b=ir.getChannelData(c);let lp=0;for(let i=0;i<n;i++){const w=Math.random()*2-1;lp+=(w-lp)*(R[2]-0.5*R[2]*i/n);b[i]=lp*Math.pow(1-i/n,R[1])*(i<400?i/400:1)*1.6;}}return ir;}
 function mfAudio(dt){if(!actx||!AU.master)return;
@@ -11061,6 +11356,21 @@ function rgMapUI(el,mk){el.append(mk('h3','','Map and its hazards'));
   if(MF.rad){const b=mk('div','btns'),x=mk('button','btn','Go to the hot zone');x.type='button';x.addEventListener('click',()=>{const q=MF.rad.zones.find(q=>q.x<0)||MF.rad.zones[0];me.x=q.x;me.z=q.z+(q.r>4?-q.r+1:0);me.y=0;me.vy=0;const P=S&&S.players[mySlot()];if(P){P.x=me.x;P.z=me.z;}});b.append(x);
     const y=mk('button','btn','Go to a decon shower');y.type='button';y.addEventListener('click',()=>{const q=MF.rad.decon.find(q=>q.x<0)||MF.rad.decon[0];me.x=q.x;me.z=q.z-Math.sign(q.z)*0.4;me.y=0;me.vy=0;const P=S&&S.players[mySlot()];if(P){P.x=me.x;P.z=me.z;}});b.append(y);el.append(b);
     for(const [k,t,lo,hi,st] of [['radIn','Rad meter fill per second in a hot zone',0,50,1],['radHurt','Radiation burn when full (HP per second)',0,50,1],['radMut','Seconds in a hot zone before a Revenant mutates',1,30,1]])devKnob(el,t,lo,hi,st,()=>CFG[k],v=>{CFG[k]=v;sbSave();},CFG0[k]);}
+  if(MF.chrono){const C=MF.chrono;el.append(mk('div','note',`Five slowed-time bubbles drift across the midfield (the center one sweeps a figure-8). Anything inside moves at ${Math.round(CFG.chSlow*100)}% speed: players, Revenants, grenades and acid globs. Bullets pass through normally. Preview Rewind or Echoes with the Stage changes picker above.`));
+    const b=mk('div','btns'),go=(t,f)=>{const x=mk('button','btn',t);x.type='button';x.addEventListener('click',f);b.append(x);};
+    const put=(x,z)=>{me.x=x;me.z=z;me.y=0;me.vy=me.vx=me.vz=0;const P=S&&S.players[mySlot()];if(P){P.x=me.x;P.z=me.z;}};
+    go('Go to center bubble',()=>{const q=C.bubbles[0],p=chBubPos(q,0,chClock());put(p.x-q.r-1.5,p.z);me.yaw=-Math.PI/2;});
+    go('Horde through bubble',()=>{for(let i=0;i<6;i++){const a=(i-2.5)*0.3,x=12+Math.cos(a)*4,z=Math.sin(a)*5;if(freeAt(x,z))zSpawn(i%2?'sprint':'sham',x,z,Math.PI/2);}});
+    el.append(b);
+    devKnob(el,'Time speed inside bubbles (x)',0.15,0.9,0.05,()=>CFG.chSlow,v=>{CFG.chSlow=v;sbSave();},CFG0.chSlow);
+    devKnob(el,'Bubble drift speed (x)',0,3,0.1,()=>CFG.chDrift,v=>{CFG.chDrift=v;sbSave();},CFG0.chDrift);}
+  if(MF.orbit){const O=MF.orbit;el.append(mk('div','note',`Gravity is ${Math.round(CFG.orbGrav*100)}%: jumps go over twice as high and falls are slow. Six glowing jump pads launch you across the deck, and Sprinters leap at you from further away. Preview Hull Breach or Null Lanes with Stage changes above.`));
+    const b=mk('div','btns'),go=(t,f)=>{const x=mk('button','btn',t);x.type='button';x.addEventListener('click',f);b.append(x);};
+    const put=(x,z)=>{me.x=x;me.z=z;me.y=0;me.vy=me.vx=me.vz=0;const P=S&&S.players[mySlot()];if(P){P.x=me.x;P.z=me.z;}};
+    go('Go to a jump pad',()=>{const q=O.pads.find(q=>q.x<0)||O.pads[0];put(q.x-2,q.z);me.yaw=-Math.PI/2;});
+    go('Spawn leaping Sprinters',()=>{for(let i=0;i<4;i++){const x=4+i*2.5,z=(i-1.5)*2.5;if(freeAt(x,z))zSpawn('sprint',x,z,Math.PI/2);}});
+    el.append(b);
+    for(const [k,t,lo,hi,st] of [['orbGrav','Gravity scale (x)',0.15,1,0.05],['orbPadV','Jump pad launch speed (m/s)',3,14,0.2],['orbPullZ','Hull Breach pull on Revenants (m/s)',1,18,0.5]])devKnob(el,t,lo,hi,st,()=>CFG[k],v=>{CFG[k]=v;sbSave();},CFG0[k]);}
   if(MF.eh){const E=MF.eh;el.append(mk('div','note',`The black hole hangs 32 m ahead. It pulls on everything within ${E.R} m: you a little, Revenants and acid globs more. Cross the red ring (${E.r} m) and it tears you apart (God mode keeps you alive). Revenants that go in are gone, and so is a Matriarch daughter, whole; the Matriarch herself isn't pulled and burns ${CFG.ehBossDps} a second while she stands in it. Bullets aren't bent. The cage is put away here, the black hole stays.`));
     const b=mk('div','btns'),go=(t,f)=>{const x=mk('button','btn',t);x.type='button';x.addEventListener('click',f);b.append(x);};
     const put=(x,z)=>{me.x=x;me.z=z;me.y=0;me.vy=me.vx=me.vz=0;me.yaw=Math.atan2(-(E.x-x),-(E.z-z));me.pitch=-0.05;const P=S&&S.players[mySlot()];if(P){P.x=me.x;P.z=me.z;}};
@@ -11366,7 +11676,9 @@ function zPaint(z,p,lk,L,u,v,w,ix,iy,iz,c,ao){const nm=p.name,sd=z.seed,h=zHash(
     case 'footL':case 'footR':c.copy(lk.shoe);if(iy===0)c.multiplyScalar(0.6);break;
     default:skin();}
   c.multiplyScalar((0.86+0.16*v)*(0.93+h*0.14)*(ao!=null?ao:1));}
-function zTargets(){return S.players.filter(p=>p.st==='alive'&&!(SB.on&&p.bot&&!p.rgId&&S.range));}
+function zTargets(){const out=S.players.filter(p=>p.st==='alive'&&!(SB.on&&p.bot&&!p.rgId&&S.range));
+  const Z=zsZ();if(zsOn('echo')&&Z&&Array.isArray(Z.ech))for(const e of Z.ech)out.push({x:e[0],y:e[1],z:e[2],yaw:e[3],st:'alive',echo:true,s:-1});
+  return out;}
 /* walking distance from every free cell to the nearest living player (8-way, diagonals cost 1.414, no corner cutting) */
 function zField(T){const D=ZB.dist,st=++FP.stamp,{gen,closed,hf,hi}=FP;let hn=0;D.fill(1e9);
   const push=(i,f)=>{let k=hn++;while(k>0){const p=(k-1)>>1;if(hf[p]<=f)break;hf[k]=hf[p];hi[k]=hi[p];k=p;}hf[k]=f;hi[k]=i;};
@@ -11414,26 +11726,28 @@ function zTick(dt){if(S&&S.phase==='over'&&ZB.list.length){zOverClear(dt);return
   for(const z of L){
     if(z.st==='dead'){z.deadT+=dt;continue;}
     if(z.st==='rise'){z.riseT-=dt;if(z.riseT<=0){z.st='walk';z.riseT=0;}continue;}
-    z.cd=Math.max(0,z.cd-dt);z.slow=Math.max(0,z.slow-dt);z.flinch=Math.max(0,z.flinch-dt*4);
+    const zdt=dt*chronoAt(z.x,z.z);
+    if(z.zg){z.groanT-=dt;if(z.groanT<=0){z.groanT=3+Math.random()*6;zGroan(z);}continue;}
+    z.cd=Math.max(0,z.cd-zdt);z.slow=Math.max(0,z.slow-zdt);z.flinch=Math.max(0,z.flinch-zdt*4);
     // nearest target
     let tg=null,td=1e9;for(const p of T){const d=hyp(p.x,p.z,z.x,z.z);if(d<td){td=d;tg=p;}}
-    if(z.t==='jugg'&&zBossTick(z,tg,td,dt))continue;
-    if(z.t==='matri'){if(zMatriTick(z,tg,td,dt))continue;}
-    else if(ZTYPES[z.t].spit&&zSpitTick(z,tg,td,dt))continue;
+    if(z.t==='jugg'&&zBossTick(z,tg,td,zdt))continue;
+    if(z.t==='matri'){if(zMatriTick(z,tg,td,zdt))continue;}
+    else if(ZTYPES[z.t].spit&&zSpitTick(z,tg,td,zdt))continue;
     const lb=zLimbs(z),ty=tg?(tg.y||0):0,rk=ZTYPES[z.t].boss?1.6:1,reach=tg&&td<CFG.zReach*rk+0.35&&ty<(lb.legs?1.1*rk:0.5);
     // the swing: wind up, then hit whoever is still in reach
     const BL=ZTYPES[z.t].bloat;
-    if(BL&&z.wind>0){z.wind-=dt;z.flash=Math.max(z.flash,0.35+0.35*Math.sin(S.clock*40));if(z.wind<=0){zKill(z,false,null);continue;}}
-    else if(BL&&tg&&td<CFG.zReach+0.9&&ZB.hunt){z.wind=ZTYPES[z.t].wind;zVoice(z,'zSnarl',1);}
-    else if(z.wind>0){z.wind-=dt;if(z.wind<=0){z.atkK=1;z.cd=ZTYPES[z.t].cd;if(tg&&td<CFG.zReach*rk+0.6&&ty<(lb.legs?1.2*rk:0.6)&&losPts(z.x,lb.legs?1.2:0.4,z.z,tg.x,(tg.y||0)+1.2,tg.z)){zHurt(tg,Math.round(zStat(z,'dmg')*[0.35,0.6,1][lb.arms]),z);zSwipeSound(z,true);}else zSwipeSound(z,false);}}
+    if(BL&&z.wind>0){z.wind-=zdt;z.flash=Math.max(z.flash,0.35+0.35*Math.sin(S.clock*40));if(z.wind<=0){zKill(z,false,null);continue;}}
+    else if(BL&&tg&&!tg.echo&&td<CFG.zReach+0.9&&ZB.hunt){z.wind=ZTYPES[z.t].wind;zVoice(z,'zSnarl',1);}
+    else if(z.wind>0){z.wind-=zdt;if(z.wind<=0){z.atkK=1;z.cd=ZTYPES[z.t].cd;if(tg&&td<CFG.zReach*rk+0.6&&ty<(lb.legs?1.2*rk:0.6)&&losPts(z.x,lb.legs?1.2:0.4,z.z,tg.x,(tg.y||0)+1.2,tg.z)){if(tg.echo)spawnSparks(tg.x,(tg.y||0)+1.1,tg.z,0x3ef0d4,5,0,1,0);else zHurt(tg,Math.round(zStat(z,'dmg')*[0.35,0.6,1][lb.arms]),z);zSwipeSound(z,true);}else zSwipeSound(z,false);}}
     else if(reach&&z.cd<=0&&ZB.hunt&&!BL){z.wind=ZTYPES[z.t].wind;zVoice(z,'zSnarl',0.9);}
-    z.atkK=Math.max(0,z.atkK-dt*3);
+    z.atkK=Math.max(0,z.atkK-zdt*3);
     // where to walk
     let wx=0,wz=0,want=false;
     if(ZB.hunt&&tg){
-      if(z.esc){z.esc.t-=dt;wx=z.esc.x-z.x;wz=z.esc.z-z.z;if(z.esc.t<=0||Math.hypot(wx,wz)<0.3)z.esc=null;want=true;}
+      if(z.esc){z.esc.t-=zdt;wx=z.esc.x-z.x;wz=z.esc.z-z.z;if(z.esc.t<=0||Math.hypot(wx,wz)<0.3)z.esc=null;want=true;}
       else if(z.hold){if(z.hold===2){wx=z.x-tg.x;wz=z.z-tg.z;want=true;}}/* a Spitter in range holds, or backs off when you close in */
-      else if(td>CFG.zReach*0.8){z.wpT-=dt;
+      else if(td>CFG.zReach*0.8){z.wpT-=zdt;
         if(td<10&&segClear(z.x,z.z,tg.x,tg.z)){z.wp={x:tg.x,z:tg.z};}
         else if(z.wpT<=0||!z.wp||hyp(z.wp.x,z.wp.z,z.x,z.z)<0.6){z.wpT=0.15;z.wp=zWaypoint(z);}
         wx=z.wp.x-z.x;wz=z.wp.z-z.z;want=true;
@@ -11442,19 +11756,19 @@ function zTick(dt){if(S&&S.phase==='over'&&ZB.list.length){zOverClear(dt);return
     // a lost leg halves the pace; with none left it drags itself along
     let spd=(lb.legs===2?zStat(z,'spd'):lb.legs===1?zStat(z,'spd')*0.5:(ZTYPES[z.t].legless?zStat(z,'spd'):Math.min(0.75,zStat(z,'spd'))))*(z.slow>0?0.35:1)*(z.wind>0?0.3:1);
     const wl=Math.hypot(wx,wz);let dvx=0,dvz=0;if(want&&wl>0.01){dvx=wx/wl*spd;dvz=wz/wl*spd;}
-    const acc=z.t==='sprint'&&lb.legs===2?18:8;z.vx+=clamp(dvx-z.vx,-acc*dt,acc*dt);z.vz+=clamp(dvz-z.vz,-acc*dt,acc*dt);
+    const acc=(z.y||0)>0.25&&z.t==='sprint'?1.5:z.t==='sprint'&&lb.legs===2?18:8;z.vx+=clamp(dvx-z.vx,-acc*zdt,acc*zdt);z.vz+=clamp(dvz-z.vz,-acc*zdt,acc*zdt);
     // keep apart from each other
-    for(const o of L){if(o===z||o.st==='dead')continue;const dx=z.x-o.x,dz=z.z-o.z,d=dx*dx+dz*dz;if(d<0.49&&d>1e-6){const k=(0.7-Math.sqrt(d))*4;z.vx+=dx*k*dt*6;z.vz+=dz*k*dt*6;}}
+    for(const o of L){if(o===z||o.st==='dead')continue;const dx=z.x-o.x,dz=z.z-o.z,d=dx*dx+dz*dz;if(d<0.49&&d>1e-6){const k=(0.7-Math.sqrt(d))*4;z.vx+=dx*k*zdt*6;z.vz+=dz*k*zdt*6;}}
     // and out of the players they are clawing at
     if(tg&&td<0.75&&td>1e-3){z.vx+=(z.x-tg.x)/td*2;z.vz+=(z.z-tg.z)/td*2;}
-    const nx=z.x+z.vx*dt,nz=z.z+z.vz*dt,inP=pourCell(z.x,z.z),fr=(x,y)=>freeAt(x,y)||(inP&&pourCell(x,y));/* caught on the channel floor when it closes: still free to walk out */
+    const nx=z.x+z.vx*zdt,nz=z.z+z.vz*zdt,inP=pourCell(z.x,z.z),fr=(x,y)=>freeAt(x,y)||(inP&&pourCell(x,y));/* caught on the channel floor when it closes: still free to walk out */
     if(fr(nx,nz)){z.x=nx;z.z=nz;}else if(fr(nx,z.z)){z.x=nx;z.vz*=0.5;}else if(fr(z.x,nz)){z.z=nz;z.vx*=0.5;}else{z.vx*=0.2;z.vz*=0.2;}
     z.x=clamp(z.x,-49,49);z.z=clamp(z.z,-19,19);z.spd=Math.hypot(z.vx,z.vz);
     // face where it walks, or the target when close
     let fyaw=z.yaw;if(tg&&(td<3||z.hold===1))fyaw=Math.atan2(-(tg.x-z.x),-(tg.z-z.z));else if(z.spd>0.3)fyaw=Math.atan2(-z.vx,-z.vz);
-    let dy=fyaw-z.yaw;while(dy>Math.PI)dy-=Math.PI*2;while(dy<-Math.PI)dy+=Math.PI*2;z.yaw+=clamp(dy,-7*dt,7*dt);
+    let dy=fyaw-z.yaw;while(dy>Math.PI)dy-=Math.PI*2;while(dy<-Math.PI)dy+=Math.PI*2;z.yaw+=clamp(dy,-7*zdt,7*zdt);
     // stuck: under a third of the expected progress over 0.6 s of trying to walk = back off somewhere free and retry
-    if(want&&!z.esc&&z.wind<=0&&td>3.5){z.prog.t+=dt;if(z.prog.t>=0.6){const moved=hyp(z.x,z.z,z.prog.x,z.prog.z);
+    if(want&&!z.esc&&z.wind<=0&&td>3.5){z.prog.t+=zdt;if(z.prog.t>=0.6){const moved=hyp(z.x,z.z,z.prog.x,z.prog.z);
         if(moved<spd*0.6/3&&spd>0.5){for(let i=0;i<8;i++){const a=Math.random()*Math.PI*2,r=1.5+Math.random()*2,ex=z.x+Math.cos(a)*r,ez=z.z+Math.sin(a)*r;if(freeAt(ex,ez)&&segClear(z.x,z.z,ex,ez)){z.esc={x:ex,z:ez,t:0.8};ZB.stuck=(ZB.stuck|0)+1;break;}}z.wp=null;}
         z.prog={x:z.x,z:z.z,t:0};}}
     else z.prog={x:z.x,z:z.z,t:0};
@@ -11578,7 +11892,7 @@ function zSpitTick(z,tg,td,dt){z.scd=(z.scd==null?1+Math.random()*1.5:z.scd)-dt;
 function zSpitFire(z,tg,off){if(ZB.globs.length>=ZAC_MAXG)ZB.globs.shift();const s=zSize(z),x=z.x-Math.sin(z.yaw)*0.35*s,y=1.55*s,zz=z.z-Math.cos(z.yaw)*0.35*s;
   const d=hyp(tg.x,tg.z,x,zz),T=clamp(d/13,0.55,1.3);let tx=tg.x+(tg.vx||0)*T*0.7,tz=tg.z+(tg.vz||0)*T*0.7;const ty=(tg.y||0)+0.9;
   if(off){const c=Math.cos(off),sn=Math.sin(off),dx=tx-x,dz=tz-zz;tx=x+dx*c-dz*sn;tz=zz+dx*sn+dz*c;}
-  ZB.globs.push({id:++ZB.gid,x,y,z:zz,vx:(tx-x)/T,vy:(ty-y+0.5*ZAC_G*T*T)/T,vz:(tz-zz)/T,t:0,src:{id:'s'+z.id,x:z.x,z:z.z,t:z.t}});
+  ZB.globs.push({id:++ZB.gid,x,y,z:zz,vx:(tx-x)/T,vy:(ty-y+0.5*ZAC_G*(MF.orbit?CFG.orbGrav:1)*T*T)/T,vz:(tz-zz)/T,t:0,src:{id:'s'+z.id,x:z.x,z:z.z,t:z.t}});
   zVoice(z,'zCall',0.7);}
 function zAcidPool(x,z){if(!freeAt(x,z)){const c=nearestFree(...cellOf(x,z));if(!c)return;x=c[0]-50+0.5;z=c[1]-20+0.5;}
   const near=ZB.pools.find(q=>hyp(q.x,q.z,x,z)<0.9);if(near){near.t=CFG.zAcidT;near.r=Math.min(CFG.zAcidR*1.45,near.r+0.25);return;}
@@ -11611,7 +11925,7 @@ function zWallTick(dt){const W=ZB.walls;
       if(p.bot){const m=botMem[p.s];if(m&&!m.esc){const c=Math.cos(w.a),sn=Math.sin(w.a),side=((p.x-w.x)*-sn+(p.z-w.z)*c)>=0?1:-1,ex=p.x-sn*side*1.4,ez=p.z+c*side*1.4;if(freeAt(ex,ez))m.esc={x:ex,z:ez,t:1.2};}}}}}
 function zAcidSplash(x,y,z){for(let i=0;i<10;i++)zPix(x,Math.max(0.1,y),z,(Math.random()-.5)*3,1+Math.random()*2,(Math.random()-.5)*3,0.05,0.5,1,0.2,true,0.5+Math.random()*0.4);}
 function zAcidTick(dt){const G=ZB.globs,P=ZB.pools;if(ZB.walls.length)zWallTick(dt);if(!G.length&&!P.length&&!ZB.walls.length){if(S&&S.zac)S.zac=undefined;return;}
-  for(let i=G.length-1;i>=0;i--){const g=G[i],px=g.x,pz=g.z;g.t+=dt;g.vy-=ZAC_G*dt;g.x+=g.vx*dt;g.y+=g.vy*dt;g.z+=g.vz*dt;let done=false;
+  for(let i=G.length-1;i>=0;i--){const g=G[i],px=g.x,pz=g.z,gdt=dt*chronoAt(g.x,g.z);g.t+=gdt;g.vy-=ZAC_G*gravAt(g.x,g.z)*gdt;g.x+=g.vx*gdt;g.y+=g.vy*gdt;g.z+=g.vz*gdt;let done=false;
     if(MF.eh){const q=ehPull(g.x,g.z,CFG.ehPullG);if(q){g.vx+=q.x*dt;g.vz+=q.z*dt;if(q.d<MF.eh.r*0.7&&g.y<5){G.splice(i,1);continue;}}}/* the black hole bends acid globs in and eats them */
     for(const p of S.players){if(p.st!=='alive')continue;const py=p.y||0;if(Math.abs(p.x-g.x)<0.55&&Math.abs(p.z-g.z)<0.55&&g.y>py&&g.y<py+1.9){zHurt(p,CFG.zSpiGlob,g.src);zAcidPool(p.x,p.z);done=true;break;}}
     if(!done&&zSolidAt(g.x,g.y,g.z)){zAcidPool(px,pz);done=true;}
@@ -11649,7 +11963,7 @@ function zAcidDraw(dt){const A=ZAC,gu=zGuest(),src=gu?(S&&S.zac)||null:null;
     A.m.compose(A.v.set(q[0],0.03+n*0.002,q[1]),A.q.set(0,0,0,1),A.sc.set(r,1,r));A.pool.setMatrixAt(n++,A.m);
     if(Math.random()<dt*3*fade)zPix(q[0]+(Math.random()-.5)*q[2],0.05,q[1]+(Math.random()-.5)*q[2],0,0.6+Math.random()*0.6,0,0.035,0.55,1,0.25,true,0.4);}
   A.pool.count=n;if(n)A.pool.instanceMatrix.needsUpdate=true;n=0;
-  for(const g of G){if(n>=ZAC_MAXG)break;const x=g[1]+g[4]*age,y=g[2]+g[5]*age-0.5*ZAC_G*age*age,z=g[3]+g[6]*age;if(y<0)continue;
+  for(const g of G){if(n>=ZAC_MAXG)break;const ga=age*chronoAt(g[1],g[3]),x=g[1]+g[4]*ga,y=g[2]+g[5]*ga-0.5*ZAC_G*gravAt(g[1],g[3])*ga*ga,z=g[3]+g[6]*ga;if(y<0)continue;
     A.m.makeTranslation(x,y,z);A.glob.setMatrixAt(n++,A.m);if(Math.random()<dt*20)zPix(x,y,z,0,-0.3,0,0.04,0.5,1,0.2,true,0.3);}
   A.glob.count=n;if(n)A.glob.instanceMatrix.needsUpdate=true;n=0;
   const WL=zWallList();A.wt.offset.y=ck*0.7;
@@ -11862,7 +12176,7 @@ function zRender(dt){
   if(useCull){_zProjM.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);_zFrust.setFromProjectionMatrix(_zProjM);}
   const piSac=R.PI.sac,piBsac=R.PI.bsac,piBoil=R.PI.boils,piBoilB=R.PI.boilsB,piCore=R.PI.jcore,piVis=R.PI.visor,piSpust=R.PI.spust,piEyes=R.PI.eyes;
   let nb=0,nm=0,ng=0,bi=0;
-  for(const z of L){zPose(z,dt);z.flash=Math.max(0,z.flash-dt*6);z.shF=Math.max(0,(z.shF||0)-dt*5);const f=z.flash,sf=z.shF,e=z.pm,s=zSize(z),eyeHex=zEye(z);
+  for(const z of L){zPose(z,dt*chronoAt(z.x,z.z));z.flash=Math.max(0,z.flash-dt*6);z.shF=Math.max(0,(z.shF||0)-dt*5);const f=z.flash,sf=z.shF,e=z.pm,s=zSize(z),eyeHex=zEye(z);
     const dis=z.st==='dead'&&z.deadT>ZDIS0?(z.deadT-ZDIS0)/ZDIS:-1,eyeK=z.st==='dead'?Math.max(0,1-z.deadT*1.5):1;
     const vis=!useCull||_zFrust.intersectsSphere(_zSph.set(R.v.set(z.x,(z.y||0)+0.95*s,z.z),2.4*s));
     /* spawn-in: voxels appear from the floor up below a scan line, the band at the line lit in the Revenant's eye colour */
@@ -12239,15 +12553,19 @@ function zrWCard(P){const el=$('zrwcard'),L=S.zr.drops||[];let best=null,bd=6;
 function zrHome(p){const h=DM_HOME[p.s?2:0];let x=-h[0],z=-h[1];if(!freeAt(x,z)){const c=nearestFree(...cellOf(x,z));x=c[0]-50+0.5;z=c[1]-20+0.5;}
   dmPlace(p,x,z,Math.atan2(-(Math.sign(x)*48.5-x),-(Math.sign(z)*9-z)));}
 function zrStart(){S.center={own:-1,cap:-1,p:0};S.armed=null;S.tickets=[0,0];S.sudden=false;
-  S.timer=0;S.phase='buy';S.t=(MATCH.zrWeek||1)===1?Math.max(CFG.buy,CFG.buy1,0.6+vxSeqLen(ZR_PA,ZR_PA_GAP)+3.4):Math.max(CFG.buy,CFG.buy1);S.last=null;/* room for the tunnel PA before 3-2-1 */
-  const short=MATCH.zrLen==='short',home=MAP.id,others=MAP_IDS.filter(m=>m!==home&&!((MAPS[m].week|0)>(MATCH.zrWeek||1)));/* a later week's maps never show up as an earlier week's away broadcast */
-  S.zr={c0:S.clock||0,len:short?'short':'full',week:MATCH.zrWeek||1,seg:0,segs:short?3:4,awaySeg:short?2:3,home,away:others[(Math.random()*others.length)|0]||home,
-    w:0,nw:0,ph:'pre',t:0,q:[],sp:0,left:0,kills:0,cleared:0,won:false,why:'',boss:null,offers:{},picked:{},ready:{},mine:{A:0,B:0},drops:[],di:0,crT:0,carry:(MATCH.zrWeek||1)>=2&&MATCH.zrCarry?1:0,cyd:{}};
+  const wk=MATCH.zrWeek||1,short=MATCH.zrLen==='short';
+  S.timer=0;S.phase='buy';S.t=wk===1?Math.max(CFG.buy,CFG.buy1,0.6+vxSeqLen(ZR_PA,ZR_PA_GAP)+3.4):Math.max(CFG.buy,CFG.buy1);S.last=null;/* room for the tunnel PA before 3-2-1 */
+  /* Week 2 (Containment Week) tours all four new stadiums: Full = Fallout -> Chronofield -> Low Orbit (away) -> Event Horizon; Short = Fallout -> Chronofield or Low Orbit -> Event Horizon */
+  const maps=wk===2?(short?['fallout',Math.random()<0.5?'chrono':'orbit','horizon']:['fallout','chrono','orbit','horizon']):null;
+  const home=maps?maps[0]:MAP.id,others=MAP_IDS.filter(m=>m!==home&&!((MAPS[m].week|0)>wk));/* a later week's maps never show up as an earlier week's away broadcast */
+  const awaySeg=short?2:3,away=maps?maps[awaySeg-1]:others[(Math.random()*others.length)|0]||home;
+  S.zr={c0:S.clock||0,len:short?'short':'full',week:wk,seg:0,segs:short?3:4,awaySeg,home,away,maps,
+    w:0,nw:0,ph:'pre',t:0,q:[],sp:0,left:0,kills:0,cleared:0,won:false,why:'',boss:null,offers:{},picked:{},ready:{},mine:{A:0,B:0},drops:[],di:0,crT:0,carry:wk>=2&&MATCH.zrCarry?1:0,cyd:{}};
   zClear();ZB.kills=0;ZB.hunt=true;ZB.endless=false;for(const p of S.players){p.team=0;p.k=0;p.d=0;p.fv=0;p.cards=[];p.dropW=null;p.sw=null;}
   zrSeg(1);}
-/* a segment starts: its map (switching for the away broadcast), everyone up, healed and home */
+/* a segment starts: its map (switching for the away broadcast or tour stop), everyone up, healed and home */
 function zrSeg(n){const Z=S.zr;Z.act=n>1&&Z.dirOn&&Z.dir?Z.dir:null;Z.dir=null;Z.dirOn=0;Z.seg=n;Z.w=0;Z.nw=Z.len==='short'?2:3;Z.ph='pre';Z.t=S.phase==='buy'?0:5;Z.q=[];Z.boss=null;Z.offers={};Z.picked={};Z.ready={};Z.mine={A:0,B:0};Z.drops=[];
-  const id=n===Z.awaySeg?Z.away:Z.home;if(id!==MAP.id){zClear();setMap(id);}S.map=MAP.id;
+  const id=(Z.maps&&Z.maps[n-1])||(n===Z.awaySeg?Z.away:Z.home);if(id!==MAP.id){zClear();setMap(id);S.mft=0;}S.map=MAP.id;
   S.cover=COVER.map(b=>b.max);S.regen=COVER.map(()=>0);
   for(const p of S.players){p.swUsed=0;p.edUsed=0;p.rcUsed=0;p.lfUsed=0;p.ak=null;p.ap=0;zrHome(p);}
 }
@@ -12422,7 +12740,7 @@ const ZLOST=['head','armL','armR','legL','legR'];
 function zGuest(){return net.mode==='online'&&!net.host;}
 function zHitLog(z,h,by){if(!(net.mode==='online'&&net.host))return;const L=ZB.hlog||(ZB.hlog=[]);if(L.length<48)L.push([z.id,h.p,+h.lx.toFixed(2),+h.ly.toFixed(2),+h.lz.toFixed(2),Math.round(h.dmg),by?by.s:-1]);}
 function zPack(withHits){const out=[];
-  for(const z of ZB.list){if(z.st==='dead'&&z.deadT>1.5)continue;let b=z.st==='rise'?0:z.st==='dead'?2:1;if(z.wind>0)b|=4;if(z.headKill)b|=8;if(z.fallBack)b|=16;if(z.elite)b|=1024;if(z.chg>0)b|=2048;if(z.chW>0)b|=4096;if(z.sw>0)b|=8192;if(z.shield>0)b|=16384;if(z.mod==='sp')b|=32768;if(z.mod==='sh')b|=65536;if(z.gen)b|=131072*z.gen;if(z.stun>0)b|=524288;if(z.cryA>0)b|=1048576;if(z.wallA>0)b|=2097152;
+  for(const z of ZB.list){if(z.st==='dead'&&z.deadT>1.5)continue;let b=z.st==='rise'?0:z.st==='dead'?2:1;if(z.wind>0)b|=4;if(z.headKill)b|=8;if(z.fallBack)b|=16;if(z.elite)b|=1024;if(z.chg>0)b|=2048;if(z.chW>0)b|=4096;if(z.sw>0)b|=8192;if(z.shield>0)b|=16384;if(z.mod==='sp')b|=32768;if(z.mod==='sh')b|=65536;if(z.gen)b|=131072*z.gen;if(z.stun>0)b|=524288;if(z.cryA>0)b|=1048576;if(z.wallA>0)b|=2097152;if((z.y||0)>0.25)b|=4194304;
     ZLOST.forEach((r,i)=>{if(z.reg[r].gone)b|=32<<i;});const e=[z.id,ZTK.indexOf(z.t),Math.round(z.x*10),Math.round(z.z*10),Math.round(z.yaw*100),b];if(b&2&&z.ks>=0)e.push(z.ks);out.push(e);}
   return out;}
 /* a guest: bring the local copies in line with the host's list */
@@ -12431,7 +12749,7 @@ function zSync(zv,zh){ZB.zacAt=performance.now();if(!Array.isArray(zv))return;co
     const x=xi/10,zz=zi/10,yaw=yi/100,st=b&3;
     if(!z){if(st===2)continue;/* never saw it alive: nothing to show */z=zSpawn(t,x,zz,yaw,!!(b&1024),b&32768?'sp':b&65536?'sh':null,id);if(!z)continue;if(!(b&16384)&&z.shield>0){z.shield=0;zShieldStrip(z);}if(t==='matri'){z.gen=(b>>17)&3;z.gs=ZMGS[z.gen];if(z.gen>=2&&ZR.PI.crown!=null){const q=ZR.PI.crown;z.cnt[q]=0;z.vox[q].fill(0);z.vd[q]=1;}}z.x=x;z.z=zz;byId.set(id,z);if(st===1){z.st='walk';z.riseT=0;}}
     if((b&1024)&&!z.elite&&z.st!=='dead')zMutate(z,true);
-    z.tx=x;z.tz=zz;z.tyaw=yaw;z.netT=0;z.chg=b&2048?1:0;z.chW=b&4096?1:0;z.sw=b&8192?1:0;z.stun=b&524288?1:0;if(b&1048576&&!(z.cryA>0))z.cryA=0.7;if(b&2097152&&!(z.wallA>0))z.wallA=0.6;if(!(b&16384)&&z.shield>0){z.shield=0;zShieldBreak(z);}
+    z.tx=x;z.tz=zz;z.tyaw=yaw;z.netT=0;z.chg=b&2048?1:0;z.chW=b&4096?1:0;z.sw=b&8192?1:0;z.stun=b&524288?1:0;z.airG=!!(b&4194304);if(b&1048576&&!(z.cryA>0))z.cryA=0.7;if(b&2097152&&!(z.wallA>0))z.wallA=0.6;if(!(b&16384)&&z.shield>0){z.shield=0;zShieldBreak(z);}
     if(st===1&&z.st==='rise'){z.st='walk';z.riseT=0;}
     if(z.st!=='dead'){const w=!!(b&4);if(w&&!(z.wind>0))z.wind=ZTYPES[z.t].wind;if(!w&&z.wind>0){z.wind=0;z.atkK=1;}}
     if(z.posed)ZLOST.forEach((r,i)=>{if(b&(32<<i)&&!z.reg[r].gone)zSever(z,r,0,0);});
@@ -12449,6 +12767,7 @@ function zGuestTick(dt){const L=ZB.list,k=Math.min(1,dt*10);
     if(z.st==='rise'){z.riseT=Math.max(0.05,z.riseT-dt);}
     z.flinch=Math.max(0,z.flinch-dt*4);z.atkK=Math.max(0,z.atkK-dt*3);z.cryA=Math.max(0,(z.cryA||0)-dt);z.wallA=Math.max(0,(z.wallA||0)-dt);if(z.wind>0)z.wind=Math.max(0.01,z.wind-dt);
     if(z.tx==null)continue;if(hyp(z.tx,z.tz,z.x,z.z)>6){z.x=z.tx;z.z=z.tz;}/* came through a portal */const ox=z.x,oz=z.z;z.x+=(z.tx-z.x)*k;z.z+=(z.tz-z.z)*k;let dy=z.tyaw-z.yaw;while(dy>Math.PI)dy-=Math.PI*2;while(dy<-Math.PI)dy+=Math.PI*2;z.yaw+=dy*k;
+    if(MF.orbit){const wy=z.airG?(nullLaneAt(z.x,z.z)?1.6:1.25):0;z.y=(z.y||0)+(wy-(z.y||0))*Math.min(1,dt*6);}
     const sp=Math.hypot(z.x-ox,z.z-oz)/Math.max(dt,1e-3);z.spd+=(sp-z.spd)*Math.min(1,dt*6);}
   // the arcs: losing health with a Revenant on you points at it
   const s=mySlot(),P=s>=0?S.players[s]:null;if(P){if(ZB.lastHp!=null&&P.hp<ZB.lastHp-0.5&&OPT.dmgDir!=='off'){let n=null,nd=3.5;for(const z of L){if(z.st==='dead')continue;const d=hyp(z.x,z.z,P.x,P.z);if(d<nd){nd=d;n=z;}}
@@ -12513,7 +12832,7 @@ function zrWatch(){const Z=S.zr,k=S.mid+':'+Z.seg+':'+Z.w+':'+Z.ph+':'+S.phase,w
   if(fresh)return;
   if(S.phase==='over'){crowdCheer(Z.won?'win':'knock',1);sting(Z.won?'win':'lose');ZW.cr=0;ZW.unl=zcRecord(Z,S.timer)?(Z.week||1)+1:0;zrCap(Z.won?'Week complete':'Broadcast terminated',Z.won?'You have been retained':Z.why,Z.won?'e1':'e3');if(Z.won)announce('e2');}
   else if(S.phase!=='live')return;
-  else if(Z.ph==='pre')zrCap(`Segment ${Z.seg}`,Z.act&&ZDIR[Z.act]?`Directive: ${ZDIR[Z.act].n}. ${ZDIR[Z.act].d}. Double Favor`:Z.seg===Z.awaySeg?`Away broadcast from the ${MAPS[MAP.id].name}`:'The host world is watching');
+  else if(Z.ph==='pre')zrCap(`Segment ${Z.seg}`,Z.act&&ZDIR[Z.act]?`Directive: ${ZDIR[Z.act].n}. ${ZDIR[Z.act].d}. Double Favor`:Z.seg===Z.awaySeg?`Away broadcast from ${MAPS[MAP.id].name}`:Z.maps?`Stadium ${Z.seg}/${Z.segs}: ${MAPS[MAP.id].name}`:'The host world is watching');
   else if(Z.ph==='wave'){if(Z.w>1)sting('armed',0,0.04);if(Z.seg===1&&Z.w===1)zrCap('The Circuit presents',`Week ${Z.week||1}: ${ZWEEKS[Z.week||1].n} · the host world is watching`);else zrCap(Z.w===Z.nw?'Final wave':`Wave ${Z.w}`,(Z.week|0)>=2&&Z.seg===1&&Z.w===2?'Spitters in the field: shoot the glowing throat':`Segment ${Z.seg}`,Z.w===Z.nw?'r3':'r'+Z.w);}
   else if(Z.ph==='break'){crowdCheer('point',1);sting('win',0,0.04);}
   else if(Z.ph==='surge'){sting('armed',0,0.05);zrCap('Surge','Elites incoming. Hold the floor','r4');}
@@ -12529,7 +12848,8 @@ function zrInterUI(P){const Z=S.zr,el=$('zrint'),on=S.phase==='live'&&Z.ph==='in
   const mate=S.players.find(p=>p!==P);$('zrintP').textContent=mate?`${mate.name}: ${Z.ready[mate.s]?'ready':Z.picked[mate.s]?'shopping':'choosing'}`:'';
   const gun=(Z.gun||{})[s],gift=ZI.gift&&!!mate,mc=(mate&&mate.cards)||[];
   const key=[Z.dir,Z.dirOn,of.join(','),pk,rd,fv,(P.cards||[]).join(','),mc.join(','),gun,gift,TOUCH.on].join('|');if(key===ZI.k)return;ZI.k=key;
-  $('zrintS').textContent=pk?`Favor ${fv}. Buy another card, reroll, or ready up for segment ${Z.seg+1}`:`Segment ${Z.seg} survived. The patrons are bidding: take one card, free · Favor ${fv}`;
+  const nxt=Z.maps&&Z.maps[Z.seg]&&MAPS[Z.maps[Z.seg]]?` (${MAPS[Z.maps[Z.seg]].name})`:'';
+  $('zrintS').textContent=pk?`Favor ${fv}. Buy another card, reroll, or ready up for segment ${Z.seg+1}${nxt}`:`Segment ${Z.seg} survived. The patrons are bidding: take one card, free · Favor ${fv}`;
   const mk=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n;};
   const who=gift&&pk?mate:P,held=h=>([...new Set(who.cards||[])].filter(q=>ZCARDS[q]&&ZCARDS[q].h===h).length);
   $('zrcards').replaceChildren(...of.map((id,i)=>{const c=ZCARDS[id],cost=ZCOST[c.r],lv=zrLv(who,id),mx=lv>=zCap(id),no=rd||mx||(pk?fv<cost:c.r===4),b=mk('button','zcard r'+c.r);b.type='button';
@@ -12857,7 +13177,7 @@ const MODECAP={zone:'Attack and defend sites A and B',
   dm1:()=>`First to ${CFG.dmKills1} kills · ${CFG.dmTime/60} min`,
   dm2:()=>`First team to ${CFG.dmKills2} kills · ${CFG.dmTime/60} min`,
   dm4:()=>`First team to ${CFG.dmKills4} kills · ${CFG.dmTime/60} min`,
-  zr:()=>{const n=zcSel(),W0=ZWEEKS[n];return `Week ${n}: ${W0.n} · ${$('zrlen').value==='0'?'three':'four'} segments and ${W0.boss} · about ${$('zrlen').value==='0'?10:25} min`;}};
+  zr:()=>{const n=zcSel(),W0=ZWEEKS[n],sh=$('zrlen').value==='0';if(n===2)return `Week 2: ${W0.n} · ${sh?'Fallout → Chronofield/Low Orbit → Event Horizon':'Fallout → Chronofield → Low Orbit → Event Horizon'} and ${W0.boss} · about ${sh?10:25} min`;return `Week ${n}: ${W0.n} · ${sh?'three':'four'} segments and ${W0.boss} · about ${sh?10:25} min`;}};
 const capOf=v=>{const c=MODECAP[v]||MODECAP.zone;return typeof c==='function'?c():c;};
 const MCARDS=[...document.querySelectorAll('#mcards .mcd')];
 /* mode screen: the cards and the Team / Bots buttons drive the hidden selects, so readMenu and saved settings work as before */
@@ -12885,6 +13205,13 @@ zcUI();modeCap();segSync();
    UPDATES below is the offline fallback and the minimum version; release notes are cached in localStorage and refreshed
    in the background, so the menu works offline and stays inside GitHub's API rate limit. Drafts and prereleases are skipped. */
 const UPDATES=[
+  {v:'0.9.0',d:'2026-11-23',t:'New Week 2 maps: Chronofield and Low Orbit',n:[
+    'New Week 2 map: Chronofield — five drifting slowed-time bubbles roam the midfield, slowing players, Revenants, grenades and acid globs to 40% speed while bullets pass through normally.',
+    'Chronofield stage changes: Rewind snaps broken cover back 10 seconds with a VHS ripple every 25 seconds; Echoes replay a holographic ghost of each player from 5 seconds ago that draws Revenants away.',
+    'New Week 2 map: Low Orbit — an orbital station at 45% gravity under deep space and a turning planet, with six jump pads and long-range Sprinter leaps.',
+    'Low Orbit stage changes: Hull Breach blows a side airlock for 5 seconds of decompression that pulls Revenants (and Matriarch daughters) out into space; Null Lanes turn two strips across the deck to zero gravity.',
+    'Week 2 (Containment Week) now tours all four new stadiums in order: Fallout → Chronofield → Low Orbit (away) → Event Horizon (Short runs Fallout → Chronofield or Low Orbit → Event Horizon).',
+    'Sandbox Range: new tuning knobs and quick-test buttons for Chronofield and Low Orbit.']},
   {v:'0.8.1',d:'2026-11-23',t:'Vercel Speed Insights performance monitoring',n:[
     'Added Vercel Speed Insights to track Core Web Vitals and page load performance on the live deployment.']},
   {v:'0.8.0',d:'2026-11-23',t:'Crate destruction overhaul and Sandbox crate gallery',n:[
@@ -12996,12 +13323,14 @@ $('lockbtn').addEventListener('click',()=>lockOpen(true));$('zrlockx').addEventL
 window.addEventListener('keydown',e=>{if($('zrlocker').hidden)return;if(e.code==='Escape'||e.code==='Backspace'){e.preventDefault();e.stopImmediatePropagation();lockOpen(false);$('lockbtn').focus();}},true);
 lockUI();$('modesel').addEventListener('change',()=>{modeCap();try{localStorage.setItem('za-mode',$('modesel').value);}catch(e){}});
 /* map picker: a tile per map with a top-down thumbnail. In the menu the arena behind it switches too, so the flyover shows the map. */
-function mapPreview(id){const kb=BOXES.slice(),kc=COVER.slice(),km=MAP.id,ka={...SITES.A},kbb={...SITES.B},kt={...THEME},kf={crane:MF.crane,pour:MF.pour,panes:MF.panes.slice(),block:MF.block,zs:MF.zs,rad:MF.rad,eh:MF.eh};buildBoxes(id);Object.assign(THEME,kt);for(const k in THEME)if(!(k in kt))delete THEME[k];
-  const out={boxes:BOXES.map(b=>({...b})),sites:[{...SITES.A},{...SITES.B}],rad:MF.rad};BOXES.length=0;BOXES.push(...kb);COVER.length=0;COVER.push(...kc);MAP.id=km;Object.assign(SITES.A,ka);Object.assign(SITES.B,kbb);MF.crane=kf.crane;MF.pour=kf.pour;MF.panes.length=0;MF.panes.push(...kf.panes);MF.block=kf.block;MF.zs=kf.zs;MF.rad=kf.rad;MF.eh=kf.eh;return out;}
+function mapPreview(id){const kb=BOXES.slice(),kc=COVER.slice(),km=MAP.id,ka={...SITES.A},kbb={...SITES.B},kt={...THEME},kf={crane:MF.crane,pour:MF.pour,panes:MF.panes.slice(),block:MF.block,zs:MF.zs,rad:MF.rad,eh:MF.eh,chrono:MF.chrono,orbit:MF.orbit};buildBoxes(id);Object.assign(THEME,kt);for(const k in THEME)if(!(k in kt))delete THEME[k];
+  const out={boxes:BOXES.map(b=>({...b})),sites:[{...SITES.A},{...SITES.B}],rad:MF.rad,chrono:MF.chrono,orbit:MF.orbit};BOXES.length=0;BOXES.push(...kb);COVER.length=0;COVER.push(...kc);MAP.id=km;Object.assign(SITES.A,ka);Object.assign(SITES.B,kbb);MF.crane=kf.crane;MF.pour=kf.pour;MF.panes.length=0;MF.panes.push(...kf.panes);MF.block=kf.block;MF.zs=kf.zs;MF.rad=kf.rad;MF.eh=kf.eh;MF.chrono=kf.chrono;MF.orbit=kf.orbit;return out;}
 function mapThumb(cv,id){const g=cv.getContext('2d'),W=cv.width,H=cv.height,sc=Math.min(W/104,H/44),L=mapPreview(id);g.fillStyle='#171b2a';g.fillRect(0,0,W,H);
   g.save();g.translate(W/2,H/2);g.scale(sc,sc);g.fillStyle='rgba(255,255,255,.05)';for(const x of [-30,-10,10,30])g.fillRect(x-0.15,-20,0.3,40);
   const T=MAPS[id].theme;g.fillStyle=hexCss(T.bg);g.fillRect(-52,-22,104,44);for(const b of L.boxes){if(b.zk)continue;/* stage-change pieces only exist in Zombie Rumble */g.fillStyle=b.outer?'#4a4f63':b.solid?hexCss(T.wall):hexCss(b.y1<1.5?T.low:T.high);g.globalAlpha=b.solid&&!b.mid?0.7:1;g.fillRect(b.x0,b.z0,b.x1-b.x0,b.z1-b.z0);}
   if(L.rad){g.fillStyle='rgba(255,176,32,.35)';for(const q of L.rad.zones){g.beginPath();g.arc(q.x,q.z,q.r,0,7);g.fill();}}
+  if(L.chrono){g.fillStyle='rgba(62,240,212,.28)';g.strokeStyle='rgba(62,240,212,.75)';g.lineWidth=0.5;for(const q of L.chrono.bubbles){g.beginPath();g.arc(q.x,q.z,q.r,0,7);g.fill();g.stroke();}}
+  if(L.orbit){g.fillStyle='rgba(126,232,255,.14)';for(const l of L.orbit.lanes)g.fillRect(l[0]-l[1],-20,l[1]*2,40);g.fillStyle='rgba(126,232,255,.85)';for(const q of L.orbit.pads){g.beginPath();g.arc(q.x,q.z,1.3,0,7);g.fill();}}
   g.globalAlpha=1;g.strokeStyle='#ffc44d';g.lineWidth=0.7;for(const s of L.sites){g.beginPath();g.arc(s.x,s.z,3,0,7);g.stroke();}g.restore();}
 const MAPEL=$('maps');
 /* map screen: Play / Play online -> mode panel -> "Choose map" opens this screen. The arena behind it switches to the map and the
@@ -13020,9 +13349,9 @@ $('msprev').addEventListener('click',()=>mapStep(-1));$('msnext').addEventListen
 function msTodLabel(){$('mstod').textContent=(TOD.force||OPT.tod)==='day'?'Day':'Night';}
 $('mstod').addEventListener('click',()=>{TOD.force=(TOD.force||OPT.tod)==='day'?'night':'day';applyGfx();isoScene(true);msTodLabel();blip(980,0.022,0.012,false,'ui');});
 function msOpen(go){updOpen(false,true);dioHide();MS.go=go;MS.open=true;$('mapscr').hidden=false;$('menu').classList.add('mapon');
-  const mv=$('modesel');$('msmode').textContent=(go==='online'?'Online · ':'')+mv.options[mv.selectedIndex].text.split(':')[0];
+  const mv=$('modesel'),w2t=mv.value==='zr'&&zcSel()===2;$('msmode').textContent=(go==='online'?'Online · ':'')+(w2t?'Week 2 tour: Fallout → Chronofield → Low Orbit → Event Horizon':mv.options[mv.selectedIndex].text.split(':')[0]);
   $('msgo').textContent=go==='online'?'Join match':'Start match';msSync();
-  TOD.force=OPT.tod==='day'?'day':'night';applyGfx();isoScene(true);msTodLabel();ISO.t=0;isoReset();mapPick(MATCH.map,true);blip(660,0.05,0.03,false,'ui');
+  TOD.force=OPT.tod==='day'?'day':'night';applyGfx();isoScene(true);msTodLabel();ISO.t=0;isoReset();mapPick(w2t?'fallout':MATCH.map,true);blip(660,0.05,0.03,false,'ui');
   const on=MAPEL.querySelector('[aria-checked=true]');if(on)on.focus({preventScroll:true});}
 function msClose(){if(!MS.open)return;MS.open=false;$('mapscr').hidden=true;$('menu').classList.remove('mapon');isoScene(false);TOD.cur='';applyGfx();}
 function msSync(){const on=MS.go==='online';$('msgo').disabled=on&&$('joinbtn').disabled;$('msnote').textContent=on?$('netstatus').textContent:(matchMedia('(pointer:coarse)').matches?'Pinch to zoom, drag to look around':'Scroll or +/- to zoom, drag to look around');}
@@ -13864,17 +14193,18 @@ function localTick(dt){
       me.dashN--;me.dashAt=performance.now();me.dashBuf=0;me.dashT=CFG.dashT;me.dashX=dx;me.dashZ=dz;me.slideT=0;me.wr=0;me.wrCd=0.2;me.dashSeq=(me.dashSeq|0)+1;me.dashK=1;
       if(!me.ground&&me.vy<0)me.vy=0;sndFade(me.slideSnd);me.slideSnd=null;dashSound();}}
   const maxSpd=downed?CFG.crawl:(sprinting?CFG.sprint:me.crouch?3.2:adsWant&&!myW(me.w).akimbo?4.2:CFG.speed)*myW(me.w).move*(me.chgT>0?myW(me.w).cmove:1);
+  const cdt=dt*chronoAt(me.x,me.z);
   if(!alive||frozen)me.mantle=null;
   if(!canMove||me.mantle){me.vx=0;me.vz=0;me.dashT=0;}
-  else if(me.dashT>0){me.dashT-=dt;me.vx=me.dashX*CFG.dash;me.vz=me.dashZ*CFG.dash;
+  else if(me.dashT>0){me.dashT-=cdt;me.vx=me.dashX*CFG.dash;me.vz=me.dashZ*CFG.dash;
     if(me.dashT<=0){const e=Math.max(maxSpd,CFG.sprint*myW(me.w).move);me.vx=me.dashX*e;me.vz=me.dashZ*e;}}/* come out of it at sprint speed */
-  else if(me.slideT>0&&me.ground){const f=Math.max(0,1-1.5*dt);me.vx*=f;me.vz*=f;}
-  else if(me.ground){[me.vx,me.vz]=approach(me.vx,me.vz,wx*maxSpd,wz*maxSpd,(L>0?62:48)*dt);}
-  else if(L>0){const sp=Math.max(maxSpd*0.9,speedNow);[me.vx,me.vz]=approach(me.vx,me.vz,wx*sp,wz*sp,15*dt);}
-  const px=me.x,pz=me.z,pos={x:me.x,z:me.z};moveCircle(pos,me.vx*dt,me.vz*dt,0.38,me.y);me.x=pos.x;me.z=pos.z;
-  if(dt>0){const ax=(me.x-px)/dt,az=(me.z-pz)/dt;if(Math.hypot(ax-me.vx,az-me.vz)>0.5){me.vx=ax;me.vz=az;}}
+  else if(me.slideT>0&&me.ground){const f=Math.max(0,1-1.5*cdt);me.vx*=f;me.vz*=f;}
+  else if(me.ground){[me.vx,me.vz]=approach(me.vx,me.vz,wx*maxSpd,wz*maxSpd,(L>0?62:48)*cdt);}
+  else if(L>0){const sp=Math.max(maxSpd*0.9,speedNow),ac=nullLaneAt(me.x,me.z)?4:15;[me.vx,me.vz]=approach(me.vx,me.vz,wx*sp,wz*sp,ac*cdt);}
+  const px=me.x,pz=me.z,pos={x:me.x,z:me.z};moveCircle(pos,me.vx*cdt,me.vz*cdt,0.38,me.y);me.x=pos.x;me.z=pos.z;
+  if(cdt>0){const ax=(me.x-px)/cdt,az=(me.z-pz)/cdt;if(Math.hypot(ax-me.vx,az-me.vz)>0.5){me.vx=ax;me.vz=az;}}
   speedNow=Math.hypot(me.vx,me.vz);
-  me.airT=me.ground?0:me.airT+dt;
+  me.airT=me.ground?0:me.airT+cdt;
   // wallrun: jump at a tall wall while moving fast along it. Each wall once per jump; jumping off can chain to another
   if(me.ground){me.wrLast=null;me.kicked=false;}
   const wall=alive&&!frozen&&!me.ground&&!me.mantle&&me.y>0.25?wallNear(me.x,me.z,0.8,me.y):null;
@@ -13882,7 +14212,7 @@ function localTick(dt){
     const tx=-wall.nz,tz=wall.nx,along=me.vx*tx+me.vz*tz,push=wx*wall.nx+wz*wall.nz;
     if(!me.wr&&me.wrCd<=0&&wall.b!==me.wrLast&&Math.abs(along)>5&&fz<0&&push<0.4&&me.vy>-7){
       me.wr=(cy*wall.nx-sy*wall.nz)>0?-1:1;me.wrT=CFG.wallRun*(1+zrMyV('lw'));me.wrLast=wall.b;me.vy=clamp(me.vy,1,2.5);me.slideT=0;me.dashT=0;footstep('wall',1);}
-    if(me.wr){me.wrT-=dt;
+    if(me.wr){me.wrT-=cdt;
       if(me.wrT<=0||Math.abs(along)<3.5||fz>=0||push>0.6){me.wr=0;me.wrCd=0.2;}
       else{const sp=Math.sign(along)*Math.max(Math.abs(along),CFG.sprint*myW(me.w).move);me.vx=tx*sp-wall.nx*0.5;me.vz=tz*sp-wall.nz*0.5;me.wrNx=wall.nx;me.wrNz=wall.nz;}}
   }else if(me.wr){me.wr=0;me.wrCd=0.2;}
@@ -13900,7 +14230,7 @@ function localTick(dt){
         if(across<=3.2&&Math.abs(fx2)<49&&Math.abs(fz2)<19&&freeAt(fx2+dx*0.6,fz2+dz*0.6)&&!BOXES.some(o=>o!==b&&o.y1>top&&fx2>o.x0-0.4&&fx2<o.x1+0.4&&fz2>o.z0-0.4&&fz2<o.z1+0.4))
           Object.assign(M,{over:true,tx:fx2,tz:fz2,dur:0.5});}
       me.mantle=M;me.kicked=false;me.wr=0;me.vy=0;me.slideT=0;me.ground=false;grabSound();}}
-  if(me.mantle){const M=me.mantle;M.t=Math.min(1,M.t+dt/M.dur);const k=M.t,ease=v=>v*v*(3-2*v);
+  if(me.mantle){const M=me.mantle;M.t=Math.min(1,M.t+cdt/M.dur);const k=M.t,ease=v=>v*v*(3-2*v);
     if(M.over){// rise to just above the top at the near edge, then carry across and release past the far edge
       if(k<0.4){const e=ease(k/0.4);me.y=M.y0+(M.top+0.35-M.y0)*e;me.x=M.x0+(M.ex-M.x0)*e;me.z=M.z0+(M.ez-M.z0)*e;}
       else{const e=ease((k-0.4)/0.6);me.y=M.top+0.35;me.x=M.ex+(M.tx-M.ex)*e;me.z=M.ez+(M.tz-M.ez)*e;}
@@ -13912,9 +14242,9 @@ function localTick(dt){
   speedNow=Math.hypot(me.vx,me.vz);
   if(alive&&!frozen&&!me.mantle&&me.jumpBuf>0&&me.airT<0.1&&me.vy<=0.01){me.vy=CFG.jump;me.ground=false;me.airT=1;me.jumpBuf=0;me.slideT=0;footstep('push',clamp(speedNow/CFG.sprint,0,1));}
   const vyB=me.vy,wasG=me.ground;
-  if(!me.mantle){me.vy-=CFG.grav*(me.wr?CFG.wallGrav:me.dashT>0?0.15:1)*dt;if(me.wr&&me.vy<-1.5)me.vy=-1.5;me.y+=me.vy*dt;if(me.y>ROOF_Y-1.85){me.y=ROOF_Y-1.85;if(me.vy>0)me.vy=0;}const g=groundAt(me.x,me.z,me.y);
+  if(!me.mantle){me.vy-=CFG.grav*gravAt(me.x,me.z)*(me.wr?CFG.wallGrav:me.dashT>0?0.15:1)*cdt;if(me.wr&&me.vy<-1.5)me.vy=-1.5;me.y+=me.vy*cdt;if(me.y>ROOF_Y-1.85){me.y=ROOF_Y-1.85;if(me.vy>0)me.vy=0;}const g=groundAt(me.x,me.z,me.y);
   if(me.y<=g){if(!wasG&&vyB<-3){me.land=Math.min(0.2,-vyB*0.02);footstep('land',clamp((-vyB-3)/9,0,1));me.bloom=Math.min(0.03,me.bloom+0.01);}me.y=g;me.vy=0;me.ground=true;me.wr=0;}else me.ground=me.y-g<0.02;}
-  zsLocal(dt,P);ehLocal(dt,P);
+  zsLocal(dt,P);orbLocal(dt,P);ehLocal(dt,P);
   me.use=!!keys.KeyF&&alive;
   const leanT=alive&&!frozen&&!sliding&&!sprinting?(keys.KeyE?1:0)-(keys.KeyQ?1:0):0;me.lean+=(leanT-me.lean)*Math.min(1,dt*11);me.give=!!keys.KeyG&&downed;
   // weapon state
@@ -14321,7 +14651,7 @@ function hud(dt){
   if(fd.dataset.k!==fk){fd.dataset.k=fk;fd.replaceChildren(...items.map(f=>{const d=document.createElement('div');d.textContent=f.m;return d;}));}
   // vitals
   if(P){
-    const hp=P.st==='alive'?Math.max(0,Math.round(P.hp)):0;$('hpnum').textContent=hp;$('hpfill').style.width=hp+'%';dashHud();radHud(P);$('hpfill').style.background=hpColor(hp);
+    const hp=P.st==='alive'?Math.max(0,Math.round(P.hp)):0;$('hpnum').textContent=hp;$('hpfill').style.width=hp+'%';dashHud();radHud(P);mapIndHud(P);$('hpfill').style.background=hpColor(hp);
     const zi=zoneOf(me.x);const rh=dm?100:returnHP(role,zi);
     $('zoneline').innerHTML='';if(!dm){const b=document.createElement('b');b.textContent=zoneName(role,zi);const sp=document.createElement('span');sp.textContent=' · come back here at ';const h=document.createElement('b');h.textContent=rh+' HP';h.style.color=hpColor(rh);
     $('zoneline').append(b,sp,h);}if(P.st==='alive'&&P.prot>0&&S.phase==='live'){const sh=document.createElement('b');sh.textContent=' · Spawn shield '+P.prot.toFixed(1)+'s';sh.style.color='var(--accent)';$('zoneline').append(sh);}

@@ -24,7 +24,7 @@ Bot skill (Easy / Normal / Hard) and team (Auto / Blue / Orange) are chosen in t
 
 ## Maps
 
-Yard, Foundry, Atrium and Warren. Each has its own colour theme and cover layout. Foundry has a flooding molten-metal channel and Yard has a moving crane.
+Yard, Foundry, Atrium, Warren, plus the four Week 2 (Containment Week) arenas: **Fallout**, **Chronofield**, **Low Orbit**, and **Event Horizon**. Each has its own colour theme, cover layout, arena hazard (moving crane, molten channel, breakable glass, radiation zones, slowed-time bubbles, low gravity with jump pads, caged micro black hole), and two Zombie Rumble stage changes.
 
 ## Menu
 
