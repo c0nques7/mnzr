@@ -7561,8 +7561,10 @@ const highC2=grainCanvas(256,'#3a2c3c',16,(g,s)=>{for(let x=0;x<s;x+=12){g.fillS
 const highE2=lineCanvas(256,(g,s)=>{g.fillStyle='#fff';g.font='bold 30px monospace';g.fillText('CRG',20,s*0.5);g.font='bold 18px monospace';g.fillText((1000+Math.floor(Math.random()*8999))+'-'+'XKQ'[Math.floor(Math.random()*3)],20,s*0.5+26);g.fillRect(s*0.62,s*0.2,6,s*0.6);g.fillRect(s*0.72,s*0.2,6,s*0.6);});
 const highC3=grainCanvas(256,'#23262e',12,(g,s)=>{for(let y=10;y<s;y+=24){g.fillStyle='rgba(0,0,0,.55)';g.fillRect(10,y,s-20,14);g.fillStyle='rgba(255,255,255,.06)';g.fillRect(10,y+14,s-20,2);}g.strokeStyle='rgba(0,0,0,.7)';g.lineWidth=10;g.strokeRect(5,5,s-10,s-10);});
 const highE3=lineCanvas(256,(g,s)=>{for(let y=10;y<s;y+=24)for(let x=18;x<s-20;x+=14){if(Math.random()<0.55){g.fillStyle=Math.random()<0.8?'#fff':'#888';g.fillRect(x,y+5,5,4);}}});
-function coverSkin(b,high){const cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,i=((Math.round(cx*3.7+cz*5.3+(b.x1-b.x0)*11)%3)+3)%3;
-  return high?[[highC,highE],[highC2,highE2],[highC3,highE3]][i]:[[lowC,lowE],[lowC2,lowE2],[lowC3,lowE3]][i];}
+const COVER_SKINS=[[lowC,lowE],[lowC2,lowE2],[lowC3,lowE3],[highC,highE],[highC2,highE2],[highC3,highE3]];
+const COVER_SKIN_NAMES=['Armour panel','Supply crate','Hazard barrier','Ribbed slab','Cargo container','Server stack'];
+function coverSkinId(b,high){const cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,i=((Math.round(cx*3.7+cz*5.3+(b.x1-b.x0)*11)%3)+3)%3;return (high?3:0)+i;}
+function coverSkin(b,high){return COVER_SKINS[coverSkinId(b,high)];}
 const wallC=grainCanvas(512,'#262836',12,(g,s)=>{g.fillStyle='rgba(0,0,0,.4)';for(let x=0;x<s;x+=128)g.fillRect(x,0,5,s);g.fillRect(0,s*0.62,s,8);});
 const wallE=lineCanvas(512,(g,s)=>{g.fillStyle='#fff';g.fillRect(0,s*0.62+1,s,5);for(let x=20;x<s;x+=128){g.fillRect(x,s*0.3,40,3);g.fillRect(x,s*0.3+8,22,3);}});
 const floorMats=[],floorMeshes=[];
@@ -7755,20 +7757,77 @@ const DECAL_TEX=(function(){const mk=(draw)=>{const c=document.createElement('ca
       if(kind!=='drip')m.rotateZ(rnd()*Math.PI*2);m.renderOrder=1;}}
 })();
 /* destructible cover: intact, chipped, cracked, broken to half height, crumbling, then rubble that rebuilds itself (wireframe first, then solid).
-   Collision still has three states (full, half, gone); the extra looks only bite into the top cap, so what you see matches what stops bullets. */
+   Collision still has three states (full, half, gone); every damage look exposes skin-matched fractured interiors, jagged shell edges, bent steel/rebar and mounded rubble. */
 renderer.localClippingEnabled=true;
 const BUILD_T=1.8;
 const coverLook=(b,hp)=>{const f=hp/b.max;return hp<=0?5:f<=0.25?4:f<=0.5?3:f<=0.67?2:f<=0.84?1:0;};
+function coverRng(cx,cz,w,d,H){let s=Math.abs(Math.round(cx*97.3+cz*193.7+w*53.1+d*71.9+H*31.7))%2147483647||1337;return()=>{s=(s*16807)%2147483647;return s/2147483647;};}
+function mergeSafe(geos){if(!geos.length)return null;if(geos.length===1)return geos[0];
+  const norm=geos.map(g=>{const q=g.index?g.toNonIndexed():g;for(const a of Object.keys(q.attributes))if(!['position','normal','uv'].includes(a))q.deleteAttribute(a);
+    if(!q.attributes.normal)q.computeVertexNormals();if(!q.attributes.uv)q.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(q.attributes.position.count*2),2));return q;});
+  return mergeGeometries(norm);}
+/* procedural jagged rock/concrete chunk, snapped shell slab, and kinked rebar/strut */
+function jaggedRockGeo(rx,ry,rz,R,flatBot){
+  const raw=new THREE.IcosahedronGeometry(1,0),g=raw.index?raw.toNonIndexed():raw,p=g.attributes.position,m=new Map();
+  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),k=`${Math.round(x*100)},${Math.round(y*100)},${Math.round(z*100)}`;
+    let s=m.get(k);if(s==null){s=0.62+R()*0.58;m.set(k,s);}let ny=y*s;if(flatBot&&ny<-0.22)ny=-0.22+(ny+0.22)*0.3;
+    p.setXYZ(i,x*s*rx,ny*ry,z*s*rz);}
+  g.computeVertexNormals();const n=g.attributes.normal,uv=new Float32Array(p.count*2);
+  for(let i=0;i<p.count;i++){const ax=Math.abs(n.getX(i)),ay=Math.abs(n.getY(i)),az=Math.abs(n.getZ(i)),x=p.getX(i),y=p.getY(i),z=p.getZ(i);
+    if(ay>=ax&&ay>=az){uv[i*2]=x*1.7;uv[i*2+1]=z*1.7;}else if(ax>=az){uv[i*2]=z*1.7;uv[i*2+1]=y*1.7;}else{uv[i*2]=x*1.7;uv[i*2+1]=y*1.7;}}
+  g.setAttribute('uv',new THREE.BufferAttribute(uv,2));return g;}
+function brokenSlabGeo(w,t,d,R){
+  const raw=new THREE.BoxGeometry(w,t,d,2,1,2),g=raw.index?raw.toNonIndexed():raw,p=g.attributes.position,m=new Map(),hw=w/2,hd=d/2;
+  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);if(Math.abs(x)<hw*0.15&&Math.abs(z)<hd*0.15)continue;
+    const k=`${Math.round(x*100)},${Math.round(z*100)}`;let o=m.get(k);if(!o){o=[(R()-0.5)*w*0.26,(R()-0.5)*d*0.26,(R()-0.5)*t*0.25];m.set(k,o);}
+    p.setXYZ(i,x+o[0],y+o[2],z+o[1]);}
+  g.computeVertexNormals();return g;}
+function bentBarGeo(len,r,bend,R){
+  const h1=len*(0.45+R()*0.2),h2=Math.max(0.04,len-h1),az=R()*6.283;
+  const g1=new THREE.CylinderGeometry(r,r*1.08,h1,5,1);g1.translate(0,h1/2,0);
+  const g2=new THREE.CylinderGeometry(r*0.82,r,h2,5,1);g2.translate(0,h2/2,0);g2.rotateZ(bend);g2.rotateY(az);g2.translate(0,h1-r*0.35,0);
+  return mergeSafe([g1,g2]);}
 const crackTex=[4,8,14].map(n=>{const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d'),paths=[];
   const walk=(x,y,a,len)=>{const p=[[x,y]];for(let i=0;i<len;i++){a+=(Math.random()-.5)*1.3;const s=9+Math.random()*17;x+=Math.cos(a)*s;y+=Math.sin(a)*s;p.push([x,y]);if(len>3&&Math.random()<0.28)walk(x,y,a+(Math.random()<.5?1:-1)*(0.6+Math.random()*0.7),Math.ceil(len/2));}paths.push(p);};
   for(let i=0;i<n;i++)walk(Math.random()*256,Math.random()*256,Math.random()*6.28,4+((Math.random()*6)|0));
   const draw=(col,lw,blur)=>{g.strokeStyle=col;g.lineWidth=lw;g.lineJoin='round';g.shadowColor=col;g.shadowBlur=blur;for(const p of paths){g.beginPath();g.moveTo(p[0][0],p[0][1]);for(let i=1;i<p.length;i++)g.lineTo(p[i][0],p[i][1]);g.stroke();}};
   draw('rgba(0,0,0,.8)',3.6,0);draw('rgba(255,255,255,.4)',1.8,5);draw('rgba(255,255,255,.9)',0.8,0);
   const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.colorSpace=THREE.SRGBColorSpace;return t;});
+const fractureTex=(()=>{const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');
+  g.fillStyle='#bcbcbc';g.fillRect(0,0,256,256);
+  for(let i=0;i<900;i++){const v=85+Math.floor(Math.random()*130),s=2+Math.random()*9;g.fillStyle=`rgba(${v},${v},${v},${0.2+Math.random()*0.45})`;g.fillRect(Math.random()*256,Math.random()*256,s,s*(0.5+Math.random()*0.9));}
+  g.strokeStyle='rgba(12,12,16,.55)';g.lineWidth=1.4;
+  for(let i=0;i<26;i++){let x=Math.random()*256,y=Math.random()*256,a=Math.random()*6.28;g.beginPath();g.moveTo(x,y);
+    for(let j=0;j<5;j++){a+=(Math.random()-.5)*1.4;x+=Math.cos(a)*(8+Math.random()*14);y+=Math.sin(a)*(8+Math.random()*14);g.lineTo(x,y);}g.stroke();}
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.colorSpace=THREE.SRGBColorSpace;return t;})();
+const hotFractTex=(()=>{const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');
+  const gr=g.createRadialGradient(128,128,6,128,128,118);gr.addColorStop(0,'rgba(255,150,60,.85)');gr.addColorStop(0.45,'rgba(255,95,28,.45)');gr.addColorStop(0.8,'rgba(200,45,10,.12)');gr.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=gr;g.fillRect(0,0,256,256);
+  for(let i=0;i<16;i++){let x=128+(Math.random()-.5)*44,y=128+(Math.random()-.5)*44,a=Math.random()*6.28;
+    g.strokeStyle='rgba(255,220,140,.9)';g.lineWidth=2.2;g.shadowColor='#ff6a18';g.shadowBlur=8;g.beginPath();g.moveTo(x,y);
+    for(let j=0;j<5;j++){a+=(Math.random()-.5)*1.1;x+=Math.cos(a)*(10+Math.random()*15);y+=Math.sin(a)*(10+Math.random()*15);g.lineTo(x,y);}g.stroke();}
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;})();
+const emberTex=(()=>{const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');
+  const gr=g.createRadialGradient(128,128,12,128,128,124);gr.addColorStop(0,'rgba(12,10,16,.88)');gr.addColorStop(0.55,'rgba(18,16,24,.62)');gr.addColorStop(0.82,'rgba(18,16,24,.18)');gr.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=gr;g.fillRect(0,0,256,256);
+  g.globalCompositeOperation='lighter';
+  for(let i=0;i<14;i++){let x=128+(Math.random()-.5)*60,y=128+(Math.random()-.5)*60,a=Math.random()*6.28;
+    g.strokeStyle='rgba(255,255,255,.72)';g.lineWidth=2;g.shadowColor='#ffffff';g.shadowBlur=9;g.beginPath();g.moveTo(x,y);
+    for(let j=0;j<4;j++){a+=(Math.random()-.5)*1.2;x+=Math.cos(a)*(12+Math.random()*16);y+=Math.sin(a)*(12+Math.random()*16);g.lineTo(x,y);}g.stroke();}
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;})();
 const crackMat=neon=>[neon,0xffb020,0xff4a22].map((col,i)=>new THREE.MeshBasicMaterial({map:crackTex[i],color:lin(col),transparent:true,depthWrite:false,toneMapped:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
 const CRACKM={},crackFor=h=>CRACKM[h]||(CRACKM[h]=crackMat(h));/* per neon colour, so each map theme gets its own */
-const hotM=new THREE.MeshBasicMaterial({map:crackTex[2],color:lin(0xff7a3a),transparent:true,opacity:0.7,depthWrite:false,toneMapped:false,blending:THREE.AdditiveBlending});
-const chunkMat=[new THREE.MeshStandardMaterial({color:lin(0x474b5a),roughness:0.8,metalness:0.2}),new THREE.MeshStandardMaterial({color:lin(0x2e3140),roughness:0.8,metalness:0.2})];
+const hotM=new THREE.MeshBasicMaterial({map:hotFractTex,color:lin(0xff8438),transparent:true,opacity:0.75,depthWrite:false,toneMapped:false,blending:THREE.AdditiveBlending});
+/* shared unclipped materials for broken exterior shards, rough interior fracture cores, bent steel/rebar and severed conduits (never disposed on setMap) */
+const CHUNK_EXT=COVER_SKINS.map(([c],i)=>{const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.colorSpace=THREE.SRGBColorSpace;
+  return new THREE.MeshStandardMaterial({map:t,roughness:i===1?0.82:i===4?0.52:0.68,metalness:i===4?0.48:i===1||i===2?0.08:0.28});});
+const CHUNK_CORE=[
+  [0x3a404f,0.86,0.28],[0x7c6348,0.94,0.04],[0x7b7e84,0.96,0.04],
+  [0x565a68,0.92,0.12],[0x2e2330,0.62,0.55],[0x22262f,0.72,0.45]
+].map(([col,r,m])=>new THREE.MeshStandardMaterial({color:lin(col),map:fractureTex,roughness:r,metalness:m}));
+const chunkMat=[CHUNK_CORE[0],CHUNK_CORE[3]];
+const REBAR_M=new THREE.MeshStandardMaterial({color:lin(0x5e4638),roughness:0.52,metalness:0.76});
+const SLAG_M=new THREE.MeshBasicMaterial({color:lin(0xff8a38),toneMapped:false});
 const scanMat={},scanFor=h=>scanMat[h]||(scanMat[h]=new THREE.MeshBasicMaterial({color:lin(h),transparent:true,opacity:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,side:THREE.DoubleSide}));
 // a box whose texture tiles by size in metres, so cracks keep one scale on every cover
 function tiledBox(w,h,d,tile){const g=new THREE.BoxGeometry(w,h,d),uv=g.attributes.uv,nm=g.attributes.normal,ou=Math.random(),ov=Math.random();
@@ -7784,75 +7843,193 @@ function holoGeo(w,H,d){const p=[],x=w/2+0.015,z=d/2+0.015,s=(...a)=>p.push(...a
   const nx=Math.max(1,Math.round(w/0.6));for(let i=0;i<=nx;i++){const X=-x+2*x*i/nx;s(X,0,-z,X,H,-z,X,0,z,X,H,z,X,H,-z,X,H,z);}
   const nz=Math.max(1,Math.round(d/0.6));for(let i=0;i<=nz;i++){const Z=-z+2*z*i/nz;s(-x,0,Z,-x,H,Z,x,0,Z,x,H,Z,-x,H,Z,x,H,Z);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));return g;}
-function makeCoverVis(b){const w=b.x1-b.x0,d=b.z1-b.z0,H=b.h0,hh=coverHeight(b,1),high=H>=1.5,neon=high?THEME.high:THEME.low,nk=neon,rp=Math.max(1,Math.round(Math.max(w,d)/2.4));
-  const cap=Math.min(high?0.4:0.2,(H-hh)*0.6),cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,R=Math.random;
+function makeCoverVis(b,parent,skinOverride){const w=b.x1-b.x0,d=b.z1-b.z0,H=b.h0,hh=coverHeight(b,1),high=H>=1.5,neon=high?THEME.high:THEME.low,nk=neon,rp=Math.max(1,Math.round(Math.max(w,d)/2.4));
+  const cap=Math.max(0.05,Math.min(high?0.42:0.22,Math.max(0.05,H-hh)*0.6)),cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,R=coverRng(cx,cz,w,d,H);
+  const si=typeof skinOverride==='number'?clamp(skinOverride|0,0,5):coverSkinId(b,high),sk=COVER_SKINS[si],cExt=CHUNK_EXT[si],cCore=CHUNK_CORE[si];
   const clip=new THREE.Plane(new THREE.Vector3(0,-1,0),99),clipW=new THREE.Plane(new THREE.Vector3(0,-1,0),99);
-  const sk=coverSkin(b,high),mat=new THREE.MeshStandardMaterial({map:tex(sk[0],rp,1),emissive:lin(neon),emissiveMap:tex(sk[1],rp,1),emissiveIntensity:1.1,roughness:0.55,metalness:0.35,clippingPlanes:[clip]});
-  const g=new THREE.Group();g.position.set(cx,0,cz);scene.add(g);
-  const part=(geo,m,shadow)=>{const o=new THREE.Mesh(geo,m);o.castShadow=o.receiveShadow=!!shadow;o.userData.noMerge=true;o.visible=false;g.add(o);return o;};
+  const mat=new THREE.MeshStandardMaterial({map:tex(sk[0],rp,1),emissive:lin(neon),emissiveMap:tex(sk[1],rp,1),emissiveIntensity:1.1,roughness:0.55,metalness:0.35,clippingPlanes:[clip]});
+  const g=new THREE.Group();g.position.set(cx,0,cz);(parent&&parent.add?parent:scene).add(g);
+  const part=(geo,m,shadow,parent)=>{if(!geo)return null;const o=new THREE.Mesh(geo,m);o.castShadow=o.receiveShadow=!!shadow;o.userData.noMerge=true;o.visible=false;(parent||g).add(o);return o;};
   const full=part(new THREE.BoxGeometry(w,1,d),mat,1);full.scale.y=H;full.position.y=H/2;
   const edge=new THREE.LineSegments(new THREE.EdgesGeometry(full.geometry),new THREE.LineBasicMaterial({color:lin(neon),toneMapped:false}));g.add(edge);
   const base=part(pieceGeo(w,H,d,-w/2,w/2,0,hh,-d/2,d/2),mat,1),core=part(pieceGeo(w,H,d,-w/2,w/2,hh,H-cap,-d/2,d/2),mat,1);
-  // the top cap is cut into cells that break off in three waves
+  // top cap: cut into deterministic cells that shear off in waves, exposing jagged fracture cores and bent rebar inside the cavities
   const along=w>=d,L=along?w:d,Sh=along?d:w,n=Math.max(3,Math.round(L/0.8)),rows=Sh>=2.5?2:1,cuts=[-L/2],cells=[];
-  for(let i=1;i<n;i++)cuts.push(-L/2+L*(i+(R()-.5)*0.5)/n);cuts.push(L/2);
+  for(let i=1;i<n;i++)cuts.push(-L/2+L*(i+(R()-.5)*0.45)/n);cuts.push(L/2);
   for(let i=0;i<n;i++)for(let j=0;j<rows;j++){const a0=cuts[i],a1=cuts[i+1],s0=-Sh/2+Sh*j/rows,s1=-Sh/2+Sh*(j+1)/rows;
-    cells.push({o:R()-(i===0||i===n-1?0.6:0),geo:along?pieceGeo(w,H,d,a0,a1,H-cap,H,s0,s1):pieceGeo(w,H,d,s0,s1,H-cap,H,a0,a1)});}
+    const x0=along?a0:s0,x1=along?a1:s1,z0=along?s0:a0,z1=along?s1:a1;
+    cells.push({o:R()-(i===0||i===n-1?0.65:0),x0,x1,z0,z1,geo:pieceGeo(w,H,d,x0,x1,H-cap,H,z0,z1)});}
   cells.sort((a,c)=>a.o-c.o);const third=Math.ceil(cells.length/3);
-  const caps=[0,1,2].map(k=>{const gs=cells.slice(k*third,(k+1)*third).map(c=>c.geo);return gs.length?part(gs.length>1?mergeGeometries(gs):gs[0],mat,1):null;});
-  const crackG=[tiledBox(w+0.016,H+0.008,d+0.016,1.7),tiledBox(w+0.016,hh+0.008,d+0.016,1.7)],crack=part(crackG[0],crackFor(nk)[0]);crack.renderOrder=1;
-  const hot=part(new THREE.PlaneGeometry(Math.max(0.3,w-0.12),Math.max(0.3,d-0.12)),hotM);hot.rotation.x=-Math.PI/2;hot.position.y=hh+0.012;hot.renderOrder=2;
-  // broken stubs left standing on the half-height block, and the rubble pile
-  const cm=chunkMat[high?1:0],teeth=[new THREE.Group(),new THREE.Group()],rub=new THREE.Group();
-  const nT=clamp(Math.round((w+d)*1.3),6,14);
-  for(let i=0;i<nT;i++){const l=0.18+R()*0.34,h=0.08+R()*0.24,t=0.12+R()*0.2,c=new THREE.Mesh(new THREE.BoxGeometry(l,h,t),cm);
-    const side=R()<w/(w+d),sg=R()<.5?-1:1,px=side?(R()-.5)*(w-0.3):sg*(w/2-0.12-R()*0.2),pz=side?sg*(d/2-0.12-R()*0.2):(R()-.5)*(d-0.3);
-    c.position.set(px,hh+h/2-0.02,pz);c.rotation.set((R()-.5)*0.5,R()*3.14,(R()-.5)*0.5);c.castShadow=true;teeth[i%2].add(c);}
-  const nR=clamp(Math.round(w*d*1.5),9,18);
-  for(let i=0;i<nR;i++){const s=0.16+R()*0.42,c=new THREE.Mesh(new THREE.BoxGeometry(s,s*(0.45+R()*0.4),s*(0.6+R()*0.6)),cm);c.position.set((R()-.5)*(w+0.5),s*0.22,(R()-.5)*(d+0.5));c.rotation.set(R()*0.5,R()*3,R()*0.5);c.castShadow=true;c.receiveShadow=true;rub.add(c);}
-  for(let i=0;i<3;i++){const l=0.5+R()*0.6,c=new THREE.Mesh(new THREE.BoxGeometry(l,0.09+R()*0.08,0.3+R()*0.4),cm);c.position.set((R()-.5)*(w-0.3),0.16+R()*0.12,(R()-.5)*(d-0.3));c.rotation.set((R()-.5)*0.9,R()*3,(R()-.5)*0.7);c.castShadow=true;c.receiveShadow=true;rub.add(c);}
-  const ember=new THREE.Mesh(new THREE.PlaneGeometry(Math.max(0.4,w-0.3),Math.max(0.4,d-0.3)),new THREE.MeshBasicMaterial({color:lin(neon),transparent:true,opacity:0.22,toneMapped:false,depthWrite:false}));ember.rotation.x=-Math.PI/2;ember.position.y=0.025;g.add(ember);
-  for(const t of teeth){t.visible=false;g.add(t);}rub.visible=false;ember.visible=false;g.add(rub);
+  const caps=[0,1,2].map(k=>{const gs=cells.slice(k*third,(k+1)*third).map(c=>c.geo);return gs.length?part(mergeSafe(gs),mat,1):null;});
+  // exposed interior fracture chunks + bent rebar inside each blown-out top cap cavity (waves 0 and 1)
+  const capCore=[0,1].map(k=>{const grp=new THREE.Group(),cg=[],mg=[],eg=[];
+    for(const cl of cells.slice(k*third,(k+1)*third)){
+      const cw=cl.x1-cl.x0,cd=cl.z1-cl.z0,mx=(cl.x0+cl.x1)/2,mz=(cl.z0+cl.z1)/2;
+      for(let q=0;q<3;q++){const rk=jaggedRockGeo(Math.min(0.28,cw*0.32)*(0.6+R()*0.6),cap*(0.24+R()*0.34),Math.min(0.28,cd*0.32)*(0.6+R()*0.6),R,true);
+        rk.rotateY(R()*6.28);rk.translate(mx+(R()-.5)*cw*0.58,H-cap+cap*0.12,mz+(R()-.5)*cd*0.58);cg.push(rk);}
+      if(si!==1){const rb=bentBarGeo(cap*(0.7+R()*0.7),0.015+R()*0.008,0.35+R()*0.55,R);
+        rb.rotateX((R()-.5)*0.45);rb.rotateZ((R()-.5)*0.45);rb.translate(mx+(R()-.5)*cw*0.45,H-cap-0.02,mz+(R()-.5)*cd*0.45);mg.push(rb);}
+      if((si===5||si===0)&&R()<0.7){const s=new THREE.BoxGeometry(0.035,cap*0.55,0.035);s.rotateZ((R()-.5)*0.7);s.rotateX((R()-.5)*0.7);
+        s.translate(mx+(R()-.5)*cw*0.35,H-cap+cap*0.18,mz+(R()-.5)*cd*0.35);eg.push(s);}}
+    const a=part(mergeSafe(cg),cCore,1,grp),bm=part(mergeSafe(mg),REBAR_M,0,grp),em=part(mergeSafe(eg),SLAG_M,0,grp);
+    if(a)a.visible=true;if(bm)bm.visible=true;if(em)em.visible=true;grp.visible=false;g.add(grp);return grp;});
+  // crumbling lower block (lk=4): bite out upper corner cells of `base` and line the notches with jagged core chunks + rebar
+  const bCap=Math.min(0.28,hh*0.36),bCells=[],bKeep=[pieceGeo(w,H,d,-w/2,w/2,0,hh-bCap,-d/2,d/2)],bNotchC=[],bNotchM=[];
+  for(let i=0;i<n;i++)for(let j=0;j<rows;j++){const a0=cuts[i],a1=cuts[i+1],s0=-Sh/2+Sh*j/rows,s1=-Sh/2+Sh*(j+1)/rows;
+    const x0=along?a0:s0,x1=along?a1:s1,z0=along?s0:a0,z1=along?s1:a1;
+    bCells.push({o:R()-(i===0||i===n-1?0.7:0),x0,x1,z0,z1});}
+  bCells.sort((a,c)=>a.o-c.o);const bDrop=Math.max(1,Math.floor(bCells.length*0.44));
+  bCells.forEach((cl,idx)=>{if(idx>=bDrop){bKeep.push(pieceGeo(w,H,d,cl.x0,cl.x1,hh-bCap,hh,cl.z0,cl.z1));return;}
+    const cw=cl.x1-cl.x0,cd=cl.z1-cl.z0,mx=(cl.x0+cl.x1)/2,mz=(cl.z0+cl.z1)/2;
+    for(let q=0;q<3;q++){const rk=jaggedRockGeo(Math.min(0.24,cw*0.32),bCap*(0.32+R()*0.38),Math.min(0.24,cd*0.32),R,true);
+      rk.rotateY(R()*6.28);rk.translate(mx+(R()-.5)*cw*0.55,hh-bCap+bCap*0.18,mz+(R()-.5)*cd*0.55);bNotchC.push(rk);}
+    if(si!==1){const rb=bentBarGeo(bCap*(0.9+R()*0.8),0.016,0.4+R()*0.5,R);
+      rb.rotateX((R()-.5)*0.6);rb.translate(mx+(R()-.5)*cw*0.4,hh-bCap-0.02,mz+(R()-.5)*cd*0.4);bNotchM.push(rb);}});
+  const baseCrumble=part(mergeSafe(bKeep),mat,1);
+  const baseNotch=new THREE.Group();
+  {const a=part(mergeSafe(bNotchC),cCore,1,baseNotch),bm=part(mergeSafe(bNotchM),REBAR_M,0,baseNotch);if(a)a.visible=true;if(bm)bm.visible=true;baseNotch.visible=false;g.add(baseNotch);}
+  // cracks hug the intact body height (H - cap when chipped/cracked, hh when broken) so cracks never float over blown-out corners
+  const crackG=[tiledBox(w+0.016,H-cap+0.008,d+0.016,1.7),tiledBox(w+0.016,hh+0.008,d+0.016,1.7)],crack=part(crackG[0],crackFor(nk)[0]);crack.renderOrder=1;
+  const hot=part(new THREE.PlaneGeometry(Math.max(0.35,w-0.08),Math.max(0.35,d-0.08)),hotM);hot.rotation.x=-Math.PI/2;hot.position.y=hh+0.055;hot.renderOrder=2;
+  // 3D fractured interior bed crowning the sheared half-height top (recessed centre, jagged rim)
+  const bedGs=[],nxB=Math.max(2,Math.round(w/0.52)),nzB=Math.max(2,Math.round(d/0.52));
+  for(let ix=0;ix<nxB;ix++)for(let iz=0;iz<nzB;iz++){
+    const fx=(ix+0.5)/nxB-0.5,fz=(iz+0.5)/nzB-0.5,edgeK=Math.max(Math.abs(fx),Math.abs(fz))*2;
+    const rx=(w/nxB)*(0.52+R()*0.25),rz=(d/nzB)*(0.52+R()*0.25),ry=0.055+edgeK*0.075+R()*0.055;
+    const rk=jaggedRockGeo(rx,ry,rz,R,true);rk.rotateY(R()*6.28);rk.translate(fx*(w-0.14),hh-0.015+ry*0.32,fz*(d-0.14));bedGs.push(rk);}
+  const fractBed=part(mergeSafe(bedGs),cCore,1);
+  // broken rim teeth (lk=3 uses both groups, lk=4 drops group 0): jagged exterior wall shards + interior rock/wood chunks + bent rebar/struts + server conduits
+  const teeth=[new THREE.Group(),new THREE.Group()],tExt=[[],[]],tCore=[[],[]],tMet=[[],[]],tGlow=[[],[]];
+  const nT=clamp(Math.round((w+d)*1.8),8,18);
+  for(let i=0;i<nT;i++){const k=i%2,side=R()<w/(w+d),sg=R()<.5?-1:1;
+    const px=side?(R()-.5)*(w-0.26):sg*(w/2-0.09-R()*0.12),pz=side?sg*(d/2-0.09-R()*0.12):(R()-.5)*(d-0.26);
+    const cornerBoost=Math.max(Math.abs(px)/(w/2+0.01),Math.abs(pz)/(d/2+0.01));
+    if(i%3!==2){/* jagged exterior wall shard leaning along the sheared perimeter */
+      const sw=0.22+R()*0.34,sh=(0.14+R()*0.26)*(0.75+cornerBoost*0.45),st=si===4?0.055:si===1?0.07:0.1+R()*0.07;
+      const sl=brokenSlabGeo(sw,sh,st,R);
+      if(!side)sl.rotateY(Math.PI/2);
+      sl.rotateX((R()-.5)*0.32+(side?sg*0.16:0));sl.rotateZ((R()-.5)*0.32+(!side?-sg*0.16:0));
+      sl.translate(px,hh+sh*0.36,pz);tExt[k].push(sl);}
+    else{/* faceted interior core chunk perched on the fracture rim */
+      const rk=jaggedRockGeo(0.12+R()*0.16,0.1+R()*0.16,0.12+R()*0.16,R,true);
+      rk.rotateY(R()*6.28);rk.translate(px*0.86,hh+0.06,pz*0.86);tCore[k].push(rk);}
+    /* skin-specific internal structure poking out of the break */
+    if(si===1){/* supply crate: splintered composite planks */
+      const pl=brokenSlabGeo(0.08+R()*0.06,0.2+R()*0.28,0.035,R);
+      pl.rotateY(R()*3.14);pl.rotateX((R()-.5)*0.8);pl.rotateZ((R()-.5)*0.8);
+      pl.translate(px*0.88,hh+0.12,pz*0.88);tCore[k].push(pl);}
+    else if(R()<(si===2||si===3?0.78:0.55)){/* concrete/armour/container/server: bent steel rebar & frame struts */
+      const rb=bentBarGeo(0.24+R()*0.36,si===4?0.022:0.015+R()*0.008,0.28+R()*0.68,R);
+      rb.rotateX((R()-.5)*0.5);rb.rotateZ((R()-.5)*0.5);rb.translate(px*0.85,hh-0.04,pz*0.85);tMet[k].push(rb);}
+    if((si===5||si===0)&&i<5){/* server stack / armour: glowing severed energy/data conduits */
+      const cd=new THREE.BoxGeometry(0.032,0.16+R()*0.2,0.032);cd.rotateX((R()-.5)*0.9);cd.rotateZ((R()-.5)*0.9);
+      cd.translate(px*0.65,hh+0.08,pz*0.65);tGlow[k].push(cd);}}
+  for(let k=0;k<2;k++){
+    for(const [gs,m,sh] of [[tExt[k],cExt,1],[tCore[k],cCore,1],[tMet[k],REBAR_M,1],[tGlow[k],SLAG_M,0]]){
+      const o=part(mergeSafe(gs),m,sh,teeth[k]);if(o)o.visible=true;}
+    teeth[k].visible=false;g.add(teeth[k]);}
+  // rubble mound (lk=5): heaped jagged core pile + leaning painted exterior slabs + bent steel/rebar + snapped kick-plate strips
+  const rub=new THREE.Group(),rCore=[],rExt=[],rMet=[],rKick=[],rGlow=[];
+  const nR=clamp(Math.round(w*d*2.4),14,28);
+  for(let i=0;i<nR;i++){const inner=i<nR*0.58,rad=inner?0.78:1.28;
+    const rx0=(R()-.5)*(w*rad+(inner?0:0.45)),rz0=(R()-.5)*(d*rad+(inner?0:0.45));
+    const distK=1-clamp(Math.hypot(rx0/(w*0.6+0.25),rz0/(d*0.6+0.25)),0,1);
+    const s=(inner?0.18+R()*0.26:0.08+R()*0.15)*(0.75+distK*0.55);
+    const ry=s*(0.42+R()*0.48)*(0.75+distK*0.55),rk=jaggedRockGeo(s*(0.8+R()*0.5),ry,s*(0.75+R()*0.5),R,true);
+    rk.rotateY(R()*6.28);rk.rotateX((R()-.5)*0.35);rk.rotateZ((R()-.5)*0.35);
+    rk.translate(rx0,ry*0.35+distK*(high?0.14:0.08),rz0);rCore.push(rk);}
+  const nSl=clamp(Math.round(Math.sqrt(w*d)*2.5),4,8);
+  for(let i=0;i<nSl;i++){const slW=0.38+R()*Math.min(0.68,Math.max(w,d)*0.32),slD=0.28+R()*Math.min(0.5,Math.min(w,d)*0.35),slT=si===4?0.06:0.09+R()*0.07;
+    const sl=brokenSlabGeo(slW,slT,slD,R);
+    sl.rotateX((R()-.5)*1.1);sl.rotateZ((R()-.5)*1.0);sl.rotateY(R()*6.28);
+    const px=(R()-.5)*(w*0.85),pz=(R()-.5)*(d*0.85),distK=1-clamp(Math.hypot(px/(w*0.55+0.2),pz/(d*0.55+0.2)),0,1);
+    sl.translate(px,0.12+distK*(high?0.16:0.09)+R()*0.06,pz);rExt.push(sl);}
+  const nMb=clamp(Math.round((w+d)*1.3),5,10);
+  for(let i=0;i<nMb;i++){const rb=bentBarGeo(0.32+R()*0.46,0.016+R()*0.012,0.35+R()*0.85,R);
+    rb.rotateX((R()-.5)*1.3);rb.rotateZ((R()-.5)*1.3);rb.rotateY(R()*6.28);
+    rb.translate((R()-.5)*(w*0.82),0.08+R()*0.18,(R()-.5)*(d*0.82));rMet.push(rb);}
+  for(let i=0;i<3;i++){const kl=0.38+R()*0.45,kd=new THREE.BoxGeometry(kl,0.13,0.035);
+    const uv=kd.attributes.uv,nm=kd.attributes.normal;for(let u=0;u<uv.count;u++){const su=Math.abs(nm.getX(u))>.5?0.035:kl,sv=Math.abs(nm.getY(u))>.5?0.035:0.13;uv.setXY(u,uv.getX(u)*su/0.3,uv.getY(u)*sv/0.3);}
+    kd.rotateX((R()-.5)*1.25);kd.rotateZ((R()-.5)*0.8);kd.rotateY(R()*6.28);
+    kd.translate((R()-.5)*(w*0.95),0.06+R()*0.1,(R()-.5)*(d*0.95));rKick.push(kd);}
+  if(si===5||si===0)for(let i=0;i<3;i++){const cd=new THREE.BoxGeometry(0.04,0.22+R()*0.16,0.04);cd.rotateX((R()-.5)*1.3);cd.rotateZ((R()-.5)*1.3);
+    cd.translate((R()-.5)*(w*0.55),0.14+R()*0.12,(R()-.5)*(d*0.55));rGlow.push(cd);}
+  for(const [gs,m,sh] of [[rCore,cCore,1],[rExt,cExt,1],[rMet,REBAR_M,1],[rKick,TRIM_D,1],[rGlow,SLAG_M,0]]){
+    const o=part(mergeSafe(gs),m,sh,rub);if(o)o.visible=true;}
+  const ember=new THREE.Mesh(new THREE.PlaneGeometry(w+0.7,d+0.7),new THREE.MeshBasicMaterial({map:emberTex,color:lin(neon),transparent:true,opacity:0.52,toneMapped:false,depthWrite:false}));
+  ember.rotation.x=-Math.PI/2;ember.position.y=0.025;ember.userData.noMerge=true;ember.visible=false;g.add(ember);
+  rub.visible=false;g.add(rub);
   // rebuild: a wire cage, a faint volume, and a scan sheet riding the fill line
   const holo=new THREE.LineSegments(holoGeo(w,H,d),new THREE.LineBasicMaterial({color:lin(neon),transparent:true,opacity:0.9,toneMapped:false,clippingPlanes:[clipW]}));holo.visible=false;g.add(holo);
   const ghost=part(new THREE.BoxGeometry(w,H,d),new THREE.MeshBasicMaterial({color:lin(neon),transparent:true,opacity:0.035,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,side:THREE.DoubleSide,clippingPlanes:[clipW]}));ghost.position.y=H/2;
   const scan=part(new THREE.PlaneGeometry(w+0.5,d+0.5),scanFor(nk));scan.rotation.x=-Math.PI/2;scan.renderOrder=3;
-  // dressing: the lower set stays while the half-height block stands, the upper set only while the cover is whole
+  // dressing: intact lower/upper sets, plus sheared/bent damaged trim states so metal guards deform progressively instead of vanishing at once
   const lo=[],up=[],dk=[];cornerGuards(lo,w,d,0,hh,0.1,0.025,0.02);band(dk,w,d,0.07,0.14,0.03);
   cornerGuards(up,w,d,hh,H,0.1,0.025,0.02);band(up,w,d,H-0.035,0.07,0.035);
   if(high){band(up,w,d,hh+(H-hh)*0.5,0.06,0.025);for(const sx of [-1,1])for(const sz of [-1,1])up.push([0.14,0.06,0.14,sx*(w/2-0.18),H+0.03,sz*(d/2-0.18)]);}
   else for(const sx of [-1,1])up.push([0.18,0.05,Math.min(0.5,d*0.4),sx*(w/2+0.035),H-0.22,0]);/* handles on the short sides */
-  const trimLo=new THREE.Group(),trimUp=trimMesh(up);for(const o of [trimMesh(lo),trimMesh(dk,TRIM_D)])trimLo.add(o);g.add(trimLo);g.add(trimUp);trimLo.visible=trimUp.visible=false;
-  return{b,g,mat,full,edge,base,core,caps,crack,crackG,trimLo,trimUp,crackM:crackFor(nk),hot,teeth,rub,ember,holo,ghost,scan,clip,clipW,look:-1,hp:-1,neon,high,cx,cz,w,d,H,hh,cap,rg:0,rgSeen:0,building:false,flash:0,hit:0,emi:1.1,ecol:lin(neon)};}
-const coverVis=COVER.map(makeCoverVis);/* refilled in place by setMap */
-/* flying chunks and dust puffs */
-const debris=[],debGeo=new THREE.BoxGeometry(1,1,1);
-function spawnDebris(x,y,z,high,pw){let p=debris.find(q=>q.t<=0);if(!p){if(debris.length>=Math.round(44*clamp(OPT.particles,0.5,1.5)))return;p={m:new THREE.Mesh(debGeo,chunkMat[0]),t:0};p.m.receiveShadow=true;scene.add(p.m);debris.push(p);}
-  const s=0.07+Math.random()*0.2,a=Math.random()*6.283,sp=(0.8+Math.random()*3)*pw;p.m.material=chunkMat[high?1:0];p.s=s;p.m.scale.set(s*(0.7+Math.random()*0.9),s*(0.5+Math.random()*0.6),s);p.m.position.set(x,y,z);p.m.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3);p.m.visible=true;
-  p.vx=Math.cos(a)*sp;p.vz=Math.sin(a)*sp;p.vy=(0.5+Math.random()*3.2)*pw;p.rx=(Math.random()-.5)*14;p.rz=(Math.random()-.5)*14;p.t=p.life=1.8+Math.random()*1.2;p.k=1;}
+  const trimLo=new THREE.Group(),trimUp=trimMesh(up);for(const o of [trimMesh(lo),trimMesh(dk,TRIM_D)])if(o)trimLo.add(o);
+  // damaged upper trim (lk=1,2): upper corner guards clipped below the chipped cap + mid-band, missing one blown corner
+  const upD=[],hw=w/2+0.02,hd=d/2+0.02,dropC=Math.floor(R()*4);
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz],idx)=>{if(idx===dropC)return;
+    const uh=H-cap-hh;if(uh>0.05){upD.push([0.1,uh,0.025,sx*(hw-0.05),hh+uh/2,sz*(hd-0.0125)],[0.025,uh,0.1,sx*(hw-0.0125),hh+uh/2,sz*(hd-0.05)]);}});
+  if(high)band(upD,w,d,hh+(H-hh)*0.48,0.055,0.025);
+  const trimUpDmg=trimMesh(upD);
+  // damaged lower trim (lk=3) and critical lower trim (lk=4): sheared corner guards + partial kick-plate bands
+  const loD=[],loC=[],dkD=[],dkC=[];
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz],idx)=>{const sh1=hh*(0.82+R()*0.14);
+    loD.push([0.1,sh1,0.025,sx*(hw-0.05),sh1/2,sz*(hd-0.0125)],[0.025,sh1,0.1,sx*(hw-0.0125),sh1/2,sz*(hd-0.05)]);
+    if(idx%2===0){const sh2=hh*(0.62+R()*0.22);loC.push([0.1,sh2,0.025,sx*(hw-0.05),sh2/2,sz*(hd-0.0125)],[0.025,sh2,0.1,sx*(hw-0.0125),sh2/2,sz*(hd-0.05)]);}});
+  dkD.push([w*0.72,0.14,0.03,-w*0.1,0.07,d/2+0.015],[w*0.8,0.14,0.03,w*0.06,0.07,-d/2-0.015],[0.03,0.14,d*0.78,w/2+0.015,0.07,0],[0.03,0.14,d*0.65,-w/2-0.015,0.07,d*0.12]);
+  dkC.push([w*0.48,0.13,0.03,-w*0.2,0.065,d/2+0.015],[w*0.52,0.13,0.03,w*0.18,0.065,-d/2-0.015],[0.03,0.13,d*0.45,w/2+0.015,0.065,-d*0.15]);
+  const trimLoDmg=new THREE.Group(),trimLoCrit=new THREE.Group();
+  for(const o of [trimMesh(loD),trimMesh(dkD,TRIM_D)])if(o)trimLoDmg.add(o);
+  for(const o of [trimMesh(loC),trimMesh(dkC,TRIM_D)])if(o)trimLoCrit.add(o);
+  for(const o of [trimLo,trimLoDmg,trimLoCrit,trimUp,trimUpDmg])if(o){o.visible=false;g.add(o);}
+  return{b,g,mat,si,full,edge,base,baseCrumble,baseNotch,core,caps,capCore,fractBed,crack,crackG,trimLo,trimLoDmg,trimLoCrit,trimUp,trimUpDmg,crackM:crackFor(nk),hot,teeth,rub,ember,holo,ghost,scan,clip,clipW,look:-1,hp:-1,neon,high,cx,cz,w,d,H,hh,cap,rg:0,rgSeen:0,building:false,flash:0,hit:0,emi:1.1,ecol:lin(neon)};}
+const coverVis=COVER.map(b=>makeCoverVis(b));/* refilled in place by setMap */
+/* flying chunks and dust puffs: faceted rocks, snapped exterior shell plates, bent metal bars and glowing slag */
+const debris=[],DEB_GEOS=(()=>{const R=coverRng(11,23,5,7,3);return[
+  jaggedRockGeo(0.55,0.44,0.5,R,false),brokenSlabGeo(1.0,0.16,0.72,R),bentBarGeo(1.25,0.08,0.55,R),jaggedRockGeo(0.7,0.34,0.44,R,false)];})();
+function spawnDebris(x,y,z,high,pw,si,kind,vx0,vz0){let p=debris.find(q=>q.t<=0);
+  if(!p){if(debris.length>=Math.round(64*clamp(OPT.particles,0.5,1.5)))return;p={m:new THREE.Mesh(DEB_GEOS[0],CHUNK_CORE[0]),t:0};p.m.receiveShadow=true;p.m.castShadow=false;p.m.userData.noMerge=true;scene.add(p.m);debris.push(p);}
+  const sid=si!=null?clamp(si|0,0,5):(high?3:0),k=kind||(Math.random()<0.34?'shell':Math.random()<0.15?'metal':'core');
+  let s=0.1+Math.random()*0.18;
+  if(k==='shell'){p.m.geometry=DEB_GEOS[1];p.m.material=CHUNK_EXT[sid];s=0.14+Math.random()*0.22;p.m.scale.set(s*(0.75+Math.random()*0.7),s*(0.7+Math.random()*0.5),s*(0.7+Math.random()*0.6));}
+  else if(k==='metal'){p.m.geometry=DEB_GEOS[2];p.m.material=REBAR_M;s=0.15+Math.random()*0.2;p.m.scale.set(s,s*(0.9+Math.random()*0.6),s);}
+  else if(k==='ember'){p.m.geometry=DEB_GEOS[0];p.m.material=SLAG_M;s=0.05+Math.random()*0.07;p.m.scale.set(s,s*0.8,s);}
+  else{p.m.geometry=DEB_GEOS[Math.random()<0.5?0:3];p.m.material=CHUNK_CORE[sid];s=0.08+Math.random()*0.18;p.m.scale.set(s*(0.7+Math.random()*0.8),s*(0.55+Math.random()*0.7),s*(0.7+Math.random()*0.7));}
+  const a=Math.random()*6.283,sp=(0.9+Math.random()*2.8)*pw;p.s=s;p.m.position.set(x,y,z);p.m.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);p.m.visible=true;
+  p.vx=Math.cos(a)*sp+(vx0||0);p.vz=Math.sin(a)*sp+(vz0||0);p.vy=(0.7+Math.random()*3.4)*pw;
+  p.rx=(Math.random()-.5)*15;p.ry=(Math.random()-.5)*12;p.rz=(Math.random()-.5)*15;p.t=p.life=1.7+Math.random()*1.3;p.k=1;}
 const dust=[];(function(){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d'),gr=g.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,.9)');gr.addColorStop(0.5,'rgba(255,255,255,.35)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,64,64);const t=new THREE.CanvasTexture(c);
   for(let i=0;i<10;i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,color:lin(0x6b6f82),transparent:true,opacity:0,depthWrite:false}));s.visible=false;scene.add(s);dust.push({s,t:0,vy:0});}})();
 function spawnDust(x,y,z,size){if(OPT.particles<0.3)return;const p=dust.find(q=>q.t<=0)||dust.reduce((a,c)=>a.t<c.t?a:c);p.t=p.life=0.9+Math.random()*0.5;p.size=size;p.vy=0.3+Math.random()*0.5;p.s.position.set(x,y,z);p.s.visible=true;}
 function debrisTick(dt){
-  for(const p of debris){if(p.t<=0)continue;p.t-=dt;if(p.t<=0){p.m.visible=false;continue;}const P=p.m.position,fl=p.s*0.3;
-    p.vy-=16*dt;P.x+=p.vx*dt;P.y+=p.vy*dt;P.z+=p.vz*dt;p.m.rotation.x+=p.rx*dt;p.m.rotation.z+=p.rz*dt;
-    if(P.y<fl){P.y=fl;if(p.vy<-1.2){p.vy*=-0.32;p.vx*=0.55;p.vz*=0.55;p.rx*=0.5;p.rz*=0.5;}else{p.vy=0;p.vx*=Math.max(0,1-8*dt);p.vz*=Math.max(0,1-8*dt);p.rx=p.rz=0;}}
+  for(const p of debris){if(p.t<=0)continue;p.t-=dt;if(p.t<=0){p.m.visible=false;continue;}const P=p.m.position,fl=p.s*0.26;
+    p.vy-=16*dt;P.x+=p.vx*dt;P.y+=p.vy*dt;P.z+=p.vz*dt;p.m.rotation.x+=p.rx*dt;p.m.rotation.y+=p.ry*dt;p.m.rotation.z+=p.rz*dt;
+    if(P.y<fl){P.y=fl;if(p.vy<-1.1){p.vy*=-0.34;p.vx*=0.58;p.vz*=0.58;p.rx*=0.5;p.ry*=0.5;p.rz*=0.5;}else{p.vy=0;p.vx*=Math.max(0,1-8*dt);p.vz*=Math.max(0,1-8*dt);p.rx=p.ry=p.rz=0;}}
     if(p.t<0.4){const k=p.t/0.4/p.k;p.m.scale.multiplyScalar(k);p.k*=k;}}
   for(const p of dust){if(p.t<=0)continue;p.t-=dt;if(p.t<=0){p.s.visible=false;continue;}const k=1-p.t/p.life,sc=p.size*(0.5+1.6*k);p.s.scale.set(sc,sc,1);p.s.position.y+=p.vy*dt;p.s.material.opacity=0.34*(1-k)*Math.min(1,k*8);}}
 function setCoverLook(v,lk,prev){const h=coverHeight(v.b,coverStage(v.b,v.hp));
-  v.full.visible=lk===0;v.base.visible=lk>=1&&lk<=4;v.core.visible=lk===1||lk===2;
+  v.full.visible=lk===0;v.base.visible=lk>=1&&lk<=3;v.baseCrumble.visible=v.baseNotch.visible=lk===4;v.core.visible=lk===1||lk===2;
   if(v.caps[0])v.caps[0].visible=false;if(v.caps[1])v.caps[1].visible=lk===1;if(v.caps[2])v.caps[2].visible=lk===1||lk===2;
-  v.teeth[0].visible=lk===3;v.teeth[1].visible=lk===3||lk===4;v.hot.visible=lk===3||lk===4;
-  v.crack.visible=lk>=1&&lk<=4;if(v.crack.visible){v.crack.material=v.crackM[lk===1?0:lk===4?2:1];v.crack.geometry=v.crackG[lk>=3?1:0];v.crack.position.y=(lk>=3?v.hh:v.H)/2;}
-  v.edge.visible=lk<5;if(lk<5){v.edge.scale.y=h;v.edge.position.y=h/2;}
-  v.rub.visible=v.ember.visible=lk===5;v.trimLo.visible=lk<=4;v.trimUp.visible=lk===0;
+  v.capCore[0].visible=lk===1||lk===2;v.capCore[1].visible=lk===2;
+  v.fractBed.visible=lk===3||lk===4;v.teeth[0].visible=lk===3;v.teeth[1].visible=lk===3||lk===4;v.hot.visible=lk===3||lk===4;
+  v.crack.visible=lk>=1&&lk<=4;if(v.crack.visible){v.crack.material=v.crackM[lk===1?0:lk===4?2:1];v.crack.geometry=v.crackG[lk>=3?1:0];v.crack.position.y=(lk>=3?v.hh:v.H-v.cap)/2;}
+  v.edge.visible=lk<5;if(lk<5){const eh=lk===0?v.H:lk<=2?v.H-v.cap:lk===3?v.hh:Math.max(0.25,v.hh-0.08);v.edge.scale.y=eh;v.edge.position.y=eh/2;}
+  v.rub.visible=v.ember.visible=lk===5;
+  v.trimLo.visible=lk<=2;v.trimLoDmg.visible=lk===3;v.trimLoCrit.visible=lk===4;
+  if(v.trimUp)v.trimUp.visible=lk===0;if(v.trimUpDmg)v.trimUpDmg.visible=lk===1||lk===2;
   if(prev<0)return;
-  // something just broke off: throw chunks from the part that went, with a crack or a collapse sound
-  const big=lk===3||lk===5,y0=lk===5?0.15:lk>=3?v.hh:v.H-v.cap,y1=lk===5?v.hh:lk===3?v.H:lk===4?v.hh+0.2:v.H,n=Math.round((big?11:4)*Math.min(1.5,OPT.particles));
+  // something just broke off: throw skin-matched exterior plates, interior rock chunks, bent steel and embers outward from the break
+  const big=lk===3||lk===5,y0=lk===5?0.15:lk>=3?v.hh:v.H-v.cap,y1=lk===5?v.hh:lk===3?v.H:lk===4?v.hh+0.25:v.H,n=Math.round((big?15:6)*Math.min(1.5,OPT.particles));
   const rx=()=>v.cx+(Math.random()-.5)*v.w,rz=()=>v.cz+(Math.random()-.5)*v.d;
-  for(let i=0;i<n;i++)spawnDebris(rx(),y0+Math.random()*(y1-y0),rz(),v.high,big?1.25:0.8);
-  for(let i=0;i<(big?5:2);i++)spawnSparks(rx(),h+0.3+Math.random()*0.6,rz(),i%2?v.neon:0x8a8fa3,5,0,-1,0);
-  if(big)for(let i=0;i<3;i++)spawnDust(rx(),y0+0.4+Math.random()*0.5,rz(),Math.max(1.4,Math.min(v.w,v.d)*1.1));
+  for(let i=0;i<n;i++){const px=rx(),pz=rz(),ox=px-v.cx,oz=pz-v.cz,ol=Math.hypot(ox,oz)||1,out=(big?2.2:1.2);
+    const kind=i%5===0?'shell':i%6===1?'metal':big&&i%7===2?'ember':'core';
+    spawnDebris(px,y0+Math.random()*(y1-y0),pz,v.high,big?1.25:0.85,v.si,kind,(ox/ol)*out,(oz/ol)*out);}
+  for(let i=0;i<(big?6:3);i++)spawnSparks(rx(),h+0.25+Math.random()*0.6,rz(),i%2?v.neon:0xffa040,5,0,-1,0);
+  if(big)for(let i=0;i<4;i++)spawnDust(rx(),y0+0.35+Math.random()*0.55,rz(),Math.max(1.5,Math.min(v.w,v.d)*1.15));
   const sp=spat(v.cx,v.cz),vol=clamp(1-sp.d/45,0.15,1);coverBreakSound(big,lk===5,sp.pan,vol);}
 function coverBreakSound(big,rubble,pan,vol,x,z){sfxInit();if(SFXB){const o={bus:'fx',tk:'cover',pan,wet:0.15};
     if(big&&rubble){playBuf(SFXB.crumble[0],{...o,vol:0.5*vol,rate:0.9+Math.random()*0.15});playBuf(SFXB.crumble[1],{...o,vol:0.42*vol,rate:0.85+Math.random()*0.2,at:0.04});playBuf(SFXB.crumble[2],{...o,vol:0.3*vol,at:0.25+Math.random()*0.1});}
@@ -7866,10 +8043,10 @@ function coverBuild(v,bp,dt,now){const k1=clamp(bp/0.3,0,1),k2=clamp((bp-0.3)/0.
   if(!v.building){v.building=true;v.b.rb=true;v.flash=0;v.holo.visible=v.ghost.visible=v.scan.visible=true;
     const sp=spat(v.cx,v.cz),vol=clamp(1-sp.d/40,0,1),left=(1-bp)*BUILD_T;if(vol>0.02&&left>0.3){tone(150,620,left,0.045*vol,'fx',sp.pan,'cover');snd({noise:1,type:'bandpass',q:6,f:900,f1:5200,dur:left,vol:0.02*vol,bus:'fx',pan:sp.pan,tk:'cover'});}}
   v.clipW.constant=v.H*k1+0.03;v.clip.constant=k2>0?y:-1;v.full.visible=k2>0;v.scan.position.y=y+0.02;
-  v.holo.material.opacity=0.9*(0.72+0.28*Math.sin(now*46+v.b.ci))*(Math.random()<0.04?0.4:1);
-  v.rub.scale.setScalar(Math.max(0.001,1-k2));v.ember.material.opacity=0.22+0.3*k1;v.mat.emissiveIntensity=1.6*TOD.emi;
+  v.holo.material.opacity=0.9*(0.72+0.28*Math.sin(now*46+(v.b.ci||0)))*(Math.random()<0.04?0.4:1);
+  v.rub.scale.setScalar(Math.max(0.001,1-k2));v.ember.material.opacity=0.52+0.34*k1;v.mat.emissiveIntensity=1.6*TOD.emi;
   if(Math.random()<dt*16){const e=Math.random()<.5,sg=Math.random()<.5?-1:1;spawnSparks(v.cx+(e?sg*v.w/2:(Math.random()-.5)*v.w),y,v.cz+(e?(Math.random()-.5)*v.d:sg*v.d/2),v.neon,1,0,-0.4,0);}}
-function coverBuildEnd(v){v.building=false;v.b.rb=false;v.ghost.visible=v.scan.visible=false;v.clip.constant=v.clipW.constant=99;v.rub.scale.setScalar(1);v.ember.material.opacity=0.22;v.mat.emissiveIntensity=v.emi;
+function coverBuildEnd(v){v.building=false;v.b.rb=false;v.ghost.visible=v.scan.visible=false;v.clip.constant=v.clipW.constant=99;v.rub.scale.setScalar(1);v.ember.material.opacity=0.52;v.mat.emissiveIntensity=v.emi;
   if(v.flash<=0)v.holo.visible=false;v.full.visible=v.look===0;}
 function coverTick(dt){dt=dt||0;const arr=S&&S.cover,rg=S&&S.regen,now=performance.now()/1000,live=!!S&&S.phase==='live';let ch=false;
   hotM.opacity=0.55+0.25*Math.sin(now*5);
@@ -7889,7 +8066,8 @@ function coverTick(dt){dt=dt||0;const arr=S&&S.cover,rg=S&&S.regen,now=performan
     if(bp>=0)coverBuild(v,bp,dt,now);else if(v.building)coverBuildEnd(v);
     if(v.flash>0){v.flash-=dt*2.4;const k=Math.max(0,v.flash);v.mat.emissiveIntensity=v.emi*(1+3*k);v.holo.material.opacity=0.9*k;if(k<=0)v.holo.visible=false;}
     if(v.hit>0){v.hit-=dt;v.edge.material.color.copy(v.ecol).lerp(WHITE,clamp(v.hit/0.12,0,1));}
-    if(v.look===4&&dt>0){v.edge.visible=Math.sin(now*31+b.ci*2)>-0.55;if(Math.random()<dt*1.6)spawnSparks(v.cx+(Math.random()-.5)*v.w,v.hh+0.1,v.cz+(Math.random()-.5)*v.d,Math.random()<.5?0xff7a3a:v.neon,2,0,-1,0);}}
+    if(v.look===4&&dt>0){v.edge.visible=Math.sin(now*31+b.ci*2)>-0.55;if(Math.random()<dt*1.6)spawnSparks(v.cx+(Math.random()-.5)*v.w,v.hh+0.1,v.cz+(Math.random()-.5)*v.d,Math.random()<.5?0xff7a3a:v.neon,2,0,-1,0);
+      if(Math.random()<dt*0.9)spawnDebris(v.cx+(Math.random()-.5)*v.w,v.hh-0.05,v.cz+(Math.random()-.5)*v.d,v.high,0.35,v.si,'core');}}
   if(ch){rebuildGrid();renderer.shadowMap.needsUpdate=true;}}
 const WHITE=new THREE.Color(1,1,1);
 /* wall labels per zone */
@@ -9196,30 +9374,59 @@ const MATCH_LIST=[{n:'Evasion',emb:1,gain:1,bg:[105,0.42],ls:4},
   {n:'Supercars Action Gaming Cyberpunk (fassounds)',f:'music/supercars-action.mp3',gain:1.02,bg:[92.01,0.036]}];
 const MM={tk:'musicMatch',buf:null,loading:false,src:null,g:null,on:false,go:false,offAt:0,
   order:(()=>{const o=MATCH_LIST.map((_,i)=>i);for(let i=o.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[o[i],o[j]]=[o[j],o[i]];}return o;})(),
-  pi:0,cur:-1,bufs:{},ld:{},bad:{},waitT:0,ended:false};
-function mmLoad(i){if(MM.bufs[i]||MM.ld[i]||MM.bad[i])return;const T=MATCH_LIST[i];MM.ld[i]=true;
-  (T.emb?b64Audio(MATCH_MP3):fetch(T.f).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer();}).then(a=>actx.decodeAudioData(a)))
-  .then(b=>{MM.bufs[i]=b;if(T.emb)MM.buf=b;}).catch(e=>{MM.bad[i]=true;if(T.emb)AU.err='match music: '+String(e&&e.message);}).finally(()=>{MM.ld[i]=false;});}
+  pi:0,cur:-1,pick:-1,fast:false,err:'',bufs:{},ld:{},pr:{},bad:{},waitT:0,ended:false};
+function mmLoad(i,retry){const T=MATCH_LIST[i];if(!T)return Promise.resolve(null);
+  if(MM.bufs[i])return Promise.resolve(MM.bufs[i]);
+  if(retry)MM.bad[i]=false;
+  if(MM.bad[i])return Promise.resolve(null);
+  if(MM.pr[i])return MM.pr[i];
+  MM.ld[i]=true;
+  return MM.pr[i]=(T.emb?b64Audio(MATCH_MP3):fetch(T.f).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer();}).then(a=>actx.decodeAudioData(a)))
+    .then(b=>{MM.bufs[i]=b;if(T.emb)MM.buf=b;return b;})
+    .catch(e=>{MM.bad[i]=true;if(T.emb)AU.err='match music: '+String(e&&e.message);return null;})
+    .finally(()=>{MM.ld[i]=false;delete MM.pr[i];});}
 /* the next playable track in the shuffled order (skipping files that failed), without moving along */
 function mmNext(){for(let k=0;k<MATCH_LIST.length;k++){const i=MM.order[(MM.pi+k)%MM.order.length];if(!MM.bad[i])return [i,k];}return [0,0];}
-/* keep only the track playing now, the one queued next and Evasion (the fallback, also used by the Sound tab Test) decoded */
-function mmTrim(keep){for(const k in MM.bufs){const i=+k;if(i!==0&&i!==MM.cur&&i!==keep)delete MM.bufs[k];}}
+/* keep only the track playing now, the one queued next, any picked track and Evasion (the fallback) decoded */
+function mmTrim(keep){for(const k in MM.bufs){const i=+k;if(i!==0&&i!==MM.cur&&i!==keep&&i!==MM.pick)delete MM.bufs[k];}}
 /* what's playing: a small caption under the scoreboard for a few seconds when a track starts, and a row in the pause menu */
 function mmName(i){const T=MATCH_LIST[i];if(!T)return'';const m=/^(.*?)\s*\(([^)]+)\)$/.exec(T.n);return m?`<b>${m[1]}</b> · ${m[2]}`:`<b>${T.n}</b> · Evgeny Bardyuzha`;}
+function mmLabel(i){const T=MATCH_LIST[i];if(!T)return'';const m=/^(.*?)\s*\(([^)]+)\)$/.exec(T.n);return m?`${m[1]} · ${m[2]}`:`${T.n} · Evgeny Bardyuzha`;}
+function mmIdx(){return MM.pick>=0?MM.pick:MM.cur>=0?MM.cur:0;}
 function mmShow(){const e=$('nowp');if(!e||MM.cur<0&&!MM.src)return;e.innerHTML='&#9835; '+mmName(MM.cur<0?0:MM.cur);e.classList.add('on');clearTimeout(mmShow.t);mmShow.t=setTimeout(()=>e.classList.remove('on'),4500);}
 function mmPauseRow(){const r=$('pnow');if(!r)return;const on=!!(MM.src&&MM.on);r.hidden=!on;if(on)$('pnowT').innerHTML=mmName(MM.cur<0?0:MM.cur);}
+function mmSbSync(){const el=$('sbpanel');if(!el)return;const i=mmIdx(),nx=mmNext()[0];
+  for(const s of el.querySelectorAll('select[data-mm-sel]'))if(s.value!==String(i))s.value=String(i);
+  const st=MM.err?MM.err:MM.pick>=0&&!MM.bufs[MM.pick]?`Loading ${mmLabel(MM.pick)}…`:OPT.vMatch<=0.001?'Match music volume is 0% (turn it up in Settings > Sound).':!MM.src&&MM.ld[nx]?`Loading ${mmLabel(nx)}…`:MM.src&&MM.cur>=0?`Now playing: ${mmLabel(MM.cur)} · Press ${kbN('track')} to skip.`:'Pick a track to play it right away.';
+  for(const n of el.querySelectorAll('[data-mm-stat]'))n.textContent=st;}
 /* skip to the next track (N, or Next track in the pause menu) */
-function mmSkip(){if(!actx||!MM.src||!MM.on)return;const t=actx.currentTime,s=MM.src;MM.src=null;MM.on=false;MM.waitT=t;
+function mmSkip(){if(!actx||(!MM.src&&MM.pick<0))return;const t=actx.currentTime,s=MM.src;MM.src=null;MM.on=false;MM.pick=-1;MM.fast=true;MM.err='';MM.waitT=t;
   if(!MM.bufs[mmNext()[0]])mmLoad(mmNext()[0]);
-  MM.g.gain.cancelScheduledValues(t);MM.g.gain.setTargetAtTime(0,t,0.015);try{s.stop(t+0.08);}catch(e){}setTimeout(()=>{try{s.disconnect();}catch(e){}},300);}
-function mmStart(i,skip){const T=MATCH_LIST[i],t=actx.currentTime,same=i===MM.cur;setTimeout(()=>{mmShow();mmPauseRow();},50);MM.pi=(MM.pi+skip+1)%MM.order.length;MM.cur=i;MM.bg=T.bg;MM.ended=false;
+  if(s){MM.fadeUntil=t+0.09;MM.g.gain.cancelScheduledValues(t);MM.g.gain.setTargetAtTime(0,t,0.015);try{s.stop(t+0.08);}catch(e){}setTimeout(()=>{try{s.disconnect();}catch(e){}},300);}
+  mmSbSync();}
+/* play a specific track from MATCH_LIST immediately (used by the Sandbox track picker) */
+function mmPlay(i){i=+i;if(!(i>=0&&i<MATCH_LIST.length))return;audioWake();if(!audioInit())return;
+  if(DEVMUS&&DEVMUS.tk==='musicMatch'){try{DEVMUS.src.stop();}catch(e){}DEVMUS=null;}
+  if(!MM.g){MM.g=actx.createGain();MM.g.gain.value=0;musChain(MM);}
+  const t=actx.currentTime,s=MM.src;MM.src=null;MM.on=false;MM.pick=i;MM.go=true;MM.fast=true;MM.err='';MM.waitT=t;
+  if(s){MM.fadeUntil=t+0.09;MM.g.gain.cancelScheduledValues(t);MM.g.gain.setTargetAtTime(0,t,0.015);try{s.stop(t+0.08);}catch(e){}setTimeout(()=>{try{s.disconnect();}catch(e){}},300);}
+  mmSbSync();
+  mmLoad(i,true).then(b=>{if(MM.pick!==i)return;
+    if(!b){MM.pick=-1;MM.err=`Could not load ${mmLabel(i)} — serve this folder over HTTP to play files from music/.`;mmSbSync();return;}
+    const d=Math.max(0,(MM.fadeUntil||0)-actx.currentTime);
+    if(d>0)setTimeout(()=>{matchMusicTick();mmSbSync();},Math.ceil(d*1000)+5);
+    else{matchMusicTick();mmSbSync();}});}
+function mmStep(d){mmPlay((mmIdx()+d+MATCH_LIST.length)%MATCH_LIST.length);}
+function mmStart(i,skip){const T=MATCH_LIST[i],t=actx.currentTime,same=i===MM.cur;setTimeout(()=>{mmShow();mmPauseRow();mmSbSync();},50);
+  if(skip===-2){const p=MM.order.indexOf(i);if(p>=0)MM.pi=(p+1)%MM.order.length;}else MM.pi=(MM.pi+skip+1)%MM.order.length;
+  MM.cur=i;MM.bg=T.bg;MM.ended=false;MM.err='';
   const s=actx.createBufferSource();s.buffer=MM.bufs[i];s.connect(MM.f);s.playbackRate.value=TUNE[MM.tk].pitch;
   /* Evasion on its own (nothing else could load) keeps its old seamless loop */
   const alone=!!T.emb&&MATCH_LIST.every((_,j)=>j===0||MM.bad[j]);
   if(alone){s.loop=true;s.loopStart=T.ls;s.loopEnd=s.buffer.duration-0.06;}else s.onended=()=>{if(MM.src===s)MM.ended=true;};
-  const off=same&&T.ls?T.ls:0;s.start(0,off);MM.src=s;MM.t0=t;MM.off=off;window.__za&&(__za.track=T.n);}
-function matchMusicTick(){if(!actx||actx.state!=='running')return;const play=!!S&&$('menu').hidden&&$('shop').hidden;if(!play)MM.go=false;
-  if(play&&OPT.vMatch>0.001){mmLoad(0);mmLoad(mmNext()[0]);}
+  const off=skip!==-2&&same&&T.ls?T.ls:0;s.start(0,off);MM.src=s;MM.t0=t;MM.off=off;window.__za&&(__za.track=T.n);}
+function matchMusicTick(){if(!actx||actx.state!=='running')return;const play=!!S&&$('menu').hidden&&$('shop').hidden;if(!play){MM.go=false;MM.pick=-1;}
+  if(play&&OPT.vMatch>0.001){mmLoad(0);mmLoad(MM.pick>=0?MM.pick:mmNext()[0]);}
   /* go: the first FIGHT of the match has been called (or we joined a match already under way) */
   if(play&&!MM.go&&S.phase!=='buy'){MM.go=true;MM.waitT=actx.currentTime;}
   const want=play&&MM.go&&OPT.vMatch>0.001;
@@ -9227,11 +9434,13 @@ function matchMusicTick(){if(!actx||actx.state!=='running')return;const play=!!S
   const t=actx.currentTime;
   if(want){
     if(MM.src&&MM.ended){MM.src.disconnect();MM.src=null;MM.waitT=t;}
-    if(!MM.src){const [i,k]=mmNext();
-      /* the next track still loading: wait up to 4 s after Fight, then play Evasion now and keep that track for later */
-      if(MM.bufs[i])mmStart(i,k);else if(MM.bufs[0]&&(MM.bad[i]||t-MM.waitT>4)){MM.cur=-1;mmStart(0,-1);}
+    if(!MM.src&&t>=(MM.fadeUntil||0)){
+      if(MM.pick>=0){if(MM.bufs[MM.pick]){const pi=MM.pick;MM.pick=-1;mmStart(pi,-2);}else if(MM.bad[MM.pick]){MM.pick=-1;}}
+      else{const [i,k]=mmNext();
+        /* the next track still loading: wait up to 4 s after Fight, then play Evasion now and keep that track for later */
+        if(MM.bufs[i])mmStart(i,k);else if(MM.bufs[0]&&(MM.bad[i]||t-MM.waitT>4)){MM.cur=-1;mmStart(0,-1);}}
       if(MM.src){const wasOn=MM.on;MM.g.gain.cancelScheduledValues(t);if(!wasOn)MM.g.gain.setValueAtTime(0,t);mmTrim(mmNext()[0]);}}
-    if(MM.src){const lv=0.36*OPT.vMatch*MATCH_LIST[MM.cur].gain;MM.g.gain.setTargetAtTime(lv,t,MM.on?0.15:1.2);MM.on=true;}}
+    if(MM.src){const duck=DEVMUS&&DEVMUS.tk==='musicMatch'&&t<DEVMUS.end;const lv=duck?0:0.36*OPT.vMatch*MATCH_LIST[MM.cur].gain;MM.g.gain.setTargetAtTime(lv,t,MM.on||MM.fast?0.15:1.2);MM.on=true;MM.fast=false;}}
   else if(MM.src){if(MM.on){MM.on=false;MM.g.gain.setTargetAtTime(0,t,0.4);MM.offAt=t+2.5;}else if(t>MM.offAt){try{MM.src.stop();}catch(e){}MM.src.disconnect();MM.src=null;}}}
 /* announcer, recorded by Joe: "3", "2", "1", "Fight", the round calls, "The bomb has been planted", "Double kill" / "Triple kill" (see audioTick),
    the Draft Night intro (i1-i6) and the Zombie Rumble lines (p1-p3 tunnel PA, r1-r12 run calls, h1 headliner, e1-e3 endings).
@@ -9320,9 +9529,17 @@ function musChain(M){const f=actx.createBiquadFilter(),h=actx.createBiquadFilter
 const MUS_SRC={musicMenu:[MU,()=>MUSIC_MP3,0.5,'vMusic'],musicShop:[WM,()=>SHOP_MP3,0.8,'vMusic'],musicMatch:[MM,()=>MATCH_MP3,0.36,'vMatch']};
 /* Sound tab Test for a music track: 8 s of it through its own chain (follows the sliders while it plays), then a fade */
 let DEVMUS=null;
-async function devMusic(k){if(!audioInit())return;const [M,mp3,lvl,opt]=MUS_SRC[k];try{if(!M.buf){M.loading=true;M.buf=await b64Audio(mp3());}}catch(e){AU.err='music test: '+String(e&&e.message);return;}
-  if(DEVMUS){try{DEVMUS.src.stop();}catch(e){}}const t=actx.currentTime,D={tk:k,g:actx.createGain()};musChain(D);D.g.gain.setValueAtTime(0,t);D.g.gain.linearRampToValueAtTime(lvl*Math.max(0.3,OPT[opt]),t+0.3);D.g.gain.setTargetAtTime(0,t+7.5,0.25);
-  D.src=actx.createBufferSource();D.src.buffer=M.buf;D.src.connect(D.f);D.src.playbackRate.value=TUNE[k].pitch;D.src.start(t,M===MM?4:0);D.src.stop(t+9);DEVMUS=D;tuneLoops();}
+async function devMusic(k){if(!audioInit())return;const [M,mp3,lvl,opt]=MUS_SRC[k];
+  let buf=null,gain=1,off=0;
+  try{
+    if(k==='musicMatch'){let ti=mmIdx();buf=await mmLoad(ti,true);
+      if(!buf){MM.err=`Could not load ${mmLabel(ti)} — serve this folder over HTTP to play files from music/.`;mmSbSync();ti=0;buf=await mmLoad(0);if(!buf)return;}
+      else{MM.err='';mmSbSync();}
+      gain=MATCH_LIST[ti].gain;off=MATCH_LIST[ti].ls||0;}
+    else{if(!M.buf){M.loading=true;M.buf=await b64Audio(mp3());}buf=M.buf;}
+  }catch(e){AU.err='music test: '+String(e&&e.message);return;}
+  if(DEVMUS){try{DEVMUS.src.stop();}catch(e){}}const t=actx.currentTime,D={tk:k,g:actx.createGain(),end:t+8.5};musChain(D);D.g.gain.setValueAtTime(0,t);D.g.gain.linearRampToValueAtTime(lvl*gain*Math.max(0.3,OPT[opt]),t+0.3);D.g.gain.setTargetAtTime(0,t+7.5,0.25);
+  D.src=actx.createBufferSource();D.src.buffer=buf;D.src.connect(D.f);D.src.playbackRate.value=TUNE[k].pitch;D.src.start(t,off);D.src.stop(t+9);DEVMUS=D;tuneLoops();}
 function tuneLoops(){if(!actx)return;const t=actx.currentTime,R=TUNE.rain;
   if(AU.rainG){const test=t<(AU.rainTestT||0);AU.rainG.gain.setTargetAtTime((OPT.rain||test?0.08*(test?Math.max(0.6,OPT.vRain):OPT.vRain):0)*R.vol,t,0.15);
     AU.rainLp.frequency.value=Math.max(300,R.lp);AU.rainHp.frequency.value=Math.max(10,R.hp);AU.rainSrc.playbackRate.value=R.pitch;}
@@ -9850,7 +10067,7 @@ function sbLoad(){try{const d=JSON.parse(localStorage.getItem('za-sb')||'null');
   const o=d.sb||{};for(const k of ['timer','tickets','god','ammo','names'])if(typeof o[k]==='boolean')SB[k]=o[k];if(['on','passive','off'].includes(o.bots))SB.bots=o.bots;}catch(e){}}
 function sbFmt(v,st){return st<1?(+v).toFixed(st<0.1?2:1):String(Math.round(v));}
 function toggleSB(force){const el=$('sbpanel');const open=force!==undefined?force:el.hidden;el.hidden=!open;if(open){if(locked)document.exitPointerLock();for(const k in keys)keys[k]=false;mouseDown=false;adsDown=false;
-  if(SB.on&&SB.tab==='obj'&&devPickAim()>=0)buildSB();}devHL();}
+  if(SB.on&&SB.tab==='obj'&&devPickAim()>=0)buildSB();mmSbSync();}devHL();}
 function sbMe(){const s=mySlot();return s>=0&&S?S.players[s]:null;}
 function sbTeleport(zi){const P=sbMe();if(!P||P.st!=='alive')return;me.x=ZX[zi];me.z=P.s<2?-14:14;me.y=0;me.vy=0;me.vx=me.vz=0;P.x=me.x;P.z=me.z;P.y=0;}
 /* which CFG numbers already have a hand-made knob: read once from the game's own source ([key,'label',lo,hi,step] lists) */
@@ -9870,7 +10087,7 @@ function buildSBIn(el,top){
   const hd=mk('div','hd'),xb=mk('button','btn sbx','Close');xb.type='button';xb.addEventListener('click',()=>{toggleSB(false);if(!TOUCH.on)autoLock(true);});
   hd.append(mk('b','','Sandbox dev'),mk('span','',TOUCH.on?'':'T or Esc'),xb);el.append(hd);
   devTabs(el,mk);
-  const done=()=>{requestAnimationFrame(()=>{el.scrollTop=top;});devHL();};
+  const done=()=>{requestAnimationFrame(()=>{el.scrollTop=top;});devHL();mmSbSync();};
   if(SB.tab==='range'){buildRange(el,mk);return done();}
   if(SB.tab==='snd'){buildSnd(el,mk);return done();}if(SB.tab==='wpn'){buildWpn(el,mk);return done();}if(SB.tab==='obj'){buildObj(el,mk);return done();}
   el.append(mk('div','note','Changes apply live, save automatically, and carry over to practice and to online matches you host in this browser. The toggles under Rules (no damage, infinite ammo, bots, timer, name tags) only ever work in the sandbox.'));
@@ -9975,7 +10192,7 @@ function setCover(ci,g){const b=COVER[ci];g={...cGeo(b),...g};g.w=Math.max(0.3,g
   if(S&&S.cover){if(hpCh||S.cover[ci]>b.max)S.cover[ci]=S.cover[ci]>0?b.max:0;}
   const hp=S&&S.cover?S.cover[ci]:b.max;b.stage=coverStage(b,hp);b.y1=coverHeight(b,b.stage);
   DEV.pend.add(ci);if(!DEV.raf)DEV.raf=requestAnimationFrame(devFlush);}
-function devFlush(){DEV.raf=0;for(const ci of DEV.pend){const o=coverVis[ci];scene.remove(o.g);o.g.traverse(n=>{if(n.geometry)n.geometry.dispose();});texFree(o.mat);
+function devFlush(){DEV.raf=0;for(const ci of DEV.pend){const o=coverVis[ci];scene.remove(o.g);o.g.traverse(n=>{if(n.geometry)n.geometry.dispose();});for(const cg of o.crackG)cg.dispose();texFree(o.mat);
     const v=makeCoverVis(COVER[ci]);mergeChildren(v.g);coverVis[ci]=v;}
   DEV.pend.clear();rebuildGrid();rgRestow();renderer.shadowMap.needsUpdate=true;coverTick();devHL();}
 function coverEq(a,b){return ['x','z','w','d','h','hp'].every(k=>Math.abs(a[k]-b[k])<1e-6);}
@@ -10006,7 +10223,7 @@ function devLoad(){let d={};try{d=JSON.parse(localStorage.getItem('za-dev')||'{}
    guest's state names another map, and from the menu picker so the flyover behind the menu shows the map. Range props survive. ---------- */
 function setMap(id){if(!MAPS[id])id='yard';if(id===MAP.id)return false;
   const keep=BOXES.filter(b=>b.rgc);
-  for(const v of coverVis){scene.remove(v.g);v.g.traverse(n=>{if(n.geometry)n.geometry.dispose();});texFree(v.mat);emiBase.delete(v.mat);}
+  for(const v of coverVis){scene.remove(v.g);v.g.traverse(n=>{if(n.geometry)n.geometry.dispose();});for(const cg of v.crackG)cg.dispose();texFree(v.mat);emiBase.delete(v.mat);}
   buildBoxes(id);BOXES.push(...keep);
   coverVis.length=0;for(const b of COVER){const v=makeCoverVis(b);mergeChildren(v.g);coverVis.push(v);}
   for(const m of buildSolids())emiBase.delete(m);
@@ -10564,14 +10781,23 @@ function devFooter(el,mk){el.append(mk('h3','','Save and export'));
   el.append(ta,eb);
   el.append(mk('div','note','Everything here saves as you change it and applies to practice and to online matches you host, in this browser. Players who join your match get your rules, weapon stats and cover; sounds stay their own. To make settings the default for everyone, paste the JSON in the project chat.'));
   devStatus();}
+function sbMusicUI(el,mk,inline){
+  if(!inline)el.append(mk('h3','','Match music'));
+  const tl=mk('label','');tl.append(document.createTextNode('Track'));const ts=document.createElement('select');ts.dataset.mmSel='1';
+  MATCH_LIST.forEach((_,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=mmLabel(i);ts.append(o);});
+  ts.value=String(mmIdx());ts.addEventListener('change',()=>{mmPlay(+ts.value);});tl.append(ts);el.append(tl);
+  if(!inline){const bb=mk('div','btns');const ab=(t,fn)=>{const b=mk('button','btn',t);b.type='button';b.addEventListener('click',fn);bb.append(b);};
+    ab('Previous',()=>mmStep(-1));ab('Next',()=>mmStep(1));ab('Shuffle next',()=>{audioWake();mmSkip();});el.append(bb);}
+  const st=mk('div','note','');st.dataset.mmStat='1';el.append(st);}
 function buildSnd(el,mk){
   el.append(mk('div','note','Each sound has its own volume, pitch, tone, low cut and echo. Test plays it where you stand; double-click a slider to reset it. Mix levels per category are in Settings (O).'));
   let grp='';
   for(const k of SND_KEYS){const T=TUNE[k],TD=tuneDef(k),dt=document.createElement('details');if(SND_INFO[k][1]!==grp){grp=SND_INFO[k][1];el.append(mk('h3','',grp));}const sm=mk('summary','',SND_INFO[k][0]);const ch=()=>sm.classList.toggle('chg',Object.keys(TUNE_N).some(f=>T[f]!==TD[f])||(HITX[k]&&Object.keys(HITX0[k]).some(f=>HITX[k][f]!==HITX0[k][f])));ch();dt.append(sm);
+    if(k==='musicMatch')sbMusicUI(dt,mk,true);
     for(const [f,txt,lo,hi,st] of TUNE_FIELDS)if(!(SND_INFO[k][2]||[]).includes(f))devKnob(dt,txt,lo,hi,st,()=>T[f],v=>{T[f]=v;},TD[f],ch);
     if(HITX[k])for(const [f,txt,lo,hi,st] of HITX_FIELDS)devKnob(dt,txt,lo,hi,st,()=>HITX[k][f],v=>{HITX[k][f]=v;},HITX0[k][f],ch);
     const bb=mk('div','btns');const ab=(t,fn)=>{const b=mk('button','btn',t);b.type='button';b.addEventListener('click',()=>{audioWake();fn();});bb.append(b);};
-    if(k!=='amb')ab('Test',()=>devTest(k,false));if(GUN[k]||k==='steps'||k==='impact')ab('Test 35 m away',()=>devTest(k,true));if(HITX[k])ab('Test over rifle fire',()=>devTest(k,true));
+    if(k!=='amb')ab('Test',()=>devTest(k,false));if(k==='musicMatch'){ab('Previous',()=>mmStep(-1));ab('Next',()=>mmStep(1));}if(GUN[k]||k==='steps'||k==='impact')ab('Test 35 m away',()=>devTest(k,true));if(HITX[k])ab('Test over rifle fire',()=>devTest(k,true));
     ab('Reset',()=>{Object.assign(T,TD);if(HITX[k])Object.assign(HITX[k],HITX0[k]);buildSB();});dt.append(bb);el.append(dt);}
   // gunshot layers
   el.append(mk('h3','','Gunshot layers'));
@@ -10686,11 +10912,9 @@ function rgTargetMesh(it){const M=rgMats(),g=new THREE.Group();
   const foot=new THREE.Mesh(M.box,M.dark);foot.scale.set(0.7,0.05,0.5);foot.position.y=0.025;g.add(foot);
   const d=new THREE.Mesh(M.disc,[M.dark,M.face,M.face]);d.rotation.x=Math.PI/2;d.position.y=1.4;g.add(d);
   g.traverse(o=>{o.userData.noMerge=true;});it.fig=g;return g;}
-function rgCoverMesh(it){const w=it.w,d=it.d,h=it.h,high=h>=1.5,neon=high?NEON.mg:NEON.cy,rp=Math.max(1,Math.round(Math.max(w,d)/2.4));
-  const mat=new THREE.MeshStandardMaterial({map:tex(high?highC:lowC,rp,1),emissive:lin(neon),emissiveMap:tex(high?highE:lowE,rp,1),emissiveIntensity:1.1*TOD.emi,roughness:0.55,metalness:0.35});
-  const g=new THREE.Group(),m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.y=h/2;m.receiveShadow=true;g.add(m);
-  const e=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry),new THREE.LineBasicMaterial({color:lin(neon),toneMapped:false}));e.position.y=h/2;g.add(e);
-  g.traverse(o=>{o.userData.noMerge=true;});it.mat=mat;it.edge=e;it.neon=neon;return g;}
+function rgCoverMesh(it,skin){const v=makeCoverVis(it.box,rgRoot(),skin);mergeChildren(v.g);
+  v.hp=it.max;v.look=0;v.emi=1.1*TOD.emi;v.mat.emissiveIntensity=v.emi;setCoverLook(v,0,-1);
+  it.vis=v;it.mat=v.mat;it.edge=v.edge;it.neon=v.neon;it.skin=v.si;return v.g;}
 /* where a new prop goes: straight ahead at the chosen distance, or where the crosshair points */
 function rgSpot(){const yw=viewYaw(),fx=-Math.sin(yw),fz=-Math.cos(yw);let x=me.x+fx*RG.dist,z=me.z+fz*RG.dist;
   if(RG.place==='aim'){const vp=viewPitch(),cp=Math.cos(vp),dx=fx*cp,dy=Math.sin(vp),dz=fz*cp,o=camera.position;const t=rayWorld(o.x,o.y,o.z,dx,dy,dz,120);
@@ -10704,29 +10928,39 @@ function rgAdd(kind,o){if(!S)return null;o=o||{};const sp=o.x!=null?{x:o.x,z:o.z
   it.yaw=Math.atan2(ux,uz);it.ax=-uz;it.az=ux;
   if(kind==='bot'){const mt=sbMe()?sbMe().team:0;const p=S.players.find(q=>q.bot&&q.team!==mt&&!q.rgId);if(!p){feed('All four enemy bot slots are in use');return null;}
     it.slot=p.s;it.pass=!!o.pass;it.move='still';RG.list.push(it);rgBotPlace(it);rgUI();return it;}
-  if(kind==='cover'){it.move='still';it.h=o.high?2.5:1;const along=Math.abs(ux)>Math.abs(uz);it.w=o.w||(along?1.2:3);it.d=o.d||(along?3:1.2);it.max=it.hp=o.high?300:150;
+  if(kind==='cover'){it.move='still';const high=o.skin!=null?o.skin>=3:!!o.high;it.h=high?2.5:1;const along=Math.abs(ux)>Math.abs(uz);it.w=o.w||(along?1.2:3);it.d=o.d||(along?3:1.2);it.max=it.hp=high?300:150;
     if(Math.hypot(me.x-it.x,me.z-it.z)<Math.max(it.w,it.d)/2+0.8&&o.x==null){feed('Too close to place cover');return null;}
-    it.g=rgCoverMesh(it);it.box={x0:it.x-it.w/2,x1:it.x+it.w/2,z0:it.z-it.d/2,z1:it.z+it.d/2,y0:0,y1:it.h,wall:false,rgc:it};}
+    it.box={x0:it.x-it.w/2,x1:it.x+it.w/2,z0:it.z-it.d/2,z1:it.z+it.d/2,y0:0,y1:it.h,h0:it.h,max:it.max,stage:0,wall:false,rgc:it};
+    it.g=rgCoverMesh(it,o.skin);}
   else if(kind==='dummy'){it.max=it.hp=RG.dhp;it.g=rgDummyMesh(it);rgBar(it);}
   else it.g=rgTargetMesh(it);
-  it.g.position.set(it.x,0,it.z);it.g.rotation.y=it.yaw;rgRoot().add(it.g);RG.list.push(it);
+  if(kind!=='cover'){it.g.position.set(it.x,0,it.z);it.g.rotation.y=it.yaw;rgRoot().add(it.g);}RG.list.push(it);
   if(it.box&&RG.stowed){BOXES.push(it.box);rebuildGrid();renderer.shadowMap.needsUpdate=true;}rgUI();return it;}
 function rgBotPlace(it){const p=S&&S.players[it.slot];if(!p||!p.bot)return;p.rgId=it.id;dmPlace(p,it.x,it.z,it.yaw);p.prot=0;}
 function rgRemove(it){const i=RG.list.indexOf(it);if(i<0)return;RG.list.splice(i,1);
   if(it.kind==='bot'){const p=S&&S.players[it.slot];if(p&&p.rgId===it.id){p.rgId=0;p.st='dead';p.hp=0;}}
-  if(it.g){RG.root.remove(it.g);if(it.mat)it.mat.dispose();if(it.flashM)it.flashM.forEach(m=>m.dispose());}
+  if(it.g){RG.root.remove(it.g);if(it.vis){it.g.traverse(n=>{if(n.geometry)n.geometry.dispose();});for(const cg of it.vis.crackG)cg.dispose();texFree(it.vis.mat);}else{if(it.mat)it.mat.dispose();if(it.flashM)it.flashM.forEach(m=>m.dispose());}}
   if(it.box){const j=BOXES.indexOf(it.box);if(j>=0){BOXES.splice(j,1);rebuildGrid();renderer.shadowMap.needsUpdate=true;}}rgUI();}
 function rgClear(){for(const it of [...RG.list])rgRemove(it);}
-/* the starter range: boards at 10, 25, 40 and 55 m, a still and a strafing dummy, low and high cover, and one of each Revenant type standing still */
+/* spawn all six crate examples (3 low on the left gallery, 3 high on the right gallery) */
+function rgCrateLineup(){const X=RG_START.x;
+  rgAdd('cover',{x:X+5,z:-14.5,w:2.4,d:1.4,skin:0});   /* low: armour panel */
+  rgAdd('cover',{x:X+9.2,z:-14.5,w:2.0,d:1.4,skin:1}); /* low: supply crate */
+  rgAdd('cover',{x:X+13.4,z:-14.5,w:2.6,d:1.2,skin:2});/* low: hazard barrier */
+  rgAdd('cover',{x:X+5,z:14.5,w:2.4,d:1.4,skin:3});    /* high: ribbed slab */
+  rgAdd('cover',{x:X+9.5,z:14.5,w:2.6,d:1.6,skin:4});  /* high: cargo container */
+  rgAdd('cover',{x:X+14,z:14.5,w:2.0,d:1.4,skin:5});}  /* high: server stack */
+/* the starter range: boards at 10, 25, 40 and 55 m, a still and a strafing dummy, all six crate examples, and one of each Revenant type standing still */
 function rgDefault(){const X=RG_START.x;
   rgAdd('target',{x:X+10,z:-9});rgAdd('target',{x:X+25,z:-4});rgAdd('target',{x:X+40,z:3});rgAdd('target',{x:X+55,z:15});
   rgAdd('dummy',{x:X+15,z:5,move:'still'});rgAdd('dummy',{x:X+30,z:12,move:'strafe'});
-  rgAdd('cover',{x:X+4,z:-14,w:3,d:1.2});rgAdd('cover',{x:X+4,z:14,w:3,d:1.2,high:true});
+  rgCrateLineup();
   ZB.hunt=false;zLineup();}
 /* called from newMatch: the range is live at once and only spawned bots come in */
 function rgStart(){S.phase='live';S.t=0;S.timer=CFG.dmTime;S.rgz={};
   for(const p of S.players){if(!p.bot){rgHome(p);continue;}p.st='dead';p.hp=0;p.deadT=0;p.rgId=0;}
-  for(const it of RG.list){if(it.kind==='bot')rgBotPlace(it);else{it.hp=it.max;it.downT=0;if(it.bar)rgBar(it);}}
+  for(const it of RG.list){if(it.kind==='bot')rgBotPlace(it);else{it.hp=it.max;it.downT=0;if(it.bar)rgBar(it);
+    if(it.kind==='cover'&&it.vis){it.box.y1=it.h;it.box.stage=0;it.vis.hp=it.max;it.vis.look=0;it.vis.flash=0;it.vis.hit=0;coverBuildEnd(it.vis);setCoverLook(it.vis,0,-1);}}}
   if(!RG.init){RG.init=true;if(!RG.list.length)setTimeout(()=>{if(rgOn()&&!RG.list.length)rgDefault();},0);}}
 /* arena cover is put away while you are at the range and comes back when you leave it */
 function rgSync(){const want=rgOn();if(RG.root)RG.root.visible=want;$('rgread').hidden=!want||!RG.read;
@@ -10737,14 +10971,24 @@ function rgSync(){const want=rgOn();if(RG.root)RG.root.visible=want;$('rgread').
 /* after the Objects tab or a settings load rebuilds arena cover, keep it put away */
 function rgRestow(){if(!RG.stowed)return;COVER.forEach((b,i)=>{b.y1=0;const v=coverVis[i];if(v)v.g.visible=false;});midStow(true);rebuildGrid();}
 function rgTick(dt){rgSync();if(!RG.stowed)return;
+  const nowSec=performance.now()/1000;
   for(const it of RG.list){if(it.kind==='bot')continue;
+    if(it.kind==='cover'&&it.vis){const v=it.vis,f=clamp(it.hp/it.max,0,1);v.emi=(0.35+0.75*f)*TOD.emi;
+      if(it.downT>0){it.downT-=dt;const bp=it.downT<=BUILD_T?1-Math.max(0,it.downT)/BUILD_T:-1;
+        if(bp>=0&&it.downT>0)coverBuild(v,bp,dt,nowSec);
+        if(it.downT<=0){it.downT=0;it.hp=it.max;coverBuildEnd(v);rgCoverBack(it);}}
+      else if(v.building)coverBuildEnd(v);
+      if(v.flash>0){v.flash-=dt*2.4;const k=Math.max(0,v.flash);v.mat.emissiveIntensity=v.emi*(1+3*k);v.holo.material.opacity=0.9*k;if(k<=0)v.holo.visible=false;}
+      else if(!v.building)v.mat.emissiveIntensity=v.emi;
+      if(v.hit>0){v.hit-=dt;v.edge.material.color.copy(v.ecol).lerp(WHITE,clamp(v.hit/0.12,0,1));}
+      if(v.look===4&&dt>0){v.edge.visible=Math.sin(nowSec*31+it.id*2)>-0.55;if(Math.random()<dt*1.6)spawnSparks(v.cx+(Math.random()-.5)*v.w,v.hh+0.1,v.cz+(Math.random()-.5)*v.d,Math.random()<.5?0xff7a3a:v.neon,2,0,-1,0);
+        if(Math.random()<dt*0.9)spawnDebris(v.cx+(Math.random()-.5)*v.w,v.hh-0.05,v.cz+(Math.random()-.5)*v.d,v.high,0.35,v.si,'core');}
+      continue;}
     if(it.downT>0){it.downT-=dt;const k=it.kind==='dummy'?clamp((RG.respawn-it.downT)/0.25,0,1):1;
       if(it.fig&&it.kind==='dummy')it.fig.rotation.x=-1.5*(it.downT<0.3?it.downT/0.3:k);
-      if(it.kind==='cover'&&it.downT<=BUILD_T&&!it.g.visible){it.g.visible=true;it.g.scale.y=0.02;}
-      if(it.kind==='cover'&&it.g.visible)it.g.scale.y=Math.max(0.02,1-it.downT/BUILD_T);
-      if(it.downT<=0){it.downT=0;it.hp=it.max;if(it.bar)rgBar(it);if(it.fig)it.fig.rotation.x=0;if(it.kind==='cover')rgCoverBack(it);}}
+      if(it.downT<=0){it.downT=0;it.hp=it.max;if(it.bar)rgBar(it);if(it.fig)it.fig.rotation.x=0;}}
     if(it.flashM&&it.flash>0){it.flash-=dt*5;for(const m of it.flashM)m.emissiveIntensity=Math.max(0,it.flash)*0.9;}
-    const mv=RG_MV[it.move];if(!mv||!mv[0]||it.kind==='cover')continue;
+    const mv=RG_MV[it.move];if(!mv||!mv[0])continue;
     // strafing: accelerate toward the current direction, turn at the ends (random A-D also turns on a short timer)
     it.tt-=dt;if(it.move==='adad'&&it.tt<=0){it.tt=0.25+Math.random()*0.7;if(Math.random()<0.6)it.dir=-it.dir;}
     if(it.off*it.dir>=mv[1])it.dir=-it.dir;
@@ -10752,8 +10996,8 @@ function rgTick(dt){rgSync();if(!RG.stowed)return;
     if(Math.abs(nx)>48.5||Math.abs(nz)>18.5||!freeAt(nx,nz)){it.dir=-it.dir;it.v=0;continue;}
     it.off=no;it.x=nx;it.z=nz;it.g.position.set(nx,0,nz);}
   const now=performance.now();for(const it of RG.list)if(it.kind==='dummy'&&it.hp>0&&it.hp<it.max&&now-it.lastT>4000){it.hp=it.max;rgBar(it);}}
-function rgCoverBack(it){it.g.scale.y=1;if(BOXES.indexOf(it.box)<0)BOXES.push(it.box);rebuildGrid();renderer.shadowMap.needsUpdate=true;
-  it.edge.material.color.copy(lin(it.neon));it.mat.emissiveIntensity=1.1*TOD.emi;
+function rgCoverBack(it){it.box.y1=it.h;it.box.stage=0;if(BOXES.indexOf(it.box)<0)BOXES.push(it.box);rebuildGrid();renderer.shadowMap.needsUpdate=true;
+  const v=it.vis;if(v){v.hp=it.max;v.look=0;v.ecol.copy(lin(v.neon));v.edge.material.color.copy(v.ecol);v.emi=1.1*TOD.emi;v.mat.emissiveIntensity=v.emi;setCoverLook(v,0,-1);v.flash=1;v.holo.visible=true;v.clipW.constant=99;}
   const b=it.box,r=0.4;if(me.y<b.y1-0.05){const l=me.x-(b.x0-r),rr=b.x1+r-me.x,fr=me.z-(b.z0-r),bk=b.z1+r-me.z,mn=Math.min(l,rr,fr,bk);
     if(mn>0){if(mn===l)me.x=b.x0-r;else if(mn===rr)me.x=b.x1+r;else if(mn===fr)me.z=b.z0-r;else me.z=b.z1+r;me.mantle=null;}}
   const sp=spat(it.x,it.z),vol=clamp(1-sp.d/40,0,1);if(vol>0.02){snd({f:660,f1:1320,dur:0.16,vol:0.07*vol,wave:'triangle',bus:'fx',pan:sp.pan,tk:'cover'});blip(180,0.2,0.07*vol,true,'fx',sp.pan,'cover');}
@@ -10770,11 +11014,13 @@ function rgHitAt(h,hx,hy,hz,dist,w,dx,dy,dz){const it=h.it,dmg=shotDmg(me.w,h.he
   const e=a.get(it)||{dmg:0,head:false,x:hx,y:hy,z:hz,ring:0,dist};a.set(it,e);e.dmg+=dmg;e.head=e.head||h.head;if(h.ring)e.ring=Math.max(e.ring,h.ring);
   if(it.kind==='dummy'){spawnSparks(hx,hy,hz,0xffbf94,h.head?9:5,dx,dy,dz);}
   else{spawnSparks(hx,hy,hz,0xfff2d0,5,dx,dy,dz);if(it.move==='still')mark(hx,hy,hz,dx,dy,dz,0x14161c);if(!e.snd){e.snd=1;impactSound(hx,hz,1);}}}
-function rgCoverHit(it,dmg,hx,hy,hz){if(it.hp<=0)return;it.hp=Math.max(0,it.hp-dmg);const f=it.hp/it.max;it.edge.material.color.copy(lin(0xff3030).lerp(lin(it.neon),f));
-  if(it.hp>0)return;it.downT=RG.respawn+4;const j=BOXES.indexOf(it.box);if(j>=0)BOXES.splice(j,1);rebuildGrid();renderer.shadowMap.needsUpdate=true;it.g.visible=false;
-  const big=it.h>=1.5;for(let i=0;i<(big?14:7);i++)spawnDebris(it.x+(Math.random()-.5)*it.w,Math.random()*it.h,it.z+(Math.random()-.5)*it.d,big,1.2);
-  for(let i=0;i<3;i++)spawnDust(it.x+(Math.random()-.5)*it.w,0.5,it.z+(Math.random()-.5)*it.d,Math.max(1.4,Math.min(it.w,it.d)*1.1));
-  const sp=spat(it.x,it.z);coverBreakSound(big,true,sp.pan,clamp(1-sp.d/45,0.15,1));}
+function rgCoverHit(it,dmg,hx,hy,hz,dx,dy,dz){if(it.hp<=0)return;it.hp=Math.max(0,it.hp-dmg);
+  const v=it.vis,f=clamp(it.hp/it.max,0,1),lk=coverLook(it.box,it.hp),st=coverStage(it.box,it.hp);
+  if(v){v.hit=0.12;v.hp=it.hp;v.ecol.copy(lin(0xff3030).lerp(lin(v.neon),f));v.edge.material.color.copy(v.ecol);v.emi=(0.35+0.75*f)*TOD.emi;v.mat.emissiveIntensity=v.emi;
+    if(hx!=null&&Math.random()<0.65)spawnDebris(hx-(dx||0)*0.05,hy,hz-(dz||0)*0.05,v.high,0.65,v.si,Math.random()<0.45?'shell':'core',-(dx||0)*2.2,-(dz||0)*2.2);
+    if(lk!==v.look){const prev=v.look;v.look=lk;it.box.stage=st;it.box.y1=coverHeight(it.box,st);setCoverLook(v,lk,prev);
+      if(it.hp<=0){it.downT=RG.respawn+4;const j=BOXES.indexOf(it.box);if(j>=0)BOXES.splice(j,1);}
+      rebuildGrid();renderer.shadowMap.needsUpdate=true;}}}
 /* after a shot: damage numbers, hit marker and cue, and the readout (damage, range, rings, hits and time to drop a dummy) */
 function rgDeliver(){const a=RG.acc;RG.acc=null;if(!a||!a.size)return false;let head=false;const now=performance.now();
   for(const [it,e] of a){head=head||e.head;dmgNum(e.x,e.y,e.z,e.dmg,e.head);RG.hits++;
@@ -10833,7 +11079,7 @@ function modeSelect(el,mk){const ml=mk('label','');ml.append(document.createText
   [['range','Shooting range'],['zone','Zone 2v2: attack and defend'],['dm1','Deathmatch 1v1'],['dm2','Team deathmatch 2v2'],['dm4','Team deathmatch 4v4']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;ms.append(o);});
   ms.value=SB.mode;ms.addEventListener('change',()=>{SB.mode=ms.value;if(SB.mode==='range'&&SB.tab==='obj')SB.tab='range';if(S&&net.mode==='solo'){readMenu();restartMatch();toggleSB(true);buildSB();}});ml.append(ms);el.append(ml);}
 function buildRange(el,mk){
-  if(SB.mode!=='range'){el.append(mk('h3','','Game mode'));modeSelect(el,mk);el.append(mk('div','note','The spawn tools work at the shooting range. Pick it above to go back there.'));devFooter(el,mk);return;}
+  if(SB.mode!=='range'){el.append(mk('h3','','Game mode'));modeSelect(el,mk);el.append(mk('div','note','The spawn tools work at the shooting range. Pick it above to go back there.'));sbMusicUI(el,mk,false);devFooter(el,mk);return;}
   el.append(mk('div','note','Props spawn where you point them; walk or look somewhere else and spawn again. Arena cover is put away while you are here. Nothing on the range is saved.'));
   const pl=mk('label','');pl.append(document.createTextNode('Place'));const ps=document.createElement('select');
   [['ahead','Straight ahead, at the distance below'],['aim','Where the crosshair points']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;ps.append(o);});
@@ -10844,16 +11090,16 @@ function buildRange(el,mk){
   el.append(mk('h3','','Spawn'));
   const sb=mk('div','btns');const ab=(t,f,box)=>{const b=mk('button','btn',t);b.type='button';b.addEventListener('click',f);(box||sb).append(b);return b;};
   ab('Dummy',()=>rgAdd('dummy'));ab('Target board',()=>rgAdd('target'));ab('Bot that fights',()=>rgAdd('bot',{pass:false}));ab('Bot standing still',()=>rgAdd('bot',{pass:true}));
-  ab('Low cover',()=>rgAdd('cover',{high:false}));ab('High cover',()=>rgAdd('cover',{high:true}));el.append(sb);
+  ab('Low cover',()=>rgAdd('cover',{high:false}));ab('High cover',()=>rgAdd('cover',{high:true}));ab('All 6 crates',()=>{for(const it of [...RG.list])if(it.kind==='cover')rgRemove(it);rgCrateLineup();});el.append(sb);
   el.append(mk('div','note','Dummies and target boards face you. Bots use the four enemy slots and come back where you placed them after a kill; "You take no damage" on the Rules tab keeps the fighting ones from dropping you.'));
   el.append(mk('h3','','Dummies and cover'));
   devKnob(el,'Dummy HP (next spawn)',1,500,1,()=>RG.dhp,v=>{RG.dhp=v;},100);
   devKnob(el,'Dummy back up after (s)',0.5,10,0.5,()=>RG.respawn,v=>{RG.respawn=v;},2);
   zRangeUI(el,mk,ab);
-  rgMapUI(el,mk);rgSiteUI(el,mk);
+  rgMapUI(el,mk);sbMusicUI(el,mk,false);rgSiteUI(el,mk);
   el.append(mk('h3','',`On the range (${RG.list.length})`));
   if(RG.list.length){const ul=mk('div','rglist');for(const it of RG.list){const row=mk('div','rgrow');const d=Math.hypot(it.x-me.x,it.z-me.z);
-      const desc=it.kind==='bot'?(it.pass?'Bot, standing still':'Bot, fights back'):it.kind==='cover'?(it.h>=1.5?'High cover':'Low cover'):`${RG_KN[it.kind]}, ${RG_MOVES.find(m=>m[0]===it.move)[1].toLowerCase()}`;
+      const desc=it.kind==='bot'?(it.pass?'Bot, standing still':'Bot, fights back'):it.kind==='cover'?`${COVER_SKIN_NAMES[it.skin]||'Cover'} (${it.h>=1.5?'high':'low'})`:`${RG_KN[it.kind]}, ${RG_MOVES.find(m=>m[0]===it.move)[1].toLowerCase()}`;
       row.append(mk('span','',`${desc} · ${d.toFixed(0)} m`));const x=mk('button','btn','Remove');x.type='button';x.addEventListener('click',()=>rgRemove(it));row.append(x);ul.append(row);}el.append(ul);}
   else el.append(mk('div','note','Empty.'));
   const cb=mk('div','btns');ab('Clear the range',()=>{rgClear();zClear();},cb);ab('Starter range',()=>{rgClear();zClear();rgDefault();},cb);ab('Back to the firing line',()=>{const P=sbMe();if(!P||P.st!=='alive')return;me.x=RG_START.x;me.z=RG_START.z;me.y=0;me.vy=me.vx=me.vz=0;P.x=me.x;P.z=me.z;me.yaw=-Math.PI/2;me.pitch=0;},cb);
@@ -12636,6 +12882,12 @@ zcUI();modeCap();segSync();
    UPDATES below is the offline fallback and the minimum version; release notes are cached in localStorage and refreshed
    in the background, so the menu works offline and stays inside GitHub's API rate limit. Drafts and prereleases are skipped. */
 const UPDATES=[
+  {v:'0.8.0',d:'2026-11-23',t:'Crate destruction overhaul and Sandbox crate gallery',n:[
+    'Cover destruction overhauled: jagged faceted fracture chunks, snapped exterior wall plates, kinked steel rebar and skin-matched interiors for every crate type (armour panels, supply crates, hazard barriers, ribbed slabs, cargo containers and server stacks).',
+    'All six damage stages upgraded: blown-out top corners expose fractured cores and bent steel without floating cracks or wireframes, half-height breaks get a 3D cratered fracture bed and sheared lower trim, and critical cover notches its lower corners while shedding gravel and sparks.',
+    'Rubble piles now form sculpted mounds of faceted rock, leaning painted shell slabs, bent rebar and snapped hazard kick-plates over a scorched ember footprint.',
+    'Flying debris bursts outward with mixed rock chunks, painted shell plates, bent steel rods and glowing embers, and sprays directionally from bullet and Reach Lance impacts.',
+    'Sandbox: spawns a full lineup of all six crate archetypes by default (three low on the left, three high on the right), upgraded to the full six-stage destruction and hologram-rebuild system, with an All 6 crates button in the Range tab.']},
   {v:'0.7.0',d:'2026-11-23',t:'Revenant models, destructible elite armor and full changelog',n:[
     'Revenant models overhauled: baked voxel shading, night rim lighting, sculpted Bloaters with wraparound glowing boils, Crawler tendrils, Spitter shoulder pustules and a bone crown for the Matriarch.',
     'Juggernaut: metallic riot plating with an open back frame and pulsing core showing its back weak spot, plus charge-brace, shoulder-ram and wall-stun poses.',
@@ -12994,7 +13246,7 @@ function restartMatch(){if(!canRestart())return;restartArm=0;closeWheel(false);
   if(net.mode==='online'&&net.room){stateT=0;}
   newMatchLocal();me.mid=S.mid;closePause();autoLock(true);}
 /* local side of a new match, for whoever sees S.mid change: reopen the start weapon pick and restart the match music after the next FIGHT */
-function newMatchLocal(){WH.auto=false;if(WH.open)closeWheel(false);me.round=0;MM.go=false;MM.on=false;if(MM.src){try{MM.src.stop();}catch(e){}MM.src.disconnect();MM.src=null;}}
+function newMatchLocal(){WH.auto=false;if(WH.open)closeWheel(false);me.round=0;MM.go=false;MM.on=false;MM.pick=-1;MM.err='';if(MM.src){try{MM.src.stop();}catch(e){}MM.src.disconnect();MM.src=null;}}
 /* ---------- end of match: Play again / Main menu (touch, mouse, keyboard, controller) ----------
    Shown whenever a match or run ends (phase 'over'), e.g. a Zombie Rumble wipe or a Deathmatch win. The banner and the XP
    summary move into its column so nothing overlaps. Offline the game waits for a choice; online the countdown still runs
@@ -13779,7 +14031,7 @@ function fireRay(s,w,spread,acc){
   else if(best<maxR-1&&hb&&hb.ptl&&hop<2&&zsShotExit(hb,hx,hz)){const e=zsShotExit(hb,hx,hz);spawnSparks(hx,hy,hz,THEME.low,3,-dx,-dy,-dz);ox=e.x;oz=e.z;oy=hy;d0+=best;maxR-=best;via=true;raySkip=e.skip;continue;}
   else if(best<maxR-1&&hb&&hb.pane!=null){sendPane(hb.pane);paneHitFx(hb,hx,hy,hz,dx,dy,dz);}
   else if(hb===ACID_HIT){spawnSparks(hx,hy,hz,0x9dff3c,5,-dx,-dy,-dz);zAcidSplash(hx,hy,hz);}
-  else if(best<maxR-1){if(hb&&hb.rgc)rgCoverHit(hb.rgc,shotDmg(me.w,false,best,w));mark(hx,hy,hz,dx,dy,dz,hb&&hb.ci!=null?(hb.h0>=1.5?NEON.mg:NEON.cy):hb===ROOF_HIT||hy>WALL_H?0xcfeeff:0xffa040);impactSound(hx,hz,1);if(hb&&hb.ci!=null){sendCover(hb.ci);if(Math.random()<0.4)spawnDebris(hx-dx*0.05,hy,hz-dz*0.05,hb.h0>=1.5,0.6);spawnSparks(hx,hy,hz,hb.h0>=1.5?NEON.mg:NEON.cy,6,dx,dy,dz);}else spawnSparks(hx,hy,hz,0xbfe9ff,4,dx,dy,dz);}
+  else if(best<maxR-1){if(hb&&hb.rgc)rgCoverHit(hb.rgc,shotDmg(me.w,false,best,w),hx,hy,hz,dx,dy,dz);mark(hx,hy,hz,dx,dy,dz,hb&&(hb.ci!=null||hb.rgc)?(hb.h0>=1.5?NEON.mg:NEON.cy):hb===ROOF_HIT||hy>WALL_H?0xcfeeff:0xffa040);impactSound(hx,hz,1);if(hb&&hb.ci!=null){sendCover(hb.ci);const cv=coverVis[hb.ci];if(Math.random()<0.65)spawnDebris(hx-dx*0.05,hy,hz-dz*0.05,hb.h0>=1.5,0.65,cv?cv.si:null,Math.random()<0.45?'shell':'core',-dx*2.2,-dz*2.2);spawnSparks(hx,hy,hz,hb.h0>=1.5?NEON.mg:NEON.cy,6,dx,dy,dz);}else spawnSparks(hx,hy,hz,hb&&hb.rgc?(hb.h0>=1.5?NEON.mg:NEON.cy):0xbfe9ff,hb&&hb.rgc?6:4,dx,dy,dz);}
   break;}
 }
 /* Reach Lance: one beam that goes through every enemy and Revenant in its path, up to the first wall. beamR widens the player hit boxes. */
@@ -13793,7 +14045,7 @@ function lanceRay(s,w,acc,ox,oy,oz,dx,dy,dz){
   if(ZB.acc){const skip=new Set();for(let n=0;n<12;n++){const zh=zRay(ox,oy,oz,dx,dy,dz,wall,skip);if(!zh)break;skip.add(zh.z);zHitAt(zh,ox+dx*zh.t,oy+dy*zh.t,oz+dz*zh.t,zh.t,w,dx,dy,dz);}}
   if(RG.acc){const rh=rgRay(ox,oy,oz,dx,dy,dz,wall);if(rh)rgHitAt(rh,ox+dx*rh.t,oy+dy*rh.t,oz+dz*rh.t,rh.t,w,dx,dy,dz);}
   const hx=ox+dx*wall,hy=oy+dy*wall,hz=oz+dz*wall;vtip.getWorldPosition(_v);beam(_v.x,_v.y,_v.z,hx,hy,hz,GUNGLOW.lance,0.012+0.03*(me.lanceF||0)+R*0.08);
-  if(wall<119&&hb===ACID_HIT)spawnSparks(hx,hy,hz,0x9dff3c,6,-dx,-dy,-dz);else if(wall<119){if(hb&&hb.pane!=null){sendPane(hb.pane);paneHitFx(hb,hx,hy,hz,dx,dy,dz);}else{mark(hx,hy,hz,dx,dy,dz,GUNGLOW.lance);impactSound(hx,hz,1);if(hb&&hb.ci!=null)sendCover(hb.ci);spawnSparks(hx,hy,hz,GUNGLOW.lance,6,dx,dy,dz);}}}
+  if(wall<119&&hb===ACID_HIT)spawnSparks(hx,hy,hz,0x9dff3c,6,-dx,-dy,-dz);else if(wall<119){if(hb&&hb.pane!=null){sendPane(hb.pane);paneHitFx(hb,hx,hy,hz,dx,dy,dz);}else{mark(hx,hy,hz,dx,dy,dz,GUNGLOW.lance);impactSound(hx,hz,1);if(hb&&hb.rgc)rgCoverHit(hb.rgc,shotDmg(me.w,false,wall,w),hx,hy,hz,dx,dy,dz);if(hb&&hb.ci!=null){sendCover(hb.ci);const cv=coverVis[hb.ci];for(let q=0;q<2;q++)spawnDebris(hx-dx*0.05,hy,hz-dz*0.05,hb.h0>=1.5,0.8,cv?cv.si:null,q?'ember':'shell',-dx*2.4,-dz*2.4);}spawnSparks(hx,hy,hz,GUNGLOW.lance,6,dx,dy,dz);}}}
 /* Arc Caster: the arc jumps from the first target to up to w.chain more within w.chainR m (Revenants and enemy players), full damage each */
 function arcChain(s,w,acc,p0,z0,x,y,z){const myTeam=S.players[s].team,cand=[];
   for(const q of ZB.list){if(q===z0||q.st==='dead'||!q.posed)continue;const d=Math.hypot(q.x-x,q.z-z);if(d<=w.chainR)cand.push({d,z:q,x:q.x,y:0.9*zSize(q),zz:q.z});}
