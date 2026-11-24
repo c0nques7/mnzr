@@ -7,7 +7,7 @@ presence and forwards `state` / `hit` emits to the others. It has no game logic.
 
 - Live at `wss://mnzr-relay.joewade0110.workers.dev`; `GET /health` returns `mnzr relay ok`. If the worker moves, update `RELAY_URL` in `index.html`.
 - Deploys through Cloudflare Workers Builds (root directory `relay`, deploy command `npx wrangler deploy`).
-- Only pages from mnzr.lol, *.vercel.app and localhost may connect (`ORIGINS` in worker.js).
+- Only pages from mnzr.lol, this project's Vercel previews (`mnzr-…-c0nques7s-projects.vercel.app`) and localhost may connect (`ORIGINS` in worker.js).
 - Limits: 4 KiB per message, 60 messages a second per player, 16 players per room.
 - There is no join token for matches: the room code is the only credential, and the relay forwards messages without checking game rules. Google sign-in is for saves only.
 - Local test: `npx wrangler dev --port 8787` here, serve index.html on localhost:8080, open `http://localhost:8080/?relay=ws://localhost:8787`.

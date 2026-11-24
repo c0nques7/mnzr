@@ -9,12 +9,15 @@
                        {k:'x', peer}                     a peer left
                        {k:'e', t, peer, d}               an emit from another peer
    Accounts: /auth/google starts a PKCE flow, /auth/callback finishes it and redirects to the game with a
-   bearer token in the URL fragment. /auth/me, /auth/logout and /api/save use that token. Saves are opaque
+   bearer token in the URL fragment. /auth/me, /auth/logout and /api/save use that token. PUT /api/save with `base`
+   (the `at` the client last saw) is refused with 409 if another device saved since. Saves are opaque
    JSON snapshots keyed by Google `sub`; the worker never reads or validates game progression. */
 const MAX_MSG = 4096 + 64;          /* the game keeps payloads under 4 KiB, same as the claude.ai room */
 const MAX_PEERS = 16;
 const RATE = 60;                    /* frames a second per socket before the relay starts dropping */
-const ORIGINS = [/^https:\/\/(www\.)?mnzr\.lol$/, /^https:\/\/[a-z0-9-]+\.vercel\.app$/, /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
+/* Only the game's own pages. Vercel previews are limited to this project's deployments (mnzr-<hash>-c0nques7s-projects,
+   mnzr-git-<branch>-c0nques7s-projects): any *.vercel.app would let anyone's Vercel site receive a player's sign-in token. */
+const ORIGINS = [/^https:\/\/(www\.)?mnzr\.lol$/, /^https:\/\/mnzr(-[a-z0-9-]+)?-c0nques7s-projects\.vercel\.app$/, /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
 const NAME = /^[a-z0-9-]{1,64}$/;
 const PEER = /^[a-z0-9]{4,24}$/;
 const SESSION_TTL = 30 * 86400;     /* 30 days, refreshed by signing in again */
@@ -137,6 +140,12 @@ async function accounts(req, env, url) {
     if (!body || body.v !== 1 || !body.save || typeof body.save !== 'object' || Array.isArray(body.save))
       return fail(req, 'bad save');
     if (JSON.stringify(body.save).length > MAX_SAVE) return fail(req, 'save too large', 413);
+    /* optimistic concurrency: a client sends base = the `at` of the cloud save it last saw (null if it saw none).
+       If another device uploaded since, refuse with 409 and the current save so the client can ask which to keep. */
+    if ('base' in body) {
+      const raw = await env.SAVES.get('u:' + s.sub), cur = raw ? JSON.parse(raw) : null, curAt = cur && cur.at || null;
+      if (curAt !== (body.base || null)) return json(req, { error: 'cloud save changed on another device', conflict: true, at: curAt, save: cur && cur.save || null }, 409);
+    }
     const out = { v: 1, at: new Date().toISOString(), save: body.save };
     await env.SAVES.put('u:' + s.sub, JSON.stringify(out));
     return json(req, { ok: true, at: out.at });

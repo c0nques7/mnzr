@@ -13248,6 +13248,10 @@ zcUI();modeCap();segSync();
    UPDATES below is the offline fallback and the minimum version; release notes are cached in localStorage and refreshed
    in the background, so the menu works offline and stays inside GitHub's API rate limit. Drafts and prereleases are skipped. */
 const UPDATES=[
+  {v:'0.11.2',d:'2026-11-24',t:'Cloud save fixes',n:[
+    'Cloud Save keeps you signed in after reloading the page, so syncing keeps working.',
+    'Two devices no longer silently overwrite each other: if another device saved since, the game asks which save to keep.',
+    'Google sign-in only works from the official game pages, which keeps your save safer.']},
   {v:'0.11.1',d:'2026-11-24',t:'Favor card reliability and online co-op fixes',n:[
     'Second Wind now prevents an instant wipe when the last player standing goes down with an unused self-revive.',
     'Last Breath now works properly for online co-op guests and keeps your gun viewmodel, crosshair and reload ring visible while shooting from the floor.',
@@ -13296,7 +13300,6 @@ const UPDATES=[
     'Edit HUD (in the pause menu): drag and resize the score, minimap, kill feed, health, ammo and more. Your layout is saved on this device.',
     'Sandbox: every rule and gun number now has a tuning knob.',
     'Weapons: the Hecklers sit centred in first person, Arc Caster lightning is thick and glowing, and Encore grenades break cover and glass.',
-    'The crowd comes alive between big moments: fans bounce, clap, wave and chat with each other.',
     'New sounds: a chunky blast for Encore grenades and a coin pickup for Credits.',
     'When a match ends, the other players warp out one by one so the results sit over an empty arena.',
     'Cover comes in three looks per height: crates, cargo containers, server stacks and more.']},
@@ -15227,12 +15230,19 @@ warmUI(0,'Compiling shaders…');
    are cached in globals at boot. */
 (function(){
   const $=id=>document.getElementById(id);
-  const API=RELAY_URL.replace(/^ws/,'http');
-  const TOKEN='za-cloud-token';
+  /* The sign-in token only ever goes to the official relay (or a local wrangler dev one): ?relay= / za-relay can point
+     online play elsewhere, and that must not hand a third party the player's cloud-save token. */
+  const CLOUD_WS=/^wss?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(RELAY_URL)?RELAY_URL:'wss://mnzr-relay.joewade0110.workers.dev';
+  const API=CLOUD_WS.replace(/^ws/,'http');
+  const TOKEN='za-cloud-token',CLOUD_AT='za-cloud-at';
   /* Deliberately excludes za-relay (a shared link could repoint it at a third-party relay), dev/sandbox
      switches and the release cache. Values are strings because that is what localStorage stores. */
   const KEYS=['za-zr','za-prog','za-name','za-w','za-binds','za-opt','za-tlayout','za-hudlay','za-map','za-mode','za-zrcarry','za-zrlen','za-settab','za-intro','za-intro2','za-updseen'];
-  let me=null,baseline='',busy=false;
+  let me=null,baseline='',busy=false,conflict=null;
+  /* `at` of the cloud save this browser last synced with; uploads send it as `base` so the relay refuses (409) if another
+     device saved since, instead of one device silently overwriting newer progress from another */
+  const getAt=()=>{try{return localStorage.getItem(CLOUD_AT)||null;}catch(e){return null;}};
+  const setAt=a=>{try{if(a)localStorage.setItem(CLOUD_AT,a);else localStorage.removeItem(CLOUD_AT);}catch(e){}};
   const serial=()=>{const d={};for(const k of KEYS){try{const v=localStorage.getItem(k);if(v!==null)d[k]=v;}catch(e){}}return JSON.stringify(d);};
   const hasLocal=()=>{try{return KEYS.some(k=>localStorage.getItem(k)!==null);}catch(e){return false;}};
   /* Cloud snapshots are a flat key map; exported files wrap that map in {v:1,data:{...}}. Accept both. */
@@ -15252,7 +15262,7 @@ warmUI(0,'Compiling shaders…');
     if(opt.body!==undefined)h['Content-Type']='application/json';
     const r=await fetch(API+path,{method:opt.method||'GET',headers:h,body:opt.body!==undefined?JSON.stringify(opt.body):undefined});
     const d=await r.json().catch(()=>({}));
-    if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
+    if(!r.ok){const e=new Error(d.error||('HTTP '+r.status));e.status=r.status;e.data=d;throw e;}
     return d;
   }
   function status(txt){const e=$('cstat');if(e)e.textContent=txt;}
@@ -15273,36 +15283,57 @@ warmUI(0,'Compiling shaders…');
   ov.addEventListener('click',e=>{if(e.target===ov&&ov._ask)ov._ask(null);});
   document.addEventListener('keydown',e=>{if(ov.hidden)return;e.preventDefault();e.stopPropagation();if(e.code==='Escape'&&ov._ask)ov._ask(null);},true);
 
-  async function upload(){
+  /* base: the cloud `at` we expect to replace (defaults to the last one synced); pass the server's current `at` to overwrite on purpose */
+  async function upload(base){
     if(!me||busy)return;busy=true;
-    const data=JSON.parse(serial());
-    try{const r=await api('/api/save',{method:'PUT',body:{v:1,save:data}});baseline=serial();status('Uploaded · '+new Date(r.at).toLocaleString());}
-    catch(e){status('Upload failed: '+e.message);}
+    const snap=serial(),data=JSON.parse(snap);
+    try{const r=await api('/api/save',{method:'PUT',body:{v:1,save:data,base:base===undefined?getAt():base}});setAt(r.at);conflict=null;baseline=snap;status('Uploaded · '+new Date(r.at).toLocaleString());}
+    catch(e){
+      if(e.status===409&&e.data&&e.data.conflict){conflict=e.data;status('Cloud save changed on another device · syncing paused until you choose');
+        if(onMenu())resolveConflict();}
+      else status('Upload failed: '+e.message);}
     finally{busy=false;}
   }
-  async function afterSignIn(){
-    try{me=await api('/auth/me');}catch(e){localStorage.removeItem(TOKEN);me=null;paint();status('Sign-in failed: '+e.message);return;}
+  const onMenu=()=>!$('menu').hidden||!$('settings')?.hidden;
+  /* another device saved since we last synced: ask which one wins (never mid-match; auto-sync stays paused until then) */
+  async function resolveConflict(){
+    const c=conflict;if(!c||!me)return;
+    const v=await ask('Cloud save changed',c.at?'Saved elsewhere '+new Date(c.at).toLocaleString():'',
+      'Another device uploaded progress since this browser last synced. Which one should be kept?',
+      [{label:'Use cloud save',v:'cloud',primary:true},{label:'Keep this device',v:'local'},{label:'Decide later',v:null}]);
+    if(v==='cloud'&&c.save){try{apply(c.save);setAt(c.at);conflict=null;baseline=serial();status('Cloud save restored · reloading…');setTimeout(()=>location.reload(),400);}catch(e){status('Could not apply cloud save: '+e.message);}}
+    else if(v==='local'){conflict=null;await upload(c.at||null);}
+  }
+  /* quiet: restoring a saved sign-in on page load (no 'Sign-in failed' on a network blip, only a 401 forgets the token) */
+  async function afterSignIn(quiet){
+    try{me=await api('/auth/me');}catch(e){me=null;if(!quiet||e.status===401){localStorage.removeItem(TOKEN);setAt(null);}paint();status(quiet&&e.status!==401?'Cloud save offline · progress stays in this browser':'Sign-in failed: '+e.message);return;}
     paint();status('Reading cloud save…');
     let cloud;
     try{cloud=await api('/api/save');}catch(e){status('Cloud save unavailable: '+e.message);return;}
-    const local=JSON.parse(serial());
+    const local=JSON.parse(serial()),known=getAt();
     if(!cloud.save){
+      setAt(null);
       if(hasLocal()){
         const v=await ask('Import local save?',me.email,'This browser has progress that is not in your cloud save. Upload it now?',
           [{label:'Import and upload',v:'up',primary:true},{label:'Start fresh',v:'no'}]);
-        if(v==='up')await upload();
+        if(v==='up')await upload(null);
       }
     }else{
       const remote=dataOf(cloud.save);
-      if(canon(remote)!==canon(local)){
+      if(canon(remote)===canon(local))setAt(cloud.at);
+      /* nobody else saved since this browser last synced, so this browser's changes are simply newer: upload them */
+      else if(known&&cloud.at===known)await upload(known);
+      else{
         const v=await ask('Cloud save found',cloud.at?new Date(cloud.at).toLocaleString():'',
           'Your cloud save differs from this browser. Which one should this device use?',
           [{label:'Use cloud save',v:'cloud',primary:true},{label:'Keep this device',v:'local'}]);
-        if(v==='cloud'){try{apply(cloud.save);baseline=serial();status('Cloud save restored · reloading…');setTimeout(()=>location.reload(),400);return;}
+        if(v==='cloud'){try{apply(cloud.save);setAt(cloud.at);baseline=serial();status('Cloud save restored · reloading…');setTimeout(()=>location.reload(),400);return;}
           catch(e){status('Could not apply cloud save: '+e.message);}}
-        else if(v==='local')await upload();
+        else if(v==='local')await upload(cloud.at);
+        else{conflict={at:cloud.at,save:cloud.save};status('Syncing paused · choose a save in Cloud Save');return;}
       }
     }
+    if(conflict)return;
     baseline=serial();status('Cloud save ready · '+me.email);
   }
   function exportFile(){
@@ -15331,7 +15362,7 @@ warmUI(0,'Compiling shaders…');
       sessionStorage.setItem('za-oauth-s',st);location.href=API+'/auth/google?app='+encodeURIComponent(location.origin)+'&state='+st;}
     catch(e){status('Sign-in unavailable: '+e.message);}}
   async function signOut(){try{await api('/auth/logout',{method:'POST'});}catch(e){}
-    localStorage.removeItem(TOKEN);me=null;baseline=serial();paint();status('Signed out · progress stays in this browser');}
+    localStorage.removeItem(TOKEN);setAt(null);conflict=null;me=null;baseline=serial();paint();status('Signed out · progress stays in this browser');}
   async function readHash(){
     const h=location.hash||'';if(!/^#auth=/.test(h))return;
     const q=new URLSearchParams(h.slice(1)),t=q.get('auth'),st=q.get('state');
@@ -15356,10 +15387,12 @@ warmUI(0,'Compiling shaders…');
   $('cExport').addEventListener('click',exportFile);
   $('cImport').addEventListener('click',()=>$('cFile').click());
   $('cFile').addEventListener('change',()=>importFile($('cFile')));
-  $('cloudbtn').addEventListener('click',()=>{toggleSettings(true);setTab('a',true);});
-  paint();baseline=serial();readHash();
-  setInterval(()=>{if(me&&!busy&&serial()!==baseline)upload();},8000);
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&me&&serial()!==baseline)upload();});
+  $('cloudbtn').addEventListener('click',()=>{toggleSettings(true);setTab('a',true);if(conflict)resolveConflict();});
+  paint();baseline=serial();
+  /* a fresh Google redirect signs in; otherwise restore the saved sign-in so syncing keeps working after a reload */
+  if(/^#auth=/.test(location.hash||''))readHash();else if(localStorage.getItem(TOKEN)){status('Signing in…');afterSignIn(true);}
+  setInterval(()=>{if(me&&!busy&&!conflict&&serial()!==baseline)upload();},8000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&me&&!busy&&!conflict&&serial()!==baseline)upload();});
 })();
 window.__za={localTick:dt=>localTick(dt),showWeapon:k=>showWeapon(k),trigger:v=>{mouseDown=!!v;dragMode=true;},wheelKeys:()=>wheelKeys(),GLS,avatars,frame:t=>frameBody(t),BEAMP,intro:INTRO,ml:ML,sites:siteGrp,mf:{MF,MFV,MFA,ZS,ZSV,ZST,RG,EHH,ehPull:(x,z,m)=>ehPull(x,z,m),pulseAt:t=>pulseAt(t),orbAt:t=>orbAt(t),radAt:(x,z)=>radAt(x,z),coreAt:t=>coreAt(t),rainAt:t=>rainAt(t),zMutate:o=>zMutate(o),shotDmg:(k,h,d)=>shotDmg(k,h,d,wOf(k)),zsWant:Z=>zsWant(Z),zsOn:k=>zsOn(k),dropAt,magAt,ventAt,doorAt,ptlAt,scanAt,shutAt,zsT:()=>zsT(),zsLinks:()=>zsLinks(),rebuildGrid:()=>rebuildGrid(),craneAt:t=>craneAt(t),pourAt:t=>pourAt(t),mfT:()=>mfT(),damagePane:(i,d)=>damagePane(i,d),setMap:id=>setMap(id),tick:dt=>mfTick(dt)},dio:DIO,lx:LX,opt:OPT,zr:{ZB,ZR,ZCARDS,ZCAMP,zrEnd:(w,y)=>zrEnd(w,y),zcCarryCode:()=>zcCarryCode(),zrCardSend:c=>zrCardSend(c),zrCardAct:(p,c)=>zrCardAct(p,c),zrSeg:n=>zrSeg(n),zrInter:()=>zrInter(),zAoe:(...a)=>zAoe(...a),zSpawn:(t,x,z,y,e)=>zSpawn(t,x,z,y,e),zTick:dt=>zTick(dt),zRender:dt=>zRender(dt),zClear:()=>zClear(),zRay:(...a)=>zRay(...a),zHorde:()=>zHorde(),rgOn:()=>rgOn(),zBurst:(z,b)=>zBurst(z,b),zPack:()=>zPack(),zApplyT:(z,e,b)=>zApply(z,e,b),zSync:(a,b)=>zSync(a,b),zrWave:n=>zrWave(n),zKill:(z,h,b)=>zKill(z,h,b),zHitAt:(...a)=>zHitAt(...a),zDeliver:()=>zDeliver(),ZD,zWallRay:(...a)=>zWallRay(...a),losPts:(...a)=>losPts(...a)},sim:{hostTick:dt=>hostTick(dt),coverTick:dt=>coverTick(dt),newMatch:()=>newMatch(),MATCH,dmSpawnSpot:p=>dmSpawnSpot(p),findPath:(a,b,c,d)=>findPath(a,b,c,d),freeAt:(x,z)=>freeAt(x,z),losPts:(...a)=>losPts(...a),DM_PTS,BOXES},BL,fire:()=>{const s=mySlot();if(s>=0)fire(s);},damage:(t,d,a,h)=>damage(t,d,a,h),prog:{PROG,PARTS,myW,modW,progSave,progLoad,rebuildVW,lvlOf,XPR},LX,MU,MM,WM,VB,OPT,AU,dev:{DEV,TUNE,GUN,W,COVER0,TWIN,STEP_MODE,devCollect,devApply},damageCover,COVER,coverVis,WH,openWheel:m=>openWheel(m),closeWheel:c=>closeWheel(c),wheelMove:(x,y)=>wheelMove(x,y),gfx:{renderer,scene,camera,applyGfx,DR,render:()=>renderScene(),FREF,BEAMS,MB,me,get gtao(){return gtaoPass;}},openPause:()=>openPause(),closePause:()=>closePause(),leaveMatch:()=>leaveMatch(),get S(){return S;},me,net,DMGDIR,rg:{RG,rgAdd,rgRemove,rgClear,BOXES},maps:{MAPS,MAP,MATCH,setMap,SITES,DM_PTS,findPath,freeAt,simTick:dt=>netTick(dt),SHOW,showCut:i=>showCut(i),TOD,ISO},botMem,CFG,SB,OPT,AU,get actx(){return actx;},mySlot:()=>mySlot(),sfx:{hitCue,HITX,footstep,slideSound,dashRcSound,get dashRcBuf(){return dashRcBuf;},shotSound,stepSound,voicePlay,vxStretch,VQ,announce,vxGraph,vxOpt,VOICE_G,get VB(){return VB;},voiceInit,get stepBufs(){return stepBufs;},get slideBuf(){return slideBuf;},get gunBufs(){return gunBufs;}}};
 })();

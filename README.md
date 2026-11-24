@@ -95,7 +95,7 @@ Key bindings (`za-binds`), settings (`za-opt`, `za-gfx`, `za-sens`, `za-dev`), p
 
 When the page is opened inside claude.ai it uses the built-in `window.claude.use('room')` service. Everywhere else, `relayRooms()` in `index.html` connects to a small Cloudflare Worker in [`relay/`](relay/), defaulting to `wss://mnzr-relay.joewade0110.workers.dev`. Each room code is one Durable Object; it holds a WebSocket per player and forwards presence and `state`/`hit` emits without running any game logic. The game stays host-authoritative, and bots fill empty slots.
 
-The room code is the only credential: anyone who knows it can join. Payloads are capped at 4 KiB per message, 60 messages a second per socket and 16 players per room. Only `mnzr.lol`, `*.vercel.app` and localhost origins may connect. Vercel Functions cannot host WebSockets, which is why the relay is a separate Worker.
+The room code is the only credential: anyone who knows it can join. Payloads are capped at 4 KiB per message, 60 messages a second per socket and 16 players per room. Only `mnzr.lol`, this project's Vercel previews (`mnzr-…-c0nques7s-projects.vercel.app`) and localhost origins may connect. Vercel Functions cannot host WebSockets, which is why the relay is a separate Worker.
 
 For local testing, run `npx wrangler dev --port 8787` in `relay/`, serve `index.html` on localhost:8080 and open `http://localhost:8080/?relay=ws://localhost:8787`. The `?relay=` override is remembered in `localStorage` as `za-relay`. `GET /health` on the worker returns `mnzr relay ok`.
 
