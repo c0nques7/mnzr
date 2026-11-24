@@ -9380,10 +9380,13 @@ buildAkHands(null,null);
 let vtip=vRifle.tip;
 const flashMat=new THREE.MeshBasicMaterial({color:raw(0xffe2a8),transparent:true,opacity:0.55,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});
 const mflash=new THREE.Group();for(let i=0;i<3;i++){const q=new THREE.Mesh(new THREE.PlaneGeometry(0.1,0.03),flashMat);q.rotation.z=i*Math.PI/3;mflash.add(q);}mflash.visible=false;vg.add(mflash);
+const mflashP=[new THREE.Vector3(),new THREE.Vector3()];
 function showWeapon(k){if(me.vwK!==k){me.vwK=k;me.drawT=0.36;me.boltT=0;me.chgT=0;me.bq=0;me.heatT=0;}for(const key of WKEYS)VW[key].g.visible=key===k;
   const ak=k==='mp';VW.mp.g.visible=false;for(const h of AKH)h.pivot.visible=ak;vArmR.visible=vArmL.visible=!ak;
   vRifle=ak?akProxy:(VW[k]||VW.rifle);vtip=vRifle.tip;
-  vg.updateMatrixWorld(true);vtip.getWorldPosition(mflash.position);vg.worldToLocal(mflash.position);mflash.position.z-=0.03;}
+  vg.updateMatrixWorld(true);vtip.getWorldPosition(mflashP[0]);vg.worldToLocal(mflashP[0]);mflashP[0].z-=0.03;
+  if(vRifle.tip2){vRifle.tip2.getWorldPosition(mflashP[1]);vg.worldToLocal(mflashP[1]);mflashP[1].z-=0.03;}else mflashP[1].copy(mflashP[0]);
+  mflash.position.copy(mflashP[0]);}
 showWeapon('rifle');
 // The muzzle light hangs off the camera, not the viewmodel: hiding the viewmodel (menu, death) would change the light count and recompile every lit shader.
 const muzzle=new THREE.PointLight(raw(0xffd29a),0,7,1);muzzle.position.set(0.156,-0.078,-0.702);camera.add(vm,muzzle);scene.add(camera);
@@ -13271,6 +13274,8 @@ zcUI();modeCap();segSync();
    UPDATES below is the offline fallback and the minimum version; release notes are cached in localStorage and refreshed
    in the background, so the menu works offline and stays inside GitHub's API rate limit. Drafts and prereleases are skipped. */
 const UPDATES=[
+  {v:'0.11.3',d:'2026-11-24',t:'Hecklers alternating muzzle flash',n:[
+    'Fixed the Hecklers muzzle flash so it alternates between both pistols instead of only flashing on the right one (in both first-person and third-person).']},
   {v:'0.11.2',d:'2026-11-24',t:'Cloud save fixes',n:[
     'Cloud Save keeps you signed in after reloading the page, so syncing keeps working.',
     'Two devices no longer silently overwrite each other: if another device saved since, the game asks which save to keep.',
@@ -14416,7 +14421,8 @@ function localTick(dt){
   vg.rotation.set(kr-skR*0.3+rlE*0.22+rlP+me.swayY*0.03*hs+iy*1.5-me.vyLag*0.008*(1-0.8*a)*RM-dr*0.8,
     skR*0.75+me.swayX*0.045*hs+ix*1.5+me.kYaw*(1-0.6*a)+rlE*0.15+btE*0.12,
     rlE*0.4+rlR-me.roll*1.5*RM-me.swayX*0.03+me.kRoll*(1-0.6*a)-0.11*adsT+sl*0.32-btE*0.3+Math.sin(me.bob)*0.05*skR*me.bobAmp*RM+dr*0.5);
-  const fl=me.sinceShot<0.022&&a<0.3&&!myW(me.w).supp;mflash.visible=fl;if(fl){mflash.rotation.z=Math.random()*3;const sc=0.6+Math.random()*0.5;mflash.scale.set(sc,sc,sc);}
+  const fl=me.sinceShot<0.022&&a<0.3&&!myW(me.w).supp;mflash.visible=fl;if(fl){mflash.position.copy(mflashP[ak&&me.alt&&vRifle.tip2?1:0]);mflash.rotation.z=Math.random()*3;const sc=0.6+Math.random()*0.5;mflash.scale.set(sc,sc,sc);}
+  muzzle.position.x=ak?(me.alt?-0.1:0.1):0.156;
   muzzle.intensity=me.sinceShot<0.04&&!myW(me.w).supp?MUZZLE_I:0;
   if(P.hp<me.lastHp&&alive){flashT=0.35;padRumble(180,0.6,0.4);hurtSound();me.shake=1;me.rcP+=0.012;dmgDirAdd(P,me.lastHp-P.hp);}
   else if(P.st==='down'&&me.lastSt==='down'&&P.dhp<me.lastDhp)dmgDirAdd(P,me.lastDhp-P.dhp);
@@ -14625,10 +14631,11 @@ function renderOthers(dt){
     if(a.hpKey!==key){a.hpKey=key;drawLabel(a,label,p.team===0?'#a9c6ff':'#ffc29c');}
     a.flashT-=dt;a.flash.visible=a.flashT>0;
     avGunFx(a,p,!dn&&!dead&&a.g.visible,yaw,pitch);
-    if(sh!==a.lastSh&&a.g.visible&&!dn&&!dead&&S.phase==='live'){a.lastSh=sh;a.rec=clamp(0.55+0.45*wOf(p.w).recoil,0.6,2.2);a.shotAge=0;a.flashT=p.sx?0:0.05;a.flash.scale.setScalar((0.7+Math.random()*0.6)*(MAP.id==='warren'?1.8:1));if(!p.sx)mfFlare(a.rx,a.ry+1.45,a.rz);
-      a.g.updateMatrixWorld(true);a.rifle.tip.getWorldPosition(_v);
+    if(sh!==a.lastSh&&a.g.visible&&!dn&&!dead&&S.phase==='live'){a.lastSh=sh;const fw=wOf(p.w);a.rec=clamp(0.55+0.45*fw.recoil,0.6,2.2);a.shotAge=0;a.flashT=p.sx?0:0.05;a.flash.scale.setScalar((0.7+Math.random()*0.6)*(MAP.id==='warren'?1.8:1));if(!p.sx)mfFlare(a.rx,a.ry+1.45,a.rz);
+      if(fw.akimbo&&a.rifle.tip2)a.alt=!a.alt;const tp=fw.akimbo&&a.alt&&a.rifle.tip2?a.rifle.tip2:a.rifle.tip;if(a.flash.parent!==tp)tp.add(a.flash);
+      a.g.updateMatrixWorld(true);tp.getWorldPosition(_v);
       const cp=Math.cos(pitch);const dx=-Math.sin(yaw)*cp,dy=Math.sin(pitch),dz=-Math.cos(yaw)*cp;const oy=a.ry+1.5;const t=rayWorld(a.rx,oy,a.rz,dx,dy,dz,80);
-      const fw=wOf(p.w),te=fw.range?Math.min(t,fw.range):t;
+      const te=fw.range?Math.min(t,fw.range):t;
       if(fw.proj)glAdd(_v.x,_v.y,_v.z,dx*26,dy*26+3,dz*26,false,i,fw);else if(fw.chg)beam(_v.x,_v.y,_v.z,a.rx+dx*t,oy+dy*t,a.rz+dz*t,GUNGLOW.lance,0.03);
       else if(fw.heat)arcBolt(_v.x,_v.y,_v.z,a.rx+dx*te,oy+dy*te,a.rz+dz*te);else tracer(_v.x,_v.y,_v.z,a.rx+dx*t,oy+dy*t,a.rz+dz*t,p.team===0?0x5fd0ff:0xffa040);
       shotSound(p.w,a.rx,a.rz,p.sx);if(t<79&&!fw.proj&&!(fw.range&&t>fw.range)){mark(a.rx+dx*t,oy+dy*t,a.rz+dz*t,dx,dy,dz,0xffa040);impactSound(a.rx+dx*t,a.rz+dz*t,0.8);}}
