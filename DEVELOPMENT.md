@@ -134,7 +134,7 @@ Current default numbers (from `CFG` in `index.html`):
 
 ## Guns
 
-Eleven guns for every mode plus two Zombie Rumble exclusives. Six of them sit on your weapon wheel and keys 1 to 6: pick which
+Eleven guns for every mode plus three Zombie Rumble exclusives. Six of them sit on your weapon wheel and keys 1 to 6: pick which
 six in the Workshop (the **Wheel** row; choosing a gun that is already on the wheel swaps the two). Each has its own model (dark
 plates, steel trim, light strips in the gun's colour), and other players see the gun you carry. The first six are open from level 1;
 the newer ones unlock by player level.
@@ -154,9 +154,10 @@ the newer ones unlock by player level.
 | Reach Lance (level 18) | 30 tap, 95 / 140 charged | Hold fire to charge (0.8 s), let go to fire a beam that pierces players and Revenants; fires on its own after 2 s; slower to move while charging. Lens and capacitor slots |
 | Arc Caster (Zombie Rumble) | 27 per tick | Chain lightning to 14 m, 10 ticks a second, jumps to 2 more targets within 5 m. Heat bar instead of a magazine: cools when you stop, overheats for 4 s |
 | Encore (Zombie Rumble) | 120 splash | Grenade launcher, 4 grenades on an arc that burst over 4 m (a quarter damage at the edge), never hurts you or your partner |
+| Ember (Zombie Rumble) | 18 / 30 + 18/s burn (4 s) | Incendiary SMG (36 rounds, 800 rpm) with a ventilated glowing thermal shroud. Hits ignite Revenants for burning damage over time and rising fire embers (synced online via bit `8388608`). Drops as a Legendary in Week 2+ or after clearing Week 2 |
 
-The Arc Caster and Encore only come as Zombie Rumble special weapon drops (the Encore only as a Legendary); the Sandbox Weapons tab can
-equip every gun. Until their own sounds are approved, the new guns borrow an existing gunshot.
+The Arc Caster, Encore and Ember only come as Zombie Rumble special weapon drops (Encore and Ember only as Legendaries); the Sandbox Weapons tab can
+equip every gun. Until their own sounds are approved, Ember borrows the SMG gunshot (audition previews live in `sfx-preview-w2.html`).
 
 ## Experience and the Workshop
 

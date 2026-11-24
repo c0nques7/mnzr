@@ -6550,8 +6550,9 @@ const W={
   mp:{name:'Hecklers',dmg:17,head:28,cd:0.06,mag:40,reload:2.2,spread:1.25,recoil:0.6,move:1.12,near:10,far:25,fall:0.5,akimbo:true,pl:14},
   lance:{name:'Reach Lance',short:'Lance',dmg:95,head:140,tap:30,chg:0.8,chgMax:2,cd:0.35,mag:8,reload:2.8,spread:0.3,hip:4,recoil:2.4,move:0.94,cmove:0.85,ads:0.8,zoom:1.3,near:80,far:120,fall:0.85,beamR:0.06,pl:18},
   arc:{name:'Arc Caster',short:'Arc',dmg:27,head:27,cd:0.1,mag:40,reload:4,heat:true,range:14,chain:2,chainR:5,spread:0.4,recoil:0.3,move:1,near:14,far:14,fall:1,zr:true},
-  gl:{name:'Encore',dmg:120,head:120,cd:0.55,mag:4,reload:3.2,proj:true,splash:4,spread:0.3,recoil:3.5,move:0.95,near:4,far:4,fall:1,zr:true}};
-const WKEYS=['rifle','smg','br','sg','lmg','sniper','hc','bc','asg','mp','lance','arc','gl'];
+  gl:{name:'Encore',dmg:120,head:120,cd:0.55,mag:4,reload:3.2,proj:true,splash:4,spread:0.3,recoil:3.5,move:0.95,near:4,far:4,fall:1,zr:true},
+  ember:{name:'Ember',dmg:18,head:30,cd:0.075,mag:36,reload:1.7,spread:1.25,recoil:0.65,move:1.08,near:14,far:32,fall:0.6,burn:18,burnT:4,zr:true}};
+const WKEYS=['rifle','smg','br','sg','lmg','sniper','hc','bc','asg','mp','lance','arc','gl','ember'];
 /* PVPK: every gun you can carry in PvP (the Workshop, the wheel loadout, bots); ZRX: Zombie Rumble exclusives */
 const PVPK=WKEYS.filter(k=>!W[k].zr),ZRX=WKEYS.filter(k=>W[k].zr),WHEEL0=['rifle','smg','br','sg','lmg','sniper'];
 /* until Joe approves each new gun's own shot sound, the new guns borrow an existing one */
@@ -7491,7 +7492,7 @@ function syncRoster(){
    what a guest needs: fields that only matter in one state (downT, deadT, ak) ride along only then, zero counts are left out, and the
    host's tuning goes out once a second. If a packet still runs long (8 players with long names), tuning waits and each packet carries
    match stats for only a quarter of the players, taking turns. */
-const NET_MAX=4000;let packN=0,packWarn=false;
+const NET_MAX=3900;let packN=0,packWarn=false;
 function packState(){
   const r=v=>typeof v==='number'?Math.round(v*100)/100:v,dm=S.mode==='dm'||S.mode==='zr',zr=S.mode==='zr';
   const zv=zr?zPack():null,zh=zr&&ZB.hlog&&ZB.hlog.length?ZB.hlog.splice(0):null;
@@ -7500,12 +7501,23 @@ function packState(){
     if(!p.bot)o.peer=p.peer;if(!dm)o.lastZ=p.lastZ;if(p.st==='down'){o.dhp=r(p.dhp);o.downT=r(p.downT);}if(p.st==='dead')o.deadT=r(p.deadT);
     if(p.ak){o.ak=p.ak;o.at=p.at;o.ap=r(p.ap);}if(p.wr)o.wr=p.wr|0;if(p.prot>0)o.prot=r(p.prot);if(dm){o.k=p.k|0;o.d=p.d|0;}if(p.sx)o.sx=1;if(p.ds)o.ds=p.ds|0;if(p.rad>0.5)o.rad=Math.round(p.rad);if(p.rsk)o.rsk=1;if(zr){o.fv=p.fv|0;if(p.dropW)o.dropW=p.dropW;if(p.sw)o.sw=p.sw;if(p.cards&&p.cards.length)o.cards=p.cards;if(p.shT>S.clock){o.shT=r(p.shT);o.shV=p.shV;}if(p.vtT>S.clock)o.vtT=r(p.vtT);if(p.vtN)o.vtN=p.vtN|0;}{const hf=dmgFrom(p);if(hf.length)o.hf=hf;}
     if(xs(p)&&!p.bot)o.xs=xsPack(p.xs);return o;};
-  const mk=(tn,xs)=>{const o={...S,t:r(S.t),timer:r(S.timer),clock:r(S.clock),mft:r(S.mft||0),paneR:S.paneR?S.paneR.map(v=>v>0?r(v):0):undefined,armed:S.armed?{site:S.armed.site,t:r(S.armed.t)}:null,regen:(S.regen||[]).map(v=>v>0?r(v):0),
+  const r1=v=>typeof v==='number'?Math.round(v*10)/10:v;
+  const packDrops=L=>L&&L.length?L.map(d=>d.t==='w'?['w',d.i,r1(d.x),r1(d.z),d.e,d.sw.k,d.sw.r,d.sw.s,d.m==null?3:d.m]:d.t==='c'?['c',d.i,r1(d.x),r1(d.z),d.e,d.v]:d.m!=null?[d.t,d.i,r1(d.x),r1(d.z),d.e,d.o,d.m]:[d.t,d.i,r1(d.x),r1(d.z),d.e,d.o]):null;
+  const mk=(tn,xs,withHits)=>{const o={...S,t:r(S.t),timer:r(S.timer),clock:r(S.clock),mft:r(S.mft||0),paneR:S.paneR?S.paneR.map(v=>v>0?r(v):0):undefined,armed:S.armed?{site:S.armed.site,t:r(S.armed.t)}:null,regen:(S.regen||[]).map(v=>v>0?r(v):0),
     players:S.players.map(p=>pl(p,xs))};delete o.tn;if(tn)o.tn=tunePack();
-    if(zr){o.zr={...S.zr,q:[],qs:S.zr.q.map(t=>ZTK.indexOf(t)).join('')};o.zv=zv;if(zh)o.zh=zh;}return o;};
-  const n=packN++,all=()=>true,turn=p=>(p.s+n)%4===0;let o=mk(n%10===0,all);
-  if(o.zh&&JSON.stringify(o).length>NET_MAX)delete o.zh;/* the hits' pixels are only looks; drop them first */
-  if(JSON.stringify(o).length>NET_MAX){o=mk(false,all);delete o.zh;if(JSON.stringify(o).length>NET_MAX){o=mk(false,turn);if(JSON.stringify(o).length>NET_MAX)o.feed=o.feed.slice(-2);if(!packWarn){packWarn=true;console.warn('state packet near the 4 KiB room limit; match stats take turns');}}}
+    if(zr){const Z=S.zr,z={...Z,qs:Z.q.map(t=>ZTK.indexOf(t)).join('')};delete z.q;delete z.drops;delete z.cyd;delete z.maps;
+      if(Z.ph!=='inter'){delete z.offers;delete z.picked;delete z.ready;delete z.rrN;delete z.gun;}
+      if(!z.why)delete z.why;if(z.mine&&!z.mine.A&&!z.mine.B)delete z.mine;
+      const dp=packDrops(Z.drops);if(dp)z.dp=dp;
+      o.zr=z;o.zv=zv;if(withHits&&zh)o.zh=zh;}return o;};
+  const sz=o=>JSON.stringify(o).length;
+  const n=packN++,all=()=>true,turn=p=>(p.s+n)%4===0,none=()=>false;let o=mk(n%10===0,all,true);
+  if(o.zh&&sz(o)>NET_MAX)delete o.zh;/* the hits' pixels are only looks; drop them first */
+  if(sz(o)>NET_MAX){o=mk(false,all,false);
+    if(sz(o)>NET_MAX){o=mk(false,turn,false);if(sz(o)>NET_MAX)o.feed=o.feed.slice(-2);
+      if(sz(o)>NET_MAX){o=mk(false,none,false);o.feed=o.feed.slice(-1);}
+      if(sz(o)>NET_MAX&&o.zr&&o.zr.dp&&o.zr.dp.length>8){const hi=o.zr.dp.filter(d=>d[0]!=='c'),lo=o.zr.dp.filter(d=>d[0]==='c');o.zr.dp=hi.concat(lo.slice(-(Math.max(0,8-hi.length))));}
+      if(!packWarn){packWarn=true;console.warn('state packet near the 4 KiB room limit; match stats take turns');}}}
   return o;
 }
 function onRemoteState(msg){
@@ -7514,7 +7526,10 @@ function onRemoteState(msg){
   /* the guest changes its copy of the match (Zombie Rumble queue, predictions), so never keep the room's own message object:
      the platform may hand it over frozen, and writing to it throws */
   S=structuredClone(msg.data);net.lastState=performance.now();if(S.map&&S.map!==MAP.id)setMap(S.map);
-  if(S.mode==='zr'&&S.zr){S.zr.q=String(S.zr.qs||'').split('').map(i=>ZTK[+i]).filter(Boolean);zSync(S.zv,S.zh);for(const z of ZB.list)ZB.id=Math.max(ZB.id,z.id);}/* the host picks the map */if(S.tn){tuneFromHost(S.tn);}
+  if(S.mode==='zr'&&S.zr){S.zr.q=String(S.zr.qs||'').split('').map(i=>ZTK[+i]).filter(Boolean);
+    if(Array.isArray(S.zr.dp)){S.zr.drops=S.zr.dp.map(d=>d[0]==='w'?{t:'w',i:d[1],x:d[2],z:d[3],e:d[4],sw:{k:d[5],r:d[6],s:d[7]},m:d[8]}:d[0]==='c'?{t:'c',i:d[1],x:d[2],z:d[3],e:d[4],v:d[5]}:d.length>6?{t:d[0],i:d[1],x:d[2],z:d[3],e:d[4],o:d[5],m:d[6]}:{t:d[0],i:d[1],x:d[2],z:d[3],e:d[4],o:d[5]});delete S.zr.dp;}else if(!Array.isArray(S.zr.drops))S.zr.drops=[];
+    if(!S.zr.offers)S.zr.offers={};if(!S.zr.picked)S.zr.picked={};if(!S.zr.ready)S.zr.ready={};
+    zSync(S.zv,S.zh);for(const z of ZB.list)ZB.id=Math.max(ZB.id,z.id);}/* the host picks the map */if(S.tn){tuneFromHost(S.tn);}
 }
 function onRemoteHit(msg){
   if(!net.host||!S)return;const d=msg.data||{};
@@ -9001,7 +9016,7 @@ function limb(a,b,t,m,parent,shadow){const A=new THREE.Vector3(...a),B=new THREE
 /* Guns. One builder, six silhouettes (GSPEC): dark angular plates, steel trim, and light strips in the gun's glow colour, to match the
    arena. Every gun shares the same grip, handguard-hand and sight-rail positions so the first-person arms and the sights line up.
    P (optional) picks the attachment models: {sight,barrel,muzzle,mag,stock} part ids from PARTS; without it the gun gets its stock parts. */
-const GUNGLOW={rifle:NEON.cy,smg:NEON.am,br:NEON.mg,sg:0x4dff6a,lmg:0xff5a2a,sniper:NEON.vi,hc:0xffc23d,bc:0x5ff2ff,asg:0xff3d6e,mp:0xff4dd8,lance:0xc9a2ff,arc:0x6fe3ff,gl:0xffe14d};
+const GUNGLOW={rifle:NEON.cy,smg:NEON.am,br:NEON.mg,sg:0x4dff6a,lmg:0xff5a2a,sniper:NEON.vi,hc:0xffc23d,bc:0x5ff2ff,asg:0xff3d6e,mp:0xff4dd8,lance:0xc9a2ff,arc:0x6fe3ff,gl:0xffe14d,ember:0xff5518};
 MAT.gunPlate=smat(0x171a27,0.42,0.7);MAT.gunTrim=smat(0x6a7290,0.28,0.9);MAT.gunDeep=smat(0x07080d,0.6,0.3);MAT.gunBrass=smat(0xb8913c,0.32,0.9);
 const GACC={};/* each glow colour's accent plate material, shared by every gun that uses it */
 function gunAcc(hex){return GACC[hex]||(GACC[hex]=new THREE.MeshStandardMaterial({color:lin(hex).multiplyScalar(0.28),roughness:0.4,metalness:0.6}));}
@@ -9020,7 +9035,8 @@ const GSPEC={
   mp:{pistol:true,twin:true,bl:0.07,br:0.009,sight:'nolas',lh:[-0.235,-0.06,0.4],vy:0.05,hx:0.1175},
   lance:{rw:0.06,rl:0.38,gl:0.32,gw:0.052,gh:0.056,bl:0.3,br:0.014,hg:'coil',mag:'cell',stock:'thumb',sight:'holo'},
   arc:{rw:0.07,rl:0.28,gl:0.16,gw:0.08,gh:0.08,bl:0.05,br:0.02,hg:'prong',mag:'cell',stock:'stub',sight:'iron'},
-  gl:{rw:0.07,rl:0.26,gl:0.18,gw:0.07,gh:0.07,bl:0.2,br:0.034,hg:'tube',mag:'drum',stock:'std',sight:'iron'}};
+  gl:{rw:0.07,rl:0.26,gl:0.18,gw:0.07,gh:0.07,bl:0.2,br:0.034,hg:'tube',mag:'drum',stock:'std',sight:'iron'},
+  ember:{rw:0.052,rl:0.31,gl:0.23,gw:0.06,gh:0.064,bl:0.08,br:0.013,hg:'ember',mag:'box',mw:0.032,mh:0.21,md:0.05,mrot:0.06,stock:'stub',sight:'dot'}};
 /* pistols (Gavel revolver, Hecklers twin machine pistols): the grip sits where the rifles' grip does, so the right hand lines up.
    The twin gets a second pistol where the first-person left hand moves to (GSPEC.mp.lh), with its own muzzle point tip2. */
 /* each gun's own stock parts where they differ from the rifle's (the model only needs ids; PARTS is defined later) */
@@ -9125,6 +9141,14 @@ function buildGun(parent,shadow,kind,P,hex,noMerge){
   else if(G.hg==='tube'){// Encore: a fat launch tube on a short handguard
     B(gw,gh*0.6,G.gl,M.gunPlate,0,-0.02,gz);const fg=B(0.03,0.07,0.034,M.gunPlate,0,-0.07,zF-0.08);fg.rotation.x=0.2;
     for(const sx of [-1,1])L(0.003,0.008,G.gl*0.8,sx*(gw/2+0.001),-0.02,gz);}
+  else if(G.hg==='ember'){// Ember: ventilated thermal heat-shroud over a glowing incandescent core
+    B(gw*0.56,gh*0.56,G.gl,M.gunDeep,0,0.002,gz);
+    const core=cy(0.017,0.017,G.gl*0.92,glow,0,0.004,gz,g,false,12);core.rotation.x=Math.PI/2;
+    for(let i=0;i<5;i++)B(gw,gh,0.015,M.gunPlate,0,0.002,zF-0.024-i*(G.gl-0.048)/4);
+    B(gw*0.72,0.012,G.gl,M.gunMetal,0,0.002+gh/2+0.002,gz);B(gw*0.62,0.014,G.gl*0.9,M.gunMetal,0,0.002-gh/2-0.003,gz);
+    for(const sx of [-1,1])L(0.004,0.012,G.gl*0.86,sx*(gw/2+0.001),0.012,gz);
+    const fg=B(0.028,0.068,0.032,M.gunPlate,0,-0.064,zF-0.14);fg.rotation.x=0.24;
+    B(gw+0.006,gh+0.006,0.016,M.gunTrim,0,0.002,gEnd+0.008);L(gw+0.009,0.01,0.008,0,0.002,gEnd+0.008);}
   // barrel and muzzle device
   const BM={std:1,long:1.5,short:0.6,heavy:1}[P.barrel]||1,BL=G.bl*BM,br=G.br*(P.barrel==='heavy'?1.4:1),bEnd=gEnd-BL,rm=G.br/0.011;
   if(G.hg==='tube'){cy(br+0.012,br+0.012,BL+G.gl,M.gunPlate,0,0.016,gEnd-BL/2+G.gl/2,g,shadow,16);cy(br,br,BL+G.gl+0.004,M.gunDeep,0,0.016,gEnd-BL/2+G.gl/2,g,false,16);
@@ -9900,7 +9924,7 @@ function playBuf(buf,o){if(!audioInit()||!buf)return;o=tuned(o);try{const t=actx
 function shotSound(w,x,z,sup){if(!audioInit())return;gunInit();
   if(w==='arc'||w==='lance'){exInit();const b=w==='arc'?EXSND.arc[(Math.random()*4)|0]:EXSND.zap,o={vol:w==='arc'?0.42:0.3,tk:w,rate:0.96+Math.random()*0.08};
     if(x!=null){const s=spat(x,z);o.vol*=clamp(s.vol*1.4,0.03,1);o.pan=s.pan;o.at=s.d/343;o.lp=Math.max(1500,16000*Math.exp(-s.d/25));}playBuf(b,o);if(w==='arc')return;}
-  const sw=GUN[w]?w:'rifle',v=gunBufs[sw]||gunBufs.rifle,buf=v[(Math.random()*v.length)|0],rate=0.97+Math.random()*0.06;
+  const sw=GUN[w]?w:w==='ember'?'smg':'rifle',v=gunBufs[sw]||gunBufs.rifle,buf=v[(Math.random()*v.length)|0],rate=0.97+Math.random()*0.06;
   const tk=sw;if(x==null){playBuf(buf,sup?{vol:0.2,rate,tk,lp:2800}:{vol:0.36,rate,tk});return;}
   const s=spat(x,z),far=clamp(s.d/60,0,1);
   playBuf(buf,{vol:clamp(0.5*s.vol,0.02,0.3)*(sup?0.45:1),rate:rate*(1-0.04*far),pan:s.pan,lp:Math.max(1100,(sup?3500:16000)*Math.exp(-s.d/22)),at:s.d/343,wet:0.12+0.5*far,tk});}
@@ -10169,7 +10193,7 @@ function setWeapon(k){if(!W[k]||(!SB.on&&!prefOK(k))||zrNoWheel())return;me.wPre
 const WDESC={rifle:'All-rounder',smg:'Fast, strong up close, weak at range',br:'Hard-hitting, heavy recoil',sg:'Eight pellets, deadly inside 10 m',lmg:'75 rounds, slow to move, aim and reload',sniper:'Bolt action, one headshot kills, poor from the hip',
   hc:'Hand cannon, two body shots, one headshot up close',bc:'Three-round bursts, a headshot in the first burst kills',asg:'Auto shotgun, two hits kill, clears a room',
   mp:'Twin pistols from the hip, fastest to move, weak at range',lance:'Hold to charge, the beam pierces, a full charge to the head kills',
-  arc:'Chain lightning that jumps between Revenants, overheats',gl:'Lobbed grenades that burst over 4 m'};
+  arc:'Chain lightning that jumps between Revenants, overheats',gl:'Lobbed grenades that burst over 4 m',ember:'Incendiary SMG, sets Revenants burning'};
 const WANG={},WSPAN=360/6-5;
 function wheelAngles(){const ks=wheelKeys();for(const k in WANG)delete WANG[k];ks.forEach((k,i)=>{WANG[k]=-90+i*360/ks.length;});return ks;}
 function wheelAt(a){const ks=wheelAngles();let best=ks[0],bd=1e9;for(const k of ks){const d=Math.abs(((a-WANG[k])%360+540)%360-180);if(d<bd){bd=d;best=k;}}return best;}
@@ -10177,7 +10201,7 @@ function arcPath(c,R,r,span){const p=(rad,deg)=>{const t=deg*Math.PI/180;return`
   const a0=c-span/2,a1=c+span/2;return`M${p(R,a0)}A${R} ${R} 0 0 1 ${p(R,a1)}L${p(r,a1)}A${r} ${r} 0 0 0 ${p(r,a0)}Z`;}
 function wStats(k){const w=myW(k);if(w.chg)return`${dmgTxt(w.tap)} tap, ${dmgTxt(w.dmg)} charged · ${dmgTxt(w.head)} head · ${w.mag} charges`;
   if(w.heat)return`${dmgTxt(w.dmg)} per tick · jumps to ${w.chain} more · ${w.range} m`;if(w.proj)return`${dmgTxt(w.dmg)} splash over ${w.splash} m · ${w.mag} grenades`;
-  return`${w.pel?w.pel+'×':''}${dmgTxt(w.dmg)} dmg · ${dmgTxt(w.head)} head · ${w.burst?w.burst+'-round bursts':Math.round(60/w.cd)+' rpm'} · ${w.mag} rds`;}
+  return`${w.pel?w.pel+'×':''}${dmgTxt(w.dmg)} dmg · ${dmgTxt(w.head)} head · ${w.burst?w.burst+'-round bursts':Math.round(60/w.cd)+' rpm'} · ${w.mag} rds${w.burn?' · burns '+dmgTxt(w.burn)+'/s':''}`;}
 function makeWheel(host,o){
   const NS='http://www.w3.org/2000/svg',svg=document.createElementNS(NS,'svg');svg.setAttribute('viewBox','-160 -160 320 320');svg.classList.add('wsvg');
   const el=(t,a,txt)=>{const n=document.createElementNS(NS,t);for(const k in a)n.setAttribute(k,a[k]);if(txt!=null)n.textContent=txt;return n;};
@@ -10336,7 +10360,7 @@ const W0={};for(const k of WKEYS){W0[k]={};for(const [f] of W_FIELDS)W0[k][f]=k=
    W_AUTO[k] = [[field, label, lo, hi, step]], built from the defaults at load; W0 keeps their defaults for reset, save and export. */
 const AUTO_SKIP=new Set(['key','wl','lv','lvl','unlock','ord','order','slot','id','zr']);
 const AUTO_LBL={tap:'Tap shot damage',chg:'Charge time (s)',chgMax:'Full charge time (s)',hip:'Hip-fire spread',cmove:'Move speed while charging (x)',ads:'Aim-down-sights time (x)',zoom:'Aim zoom (x)',
-  beamR:'Beam radius (m)',pl:'Pierce length (m)',range:'Range (m)',chain:'Chain jumps',chainR:'Chain reach (m)',splash:'Splash radius (m)',burst:'Shots per burst',burstCd:'Gap inside a burst (s)',pellets:'Pellets',heatUp:'Heat per shot',heatDn:'Cooling per second',speed:'Projectile speed (m/s)',buy:'Buy time (s)',buy1:'First round buy time (s)',post:'After-round pause (s)',overT:'Overtime (s)',multiT:'Multi-kill window (s)',winScore:'Rounds to win',ehPullG:'Black hole pull on grenades and acid globs',chSlow:'Time speed inside Chronofield bubbles (x)',chDrift:'Chronofield bubble drift speed (x)',orbGrav:'Low Orbit gravity scale (x)',orbPadV:'Jump pad launch speed (m/s)',orbPullP:'Hull Breach pull on players (m/s)',orbPullZ:'Hull Breach pull on Revenants (m/s)'};
+  beamR:'Beam radius (m)',pl:'Pierce length (m)',range:'Range (m)',chain:'Chain jumps',burn:'Burn damage per second',burnT:'Burn duration (s)',chainR:'Chain reach (m)',splash:'Splash radius (m)',burst:'Shots per burst',burstCd:'Gap inside a burst (s)',pellets:'Pellets',heatUp:'Heat per shot',heatDn:'Cooling per second',speed:'Projectile speed (m/s)',buy:'Buy time (s)',buy1:'First round buy time (s)',post:'After-round pause (s)',overT:'Overtime (s)',multiT:'Multi-kill window (s)',winScore:'Rounds to win',ehPullG:'Black hole pull on grenades and acid globs',chSlow:'Time speed inside Chronofield bubbles (x)',chDrift:'Chronofield bubble drift speed (x)',orbGrav:'Low Orbit gravity scale (x)',orbPadV:'Jump pad launch speed (m/s)',orbPullP:'Hull Breach pull on players (m/s)',orbPullZ:'Hull Breach pull on Revenants (m/s)'};
 const AUTO_TOK={z:'',zr:'Rumble',Sh:'Shambler',Sp:'Sprinter',Spi:'Spitter',Cr:'Crawler',Bl:'Bloater',Jg:'Juggernaut',Ma:'Matriarch',Acid:'acid',rad:'rad',eh:'pull',
   Hp:'health',Spd:'speed',Dmg:'damage',Chg:'charge',Cd:'cooldown (s)',T:'time (s)',R:'radius (m)',Wind:'wind-up (s)',Glob:'glob',Pull:'pull',Boss:'boss',Dps:'damage per second',Hit:'hit',
   In:'in',Out:'out',Decon:'decon',Boost:'boost',Mut:'mutate',G:'grab',P:'players',Wall:'wall',Regrow:'regrow',Reach:'reach'};
@@ -11763,6 +11787,7 @@ function zTick(dt){if(S&&S.phase==='over'&&ZB.list.length){zOverClear(dt);return
     const zdt=dt*chronoAt(z.x,z.z);
     if(z.zg){z.groanT-=dt;if(z.groanT<=0){z.groanT=3+Math.random()*6;zGroan(z);}continue;}
     z.cd=Math.max(0,z.cd-zdt);z.slow=Math.max(0,z.slow-zdt);z.flinch=Math.max(0,z.flinch-zdt*4);
+    if(z.burnT>0){z.burnT=Math.max(0,z.burnT-zdt);const bdm=(z.burnDps||18)*zdt*(ZTYPES[z.t].boss?0.75:1);if(!zShieldAbsorb(z,bdm)){z.reg.torso.hp-=bdm;z.hp=Math.max(1,Math.round(z.reg.torso.hp));if(z.t==='matri'&&(z.gen|0)<2&&z.reg.torso.hp<=z.max*((z.gen|0)?0.5:0.66)){zKill(z,false,z.burnBy);continue;}if(z.reg.torso.hp<=0){zKill(z,false,z.burnBy);continue;}}}
     if((z.mk||0)>zClk())z.flash=Math.max(z.flash,0.22+0.18*Math.sin(S.clock*14));
     if(!ZTYPES[z.t].boss&&z.stun>0){z.stun=Math.max(0,z.stun-zdt);z.wind=0;z.sw=0;z.spd=0;z.vx=z.vz=0;z.atkK=Math.max(0,z.atkK-zdt*3);continue;}
     // nearest target
@@ -12097,6 +12122,7 @@ function zApply(z,e,by,pred){if(z.st==='dead')return false;const boss=!!ZTYPES[z
       return false;}
     if(boss&&!(S&&S.mode==='zr')){const f=ux*-Math.sin(z.yaw)+uz*-Math.cos(z.yaw),pl=z.t==='matri'?(f>0.35?1.6:1):f<-0.2?0.3:f>0.35?1.6:0.7;if(pl!==1){e.dmg=0;for(const h of e.hits){h.dmg*=pl;e.dmg+=h.dmg;}}e.plate=pl;}/* the same plating and weak spots at the range */
     const mine=by&&by.s===mySlot();if(mine)dmgNum(e.x,e.y,e.z,e.dmg,e.head);
+    {const bw=by&&wOf(by.w);if(!pred&&!zGuest()&&bw&&bw.burn){const bm=S&&S.mode==='zr'?(1+zrV(by,'hv'))*[1,1.05,1.15][zrSet(by,'arm')]*zrSwDmg(by)*(zrHas(by,'ex')?1.4:1):1;z.burnT=bw.burnT||4;z.burnDps=bw.burn*bm;z.burnBy=by;}}
     z.flash=1;if(!boss){z.flinch=1;z.slow=Math.max(z.slow,z.t==='sprint'?0.28:0.2);
     const h0=e.hits[0];if(h0){const hr=ZR.parts[h0.p].reg;z.flReg=hr;z.flSide=hr==='armL'||hr==='legL'?-1:hr==='armR'||hr==='legR'?1:(h0.lx<0?-1:1);}
     const k=Math.min(0.25,e.dmg/200);const px=z.x+ux*k,pz=z.z+uz*k;if(freeAt(px,pz)){z.x=px;z.z=pz;}}
@@ -12220,6 +12246,8 @@ function zRender(dt){
   for(const z of L){zPose(z,dt*chronoAt(z.x,z.z));z.flash=Math.max(0,z.flash-dt*6);z.shF=Math.max(0,(z.shF||0)-dt*5);const f=z.flash,sf=z.shF,e=z.pm,s=zSize(z),eyeHex=zEye(z);
     const dis=z.st==='dead'&&z.deadT>ZDIS0?(z.deadT-ZDIS0)/ZDIS:-1,eyeK=z.st==='dead'?Math.max(0,1-z.deadT*1.5):1;
     const vis=!useCull||_zFrust.intersectsSphere(_zSph.set(R.v.set(z.x,(z.y||0)+0.95*s,z.z),2.4*s));
+    const brn=z.st!=='dead'&&((z.burnT||0)>0||z.burn),bf=brn?0.24+0.14*Math.sin(ck*19+z.seed):0;
+    if(vis&&brn&&dt>0&&Math.random()<dt*18){const a=Math.random()*6.283,rr=(0.12+Math.random()*0.28)*s;zPix(z.x+Math.cos(a)*rr,(z.y||0)+(0.35+Math.random()*1.25)*s,z.z+Math.sin(a)*rr,(Math.random()-.5)*0.6,1.1+Math.random()*1.4,(Math.random()-.5)*0.6,0.045*s,1.5,0.42+Math.random()*0.42,0.06,true,0.35+Math.random()*0.3);}
     /* spawn-in: voxels appear from the floor up below a scan line, the band at the line lit in the Revenant's eye colour */
     let scanY=1e9,sR=0,sG=0,sB=0,band=0;if(z.st==='rise'){if(!z.rise0)z.rise0=Math.max(0.3,z.riseT);const rk=clamp(1-z.riseT/z.rise0,0,1),ec=R.c.set(eyeHex);
       band=0.26*s;scanY=(z.y||0)+(rk*rk*(3-2*rk))*(2.0*s+band)-0.02;sR=ec.r*1.7;sG=ec.g*1.7;sB=ec.b*1.7;
@@ -12263,6 +12291,7 @@ function zRender(dt){
         if(em){const k0=pGlow?gk:eyeK*(1.05+0.12*Math.sin(ck*5+i)+(pSh?sf*0.8:0));r*=k0;g*=k0;b*=k0;}
         else if(pSh&&sf>0){const q=sf*0.75;r+=(0.7-r)*q;g+=(1.35-g)*q;b+=(1.8-b)*q;}
         else if(f>0){const q=f*0.6;r+=(1.6-r)*q;g+=(1.6-g)*q;b+=(1.6-b)*q;}
+        else if(bf>0){r+=(1.5-r)*bf;g+=(0.48-g)*bf;b+=(0.08-b)*bf;}
         if(ty>scanY-band){const q=1-(scanY-ty)/band*0.6;r+=(sR-r)*q;g+=(sG-g)*q;b+=(sB-b)*q;}
         C[j*3]=r;C[j*3+1]=g;C[j*3+2]=b;}}
     if(vis&&(z.st!=='dead'||z.deadT<ZDIS0+ZDIS*0.6)){const df=z.st==='dead'?clamp(1-(z.deadT-ZDIS0)/(ZDIS*0.6),0,1):1,af=clamp(1-(z.y||0)*0.22,0.35,1),bs=s*(ZTYPES[z.t].bloat?1.25:1)*af*df;
@@ -12531,32 +12560,37 @@ const swName=sp=>`${ZSW[sp.r]} ${W[sp.k].name}`;
 function zrMySw(){if(!S||S.mode!=='zr')return null;const s=mySlot();return s>=0&&S.players[s]&&S.players[s].sw||null;}
 const zrSwDmg=p=>p&&p.sw&&p.w===p.sw.k?swMods(p.sw).dmg:1;
 /* the special weapon pool: every PvP gun, plus now and then an Arc Caster, and an Encore only as a Legendary */
-function zrSwRoll(r,k){if(!k){const q=Math.random();k=r===3&&q<0.35?'gl':q<0.08?'arc':PVPK[(Math.random()*PVPK.length)|0];}return{k,r,s:1+((Math.random()*999999)|0)};}
+function zrSwRoll(r,k){if(!k){const q=Math.random(),em=!!((S&&S.zr&&(S.zr.week|0)>=2)||(typeof ZCAMP==='object'&&ZCAMP.w&&ZCAMP.w[2]&&ZCAMP.w[2].c));k=r===3&&q<(em?0.48:0.35)?(em&&q>=0.24?'ember':'gl'):q<0.08?'arc':PVPK[(Math.random()*PVPK.length)|0];}return{k,r,s:1+((Math.random()*999999)|0)};}
+const zrDropFor=(d,s)=>d.m==null||s<0||!!(d.m&(1<<s));
 function zrDrop(z){const Z=S.zr;if(!Z||!Z.drops)return;const boss=!!ZTYPES[z.t].boss,el=!!z.elite;
+  const humM=S.players.reduce((m,p)=>p.bot?m:m|(1<<p.s),0)||1,allM=S.players.reduce((m,p)=>m|(1<<p.s),0)||1;
   const add=(o,sp)=>{let x=z.x+(Math.random()-0.5)*sp,q=z.z+(Math.random()-0.5)*sp;if(!freeAt(x,q)){x=z.x;q=z.z;}o.i=++Z.di;o.x=+x.toFixed(2);o.z=+q.toFixed(2);o.e=Math.round(S.timer+o.e);Z.drops.push(o);};
   if(boss){if(!ZB.list.some(o=>o!==z&&o.st!=='dead'&&ZTYPES[o.t].boss))Z.crT=(Z.crT|0)+75;return;}/* the run ends with the headliner, so its 75 Credits go straight to everyone */
   else{if(Math.random()<(el?1:0.3))add({t:'c',v:el?8+((Math.random()*5)|0):2+((Math.random()*3)|0),e:25},0.8);
-    // the last Revenant of every wave always drops a special weapon (Joe)
+    // the last Revenant of every wave always drops a special weapon (Joe), instanced per human via bitmask d.m
     const last=Z.ph==='wave'&&!Z.q.length&&!ZB.list.some(o=>o!==z&&o.st!=='dead');
-    if(last||Math.random()<(el?0.19:0.019)){const u=Math.random();add({t:'w',sw:zrSwRoll(el?(u<0.2?3:u<0.75?2:1):(u<0.05?3:u<0.3?2:1)),e:45},0.8);}}
-  // KRAKKA cans (Ice Cold): a share of the card holder's kills drop one, for either player
-  {const k=S.players.find(p=>p.s===z.ks),v=k&&zrV(k,'ic');if(v&&Math.random()<v)add({t:'k',o:k.s,e:20},0.6);}
-  // VOLTEX cans (Official Drink): a share of the card holder's headshot kills
-  {const k=S.players.find(p=>p.s===z.ks),v=k&&z.headKill&&zrV(k,'vt');if(v&&Math.random()<v)add({t:'v',o:k.s,e:20},0.6);}
-  // keep the state packet small: at most 10 Credits piles and 3 weapons on the floor (the oldest go first)
-  for(const [t,n] of [['c',10],['w',3],['k',4],['v',3]]){let c=Z.drops.filter(d=>d.t===t);while(c.length>n){Z.drops.splice(Z.drops.indexOf(c[0]),1);c.shift();}}}
+    if(last||Math.random()<(el?0.19:0.019)){const u=Math.random();add({t:'w',sw:zrSwRoll(el?(u<0.2?3:u<0.75?2:1):(u<0.05?3:u<0.3?2:1)),e:45,m:humM},0.8);}}
+  // KRAKKA cans (Ice Cold): instanced per player (allM) so picking one up never steals it from your partner
+  {const k=S.players.find(p=>p.s===z.ks),v=k&&zrV(k,'ic');if(v&&Math.random()<v)add({t:'k',o:k.s,e:20,m:allM},0.6);}
+  // VOLTEX cans (Official Drink): instanced per human (humM) so neither partner nor bot can steal yours
+  {const k=S.players.find(p=>p.s===z.ks),v=k&&z.headKill&&zrV(k,'vt');if(v&&Math.random()<v)add({t:'v',o:k.s,e:20,m:humM},0.6);}
+  // keep the state packet small: cap each drop type (preferring to trim personal swapped cast-offs before fresh world drops)
+  for(const [t,n] of [['c',10],['w',5],['k',4],['v',3]]){let c=Z.drops.filter(d=>d.t===t);while(c.length>n){const rm=(t==='w'&&c.find(d=>d.swap))||c[0];Z.drops.splice(Z.drops.indexOf(rm),1);c.splice(c.indexOf(rm),1);}}}
 function zrDropTick(){const Z=S.zr;if(!Z.drops)Z.drops=[];
-  if(Z.drops.length){Z.drops=Z.drops.filter(d=>S.timer<d.e);
+  const humM=S.players.reduce((m,p)=>p.bot?m:m|(1<<p.s),0)||1;
+  const claim=(i,d,s,humOnly)=>{if(d.m==null){Z.drops.splice(i,1);return;}d.m&=~(1<<s);if(!(humOnly?d.m&humM:d.m))Z.drops.splice(i,1);};
+  if(Z.drops.length){Z.drops=Z.drops.filter(d=>S.timer<d.e&&(d.m==null||d.m!==0));
     for(let i=Z.drops.length-1;i>=0;i--){const d=Z.drops[i];if(d.t!=='m')continue;if(ZB.list.some(o=>o.st==='walk'&&!ZTYPES[o.t].boss&&hyp(o.x,o.z,d.x,d.z)<1.5)){Z.drops.splice(i,1);
       const own=S.players.find(p=>p.s===d.o);zAoe(d.x,d.z,3,zrV(own,'tw')||60,own);for(const o of ZB.list)if(o.st==='walk'&&hyp(o.x,o.z,d.x,d.z)<3){o.slow=Math.max(o.slow,1.5);o.flinch=1;}boom(d.x,d.z);}}
     for(const p of S.players){if(p.st!=='alive'){p._u=p.use;continue;}const press=p.use&&!p._u;
-      for(let i=Z.drops.length-1;i>=0;i--){const d=Z.drops[i],dd=hyp(d.x,d.z,p.x,p.z);
+      for(let i=Z.drops.length-1;i>=0;i--){const d=Z.drops[i];if(!zrDropFor(d,p.s))continue;const dd=hyp(d.x,d.z,p.x,p.z);
         if(d.t==='c'&&dd<1.3){Z.crT=(Z.crT|0)+d.v;Z.drops.splice(i,1);}
-        else if(d.t==='k'&&dd<1.3){const o=S.players.find(q=>q.s===d.o);p.hp=Math.min(zrMaxHp(p),p.hp+15);Z.drops.splice(i,1);
+        else if(d.t==='k'&&dd<1.3){const o=S.players.find(q=>q.s===d.o);p.hp=Math.min(zrMaxHp(p),p.hp+15);claim(i,d,p.s,false);
           if(o&&zrV(o,'sh')){p.shT=S.clock+4;p.shV=zrV(o,'sh');}if(o&&zrHas(o,'ss')){const bx=d.x,bz=d.z;setTimeout(()=>{if(S&&S.phase==='live')zAoe(bx,bz,4,30,o);},0);}}
-        else if(d.t==='v'&&dd<1.3){p.vtT=S.clock+5;p.vtN=(p.vtN|0)+1;Z.drops.splice(i,1);}
-        else if(d.t==='w'&&press&&!p.bot&&!p.ak&&dd<1.8){const old=p.sw;p.sw=d.sw;p.dropW=d.sw.k;Z.drops.splice(i,1);
-          if(old)Z.drops.push({t:'w',sw:old,i:++Z.di,x:+p.x.toFixed(2),z:+p.z.toFixed(2),e:Math.round(S.timer+45)});
+        else if(d.t==='v'&&!p.bot&&dd<1.3){p.vtT=S.clock+5;p.vtN=(p.vtN|0)+1;claim(i,d,p.s,true);}
+        else if(d.t==='w'&&press&&!p.bot&&!p.ak&&dd<1.8){const old=p.sw;p.sw=d.sw;p.dropW=d.sw.k;claim(i,d,p.s,true);
+          if(old){const pm=1<<p.s;for(let j=Z.drops.length-1;j>=0;j--)if(Z.drops[j].t==='w'&&Z.drops[j].m===pm&&Z.drops[j].swap)Z.drops.splice(j,1);
+            Z.drops.push({t:'w',sw:old,i:++Z.di,x:+p.x.toFixed(2),z:+p.z.toFixed(2),e:Math.round(S.timer+45),m:pm,swap:1});}
           feed(`${p.name} takes the ${swName(d.sw)}`);break;}}}}
   for(const p of S.players)p._u=p.use;}
 /* the drops in the world: spinning Credits chips, and special guns floating in a beam of their tier's colour */
@@ -12577,8 +12611,8 @@ function zrDropMesh(d){const g=new THREE.Group(),sp=new THREE.Group();g.add(sp);
     const b=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.11,3.2,10,1,true),glow(hex,0.16));b.position.y=1.6;g.add(b);
     const r=new THREE.Mesh(new THREE.RingGeometry(0.42,0.55,32),glow(hex,0.55));r.rotation.x=-Math.PI/2;r.position.y=0.03;g.add(r);}
   scene.add(g);return g;}
-function zrDropRender(dt){ZDM.t+=dt;const L=S&&S.mode==='zr'&&S.zr&&S.zr.drops||[],seen=new Set();
-  for(const d of L){seen.add(d.i);let g=ZDM.m.get(d.i);if(!g){g=zrDropMesh(d);ZDM.m.set(d.i,g);}
+function zrDropRender(dt){ZDM.t+=dt;const L=S&&S.mode==='zr'&&S.zr&&S.zr.drops||[],seen=new Set(),ms=mySlot();
+  for(const d of L){if(!zrDropFor(d,ms))continue;seen.add(d.i);let g=ZDM.m.get(d.i);if(!g){g=zrDropMesh(d);ZDM.m.set(d.i,g);}
     g.position.set(d.x,0,d.z);const sp=g.userData.spin;sp.rotation.y=ZDM.t*1.5+d.i;sp.position.y=(d.t==='w'?1.0:0.42)+(d.t==='m'?0:Math.sin(ZDM.t*2.4+d.i)*0.07);if(d.t==='m')sp.rotation.y=0;
     g.visible=d.e-S.timer>5||Math.sin(ZDM.t*16)>-0.3;}/* blinks in its last 5 s */
   for(const [i,g] of ZDM.m)if(!seen.has(i)){scene.remove(g);g.traverse(n=>{if(n.geometry)n.geometry.dispose();if(n.material&&!n.material.isShared)n.material.dispose&&n.material.dispose();});ZDM.m.delete(i);}}
@@ -12590,7 +12624,7 @@ function swStats(w){const pel=w.pel||0,dm=w.dmg*(w.dmgM||1);return{dmg:{v:dm*(pe
   reload:{v:-w.reload,t:w.reload.toFixed(1)+' s'},spread:{v:1/w.spread,t:String(Math.round(100/w.spread))},range:{v:w.far,t:Math.round(w.far)+' m'}};}
 const SWROW=[['dmg','Damage'],['rate','Fire rate'],['mag','Magazine'],['reload','Reload'],['spread','Accuracy'],['range','Range']];
 function zrWCard(P){const el=$('zrwcard'),L=S.zr.drops||[];let best=null,bd=6;
-  if(P&&P.st==='alive'&&S.phase==='live')for(const d of L){if(d.t!=='w')continue;const dd=hyp(d.x,d.z,me.x,me.z);if(dd<bd){bd=dd;best=d;}}
+  if(P&&P.st==='alive'&&S.phase==='live')for(const d of L){if(d.t!=='w'||!zrDropFor(d,P.s))continue;const dd=hyp(d.x,d.z,me.x,me.z);if(dd<bd){bd=dd;best=d;}}
   const v=best?ZWC.v||(ZWC.v=new THREE.Vector3()):null;if(v){v.set(best.x,1.55,best.z).project(camera);}
   if(!best||v.z>1||Math.abs(v.x)>1.1||Math.abs(v.y)>1.1){if(!el.hidden)el.hidden=true;ZWC.near=null;return;}
   const near=bd<1.8;ZWC.near=near?best:null;el.hidden=false;
@@ -12802,7 +12836,7 @@ const ZLOST=['head','armL','armR','legL','legR'];
 function zGuest(){return net.mode==='online'&&!net.host;}
 function zHitLog(z,h,by){if(!(net.mode==='online'&&net.host))return;const L=ZB.hlog||(ZB.hlog=[]);if(L.length<48)L.push([z.id,h.p,+h.lx.toFixed(2),+h.ly.toFixed(2),+h.lz.toFixed(2),Math.round(h.dmg),by?by.s:-1]);}
 function zPack(withHits){const out=[];
-  for(const z of ZB.list){if(z.st==='dead'&&z.deadT>1.5)continue;let b=z.st==='rise'?0:z.st==='dead'?2:1;if(z.wind>0)b|=4;if(z.headKill)b|=8;if(z.fallBack)b|=16;if(z.elite)b|=1024;if(z.chg>0)b|=2048;if(z.chW>0)b|=4096;if(z.sw>0)b|=8192;if(z.shield>0)b|=16384;if(z.mod==='sp')b|=32768;if(z.mod==='sh')b|=65536;if(z.gen)b|=131072*z.gen;if(z.stun>0)b|=524288;if(z.cryA>0)b|=1048576;if(z.wallA>0)b|=2097152;if((z.y||0)>0.25)b|=4194304;
+  for(const z of ZB.list){if(z.st==='dead'&&z.deadT>1.5)continue;let b=z.st==='rise'?0:z.st==='dead'?2:1;if(z.wind>0)b|=4;if(z.headKill)b|=8;if(z.fallBack)b|=16;if(z.elite)b|=1024;if(z.chg>0)b|=2048;if(z.chW>0)b|=4096;if(z.sw>0)b|=8192;if(z.shield>0)b|=16384;if(z.mod==='sp')b|=32768;if(z.mod==='sh')b|=65536;if(z.gen)b|=131072*z.gen;if(z.stun>0)b|=524288;if(z.cryA>0)b|=1048576;if(z.wallA>0)b|=2097152;if((z.y||0)>0.25)b|=4194304;if(z.burnT>0)b|=8388608;
     ZLOST.forEach((r,i)=>{if(z.reg[r].gone)b|=32<<i;});const e=[z.id,ZTK.indexOf(z.t),Math.round(z.x*10),Math.round(z.z*10),Math.round(z.yaw*100),b];if(b&2&&z.ks>=0)e.push(z.ks);out.push(e);}
   return out;}
 /* a guest: bring the local copies in line with the host's list */
@@ -12811,7 +12845,7 @@ function zSync(zv,zh){ZB.zacAt=performance.now();if(!Array.isArray(zv))return;co
     const x=xi/10,zz=zi/10,yaw=yi/100,st=b&3;
     if(!z){if(st===2)continue;/* never saw it alive: nothing to show */z=zSpawn(t,x,zz,yaw,!!(b&1024),b&32768?'sp':b&65536?'sh':null,id);if(!z)continue;if(!(b&16384)&&z.shield>0){z.shield=0;zShieldStrip(z);}if(t==='matri'){z.gen=(b>>17)&3;z.gs=ZMGS[z.gen];if(z.gen>=2&&ZR.PI.crown!=null){const q=ZR.PI.crown;z.cnt[q]=0;z.vox[q].fill(0);z.vd[q]=1;}}z.x=x;z.z=zz;byId.set(id,z);if(st===1){z.st='walk';z.riseT=0;}}
     if((b&1024)&&!z.elite&&z.st!=='dead')zMutate(z,true);
-    z.tx=x;z.tz=zz;z.tyaw=yaw;z.netT=0;z.chg=b&2048?1:0;z.chW=b&4096?1:0;z.sw=b&8192?1:0;z.stun=b&524288?1:0;z.airG=!!(b&4194304);if(b&1048576&&!(z.cryA>0))z.cryA=0.7;if(b&2097152&&!(z.wallA>0))z.wallA=0.6;if(!(b&16384)&&z.shield>0){z.shield=0;zShieldBreak(z);}
+    z.tx=x;z.tz=zz;z.tyaw=yaw;z.netT=0;z.chg=b&2048?1:0;z.chW=b&4096?1:0;z.sw=b&8192?1:0;z.stun=b&524288?1:0;z.airG=!!(b&4194304);z.burn=!!(b&8388608);if(b&1048576&&!(z.cryA>0))z.cryA=0.7;if(b&2097152&&!(z.wallA>0))z.wallA=0.6;if(!(b&16384)&&z.shield>0){z.shield=0;zShieldBreak(z);}
     if(st===1&&z.st==='rise'){z.st='walk';z.riseT=0;}
     if(z.st!=='dead'){const w=!!(b&4);if(w&&!(z.wind>0))z.wind=ZTYPES[z.t].wind;if(!w&&z.wind>0){z.wind=0;z.atkK=1;}}
     if(z.posed)ZLOST.forEach((r,i)=>{if(b&(32<<i)&&!z.reg[r].gone)zSever(z,r,0,0);});
@@ -13274,6 +13308,11 @@ zcUI();modeCap();segSync();
    UPDATES below is the offline fallback and the minimum version; release notes are cached in localStorage and refreshed
    in the background, so the menu works offline and stays inside GitHub's API rate limit. Drafts and prereleases are skipped. */
 const UPDATES=[
+  {v:'0.12.0',d:'2026-11-24',t:'Ember incendiary SMG and Week 2 online co-op packet fixes',n:[
+    'New Zombie Rumble Legendary gun: Ember, an incendiary SMG (36 rounds, 800 rpm) with a ventilated glowing thermal shroud whose rounds ignite Revenants for burning damage over time and rising fire embers.',
+    'Ember drops as a Legendary in Week 2+ (and after clearing Week 2) alongside Encore, and can be equipped immediately in the Sandbox Weapons tab.',
+    'Instanced Zombie Rumble co-op loot: special weapons, KRAKKA cans and VOLTEX cans now drop independently per player (so teammates or bots never steal each other\'s drops), while Credits remain auto-shared to everyone\'s Locker.',
+    'Fixed an online co-op state packet overflow during hectic Week 2 Matriarch fights (compacted Zombie Rumble floor drops and fixed a fallback that accidentally re-attached hit logs), keeping every packet under the 4 KiB relay limit.']},
   {v:'0.11.4',d:'2026-11-24',t:'Lower gravity and longer wallruns',n:[
     'Lowered default gravity from 19 to 13.5 for floatier jumps and air movement.',
     'Increased default wallrun duration from 1.3 s to 1.5 s.']},
@@ -14468,7 +14507,7 @@ function fireRay(s,w,spread,acc){
   let zh=null;if(ZB.acc){zh=zRay(ox,oy,oz,dx,dy,dz,best);if(zh){best=zh.t;hit=-1;rh=null;}}
   const hx=ox+dx*best,hy=oy+dy*best,hz=oz+dz*best;
   if(via)_v.set(ox,oy,oz);else(w.akimbo&&me.alt&&vRifle.tip2?vRifle.tip2:vtip).getWorldPosition(_v);
-  if(w.heat)arcBolt(_v.x,_v.y,_v.z,hx,hy,hz);else tracer(_v.x,_v.y,_v.z,hx,hy,hz,0xaef6ff);
+  if(w.heat)arcBolt(_v.x,_v.y,_v.z,hx,hy,hz);else tracer(_v.x,_v.y,_v.z,hx,hy,hz,w.burn?0xff7a2a:0xaef6ff);
   if(w.chain&&(hit>=0||zh))arcChain(s,w,acc,hit>=0?S.players[hit]:null,zh?zh.z:null,hx,hy,hz);
   if(hit>=0){
     const dmg=shotDmg(me.w,head,d0+best,w),h=acc[hit]||(acc[hit]={dmg:0,head:false,x:hx,y:hy,z:hz});h.dmg+=dmg;h.head=h.head||head;
@@ -15476,6 +15515,6 @@ warmUI(0,'Compiling shaders…');
     calm=menuIdle()?calm+1:0;if(calm>=3){clearInterval(t);firstAsk();}},500);}
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&me&&!busy&&!conflict&&serial()!==baseline)upload();});
 })();
-window.__za={localTick:dt=>localTick(dt),showWeapon:k=>showWeapon(k),trigger:v=>{mouseDown=!!v;dragMode=true;},wheelKeys:()=>wheelKeys(),GLS,avatars,frame:t=>frameBody(t),BEAMP,intro:INTRO,ml:ML,sites:siteGrp,mf:{MF,MFV,MFA,ZS,ZSV,ZST,RG,EHH,ehPull:(x,z,m)=>ehPull(x,z,m),pulseAt:t=>pulseAt(t),orbAt:t=>orbAt(t),radAt:(x,z)=>radAt(x,z),coreAt:t=>coreAt(t),rainAt:t=>rainAt(t),zMutate:o=>zMutate(o),shotDmg:(k,h,d)=>shotDmg(k,h,d,wOf(k)),zsWant:Z=>zsWant(Z),zsOn:k=>zsOn(k),dropAt,magAt,ventAt,doorAt,ptlAt,scanAt,shutAt,zsT:()=>zsT(),zsLinks:()=>zsLinks(),rebuildGrid:()=>rebuildGrid(),craneAt:t=>craneAt(t),pourAt:t=>pourAt(t),mfT:()=>mfT(),damagePane:(i,d)=>damagePane(i,d),setMap:id=>setMap(id),tick:dt=>mfTick(dt)},dio:DIO,lx:LX,opt:OPT,zr:{ZB,ZR,ZCARDS,ZCAMP,zrEnd:(w,y)=>zrEnd(w,y),zcCarryCode:()=>zcCarryCode(),zrCardSend:c=>zrCardSend(c),zrCardAct:(p,c)=>zrCardAct(p,c),zrSeg:n=>zrSeg(n),zrInter:()=>zrInter(),zAoe:(...a)=>zAoe(...a),zSpawn:(t,x,z,y,e)=>zSpawn(t,x,z,y,e),zTick:dt=>zTick(dt),zRender:dt=>zRender(dt),zClear:()=>zClear(),zRay:(...a)=>zRay(...a),zHorde:()=>zHorde(),rgOn:()=>rgOn(),zBurst:(z,b)=>zBurst(z,b),zPack:()=>zPack(),zApplyT:(z,e,b)=>zApply(z,e,b),zSync:(a,b)=>zSync(a,b),zrWave:n=>zrWave(n),zKill:(z,h,b)=>zKill(z,h,b),zHitAt:(...a)=>zHitAt(...a),zDeliver:()=>zDeliver(),ZD,zWallRay:(...a)=>zWallRay(...a),losPts:(...a)=>losPts(...a)},sim:{hostTick:dt=>hostTick(dt),coverTick:dt=>coverTick(dt),newMatch:()=>newMatch(),MATCH,dmSpawnSpot:p=>dmSpawnSpot(p),findPath:(a,b,c,d)=>findPath(a,b,c,d),freeAt:(x,z)=>freeAt(x,z),losPts:(...a)=>losPts(...a),DM_PTS,BOXES},BL,fire:()=>{const s=mySlot();if(s>=0)fire(s);},damage:(t,d,a,h)=>damage(t,d,a,h),prog:{PROG,PARTS,myW,modW,progSave,progLoad,rebuildVW,lvlOf,XPR},LX,MU,MM,WM,VB,OPT,AU,dev:{DEV,TUNE,GUN,W,COVER0,TWIN,STEP_MODE,devCollect,devApply},damageCover,COVER,coverVis,WH,openWheel:m=>openWheel(m),closeWheel:c=>closeWheel(c),wheelMove:(x,y)=>wheelMove(x,y),gfx:{renderer,scene,camera,applyGfx,DR,render:()=>renderScene(),FREF,BEAMS,MB,me,get gtao(){return gtaoPass;}},openPause:()=>openPause(),closePause:()=>closePause(),leaveMatch:()=>leaveMatch(),get S(){return S;},me,net,DMGDIR,rg:{RG,rgAdd,rgRemove,rgClear,BOXES},maps:{MAPS,MAP,MATCH,setMap,SITES,DM_PTS,findPath,freeAt,simTick:dt=>netTick(dt),SHOW,showCut:i=>showCut(i),TOD,ISO},botMem,CFG,SB,OPT,AU,get actx(){return actx;},mySlot:()=>mySlot(),sfx:{hitCue,HITX,footstep,slideSound,dashRcSound,get dashRcBuf(){return dashRcBuf;},shotSound,stepSound,voicePlay,vxStretch,VQ,announce,vxGraph,vxOpt,VOICE_G,get VB(){return VB;},voiceInit,get stepBufs(){return stepBufs;},get slideBuf(){return slideBuf;},get gunBufs(){return gunBufs;}}};
+window.__za={localTick:dt=>localTick(dt),showWeapon:k=>showWeapon(k),trigger:v=>{mouseDown=!!v;dragMode=true;},wheelKeys:()=>wheelKeys(),GLS,avatars,frame:t=>frameBody(t),BEAMP,intro:INTRO,ml:ML,sites:siteGrp,mf:{MF,MFV,MFA,ZS,ZSV,ZST,RG,EHH,ehPull:(x,z,m)=>ehPull(x,z,m),pulseAt:t=>pulseAt(t),orbAt:t=>orbAt(t),radAt:(x,z)=>radAt(x,z),coreAt:t=>coreAt(t),rainAt:t=>rainAt(t),zMutate:o=>zMutate(o),shotDmg:(k,h,d)=>shotDmg(k,h,d,wOf(k)),zsWant:Z=>zsWant(Z),zsOn:k=>zsOn(k),dropAt,magAt,ventAt,doorAt,ptlAt,scanAt,shutAt,zsT:()=>zsT(),zsLinks:()=>zsLinks(),rebuildGrid:()=>rebuildGrid(),craneAt:t=>craneAt(t),pourAt:t=>pourAt(t),mfT:()=>mfT(),damagePane:(i,d)=>damagePane(i,d),setMap:id=>setMap(id),tick:dt=>mfTick(dt)},dio:DIO,lx:LX,opt:OPT,zr:{ZB,ZR,ZCARDS,ZCAMP,zrEnd:(w,y)=>zrEnd(w,y),zcCarryCode:()=>zcCarryCode(),zrCardSend:c=>zrCardSend(c),zrCardAct:(p,c)=>zrCardAct(p,c),zrSeg:n=>zrSeg(n),zrInter:()=>zrInter(),zAoe:(...a)=>zAoe(...a),zSpawn:(...a)=>zSpawn(...a),zTick:dt=>zTick(dt),zRender:dt=>zRender(dt),zClear:()=>zClear(),zRay:(...a)=>zRay(...a),zHorde:()=>zHorde(),rgOn:()=>rgOn(),zBurst:(z,b)=>zBurst(z,b),zPack:()=>zPack(),zApplyT:(z,e,b)=>zApply(z,e,b),zSync:(a,b)=>zSync(a,b),zrWave:n=>zrWave(n),zKill:(z,h,b)=>zKill(z,h,b),zHitAt:(...a)=>zHitAt(...a),zDeliver:()=>zDeliver(),ZD,zWallRay:(...a)=>zWallRay(...a),losPts:(...a)=>losPts(...a),zAcidPool:(x,z)=>zAcidPool(x,z),zAcidWall:(z,t)=>zAcidWall(z,t),zSpitFire:(z,t,o)=>zSpitFire(z,t,o),zAcidTick:dt=>zAcidTick(dt),zrSwRoll:(r,k)=>zrSwRoll(r,k),zrDrop:z=>zrDrop(z),zrDropTick:()=>zrDropTick(),zrDropFor:(d,s)=>zrDropFor(d,s),zrMaxHp:p=>zrMaxHp(p),zrDashHit:(p,dt)=>zrDashHit(p,dt),zRemoteHit:(a,l)=>zRemoteHit(a,l),packState:()=>packState(),onRemoteState:m=>onRemoteState(m),onRemoteHit:m=>onRemoteHit(m),setS:v=>{S=v;}},sim:{hostTick:dt=>hostTick(dt),coverTick:dt=>coverTick(dt),newMatch:()=>newMatch(),MATCH,dmSpawnSpot:p=>dmSpawnSpot(p),findPath:(a,b,c,d)=>findPath(a,b,c,d),freeAt:(x,z)=>freeAt(x,z),losPts:(...a)=>losPts(...a),DM_PTS,BOXES},BL,fire:()=>{const s=mySlot();if(s>=0)fire(s);},damage:(t,d,a,h)=>damage(t,d,a,h),prog:{PROG,PARTS,myW,modW,progSave,progLoad,rebuildVW,lvlOf,XPR},LX,MU,MM,WM,VB,OPT,AU,dev:{DEV,TUNE,GUN,W,COVER0,TWIN,STEP_MODE,devCollect,devApply},damageCover,COVER,coverVis,WH,openWheel:m=>openWheel(m),closeWheel:c=>closeWheel(c),wheelMove:(x,y)=>wheelMove(x,y),gfx:{renderer,scene,camera,applyGfx,DR,render:()=>renderScene(),FREF,BEAMS,MB,me,get gtao(){return gtaoPass;}},openPause:()=>openPause(),closePause:()=>closePause(),leaveMatch:()=>leaveMatch(),get S(){return S;},me,net,DMGDIR,rg:{RG,rgAdd,rgRemove,rgClear,BOXES},maps:{MAPS,MAP,MATCH,setMap,SITES,DM_PTS,findPath,freeAt,simTick:dt=>netTick(dt),SHOW,showCut:i=>showCut(i),TOD,ISO},botMem,CFG,SB,OPT,AU,get actx(){return actx;},mySlot:()=>mySlot(),sfx:{hitCue,HITX,footstep,slideSound,dashRcSound,get dashRcBuf(){return dashRcBuf;},shotSound,stepSound,voicePlay,vxStretch,VQ,announce,vxGraph,vxOpt,VOICE_G,get VB(){return VB;},voiceInit,get stepBufs(){return stepBufs;},get slideBuf(){return slideBuf;},get gunBufs(){return gunBufs;}}};
 })();
 </script>
