@@ -511,7 +511,10 @@ body.ended #touch,body.ended #zrcap,body.ended #vosub,body.ended #down,body.ende
   background:linear-gradient(180deg,rgba(10,7,20,.82) 0%,rgba(10,7,20,0) 22%,rgba(10,7,20,0) 66%,rgba(10,7,20,.88) 100%)}
 #mapscr>*{pointer-events:auto}#mapscr>.msinfo{pointer-events:none}
 .mszoom{position:absolute;right:max(16px,env(safe-area-inset-right,0px));top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px}
-.mszoom .btn{width:48px;height:48px;padding:0;font-size:26px;line-height:1;background:rgba(20,15,36,.8)}.mszoom #mszfit{font-size:14px}
+.mszoom .btn{width:var(--zw);height:var(--zw);min-width:0;padding:0;font-size:26px;line-height:1;background:rgba(20,15,36,.8)}.mszoom #mszfit{font-size:14px}
+/* the zoom column owns the right edge: the map tiles and the description stay clear of it on every screen (Joe, Fold 2026-11-24) */
+#mapscr{--zw:48px}@media (max-height:520px){#mapscr{--zw:40px}.mszoom .btn{font-size:22px}.mszoom #mszfit{font-size:12px}}
+@media (max-width:560px) and (max-aspect-ratio:4/5){.mszoom{position:static;transform:none;flex-direction:row;align-self:flex-end;order:3;margin-top:auto}}
 #menu.mapon{cursor:grab;touch-action:none}#menu.mapon.drag{cursor:grabbing}
 #menu.mapon{background:none}#menu.mapon .mwrap{visibility:hidden}
 #menu.updon{background:none}#menu.updon .mwrap{visibility:hidden}
@@ -520,11 +523,16 @@ body.ended #touch,body.ended #zrcap,body.ended #vosub,body.ended #down,body.ende
 .msti b{font-size:clamp(22px,4vh,34px);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);text-shadow:0 0 14px rgba(95,242,255,.5)}
 .msti span{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:4px}
 .mshb{font-size:16px;padding:7px 14px;min-width:96px}
-.msinfo{align-self:flex-start;display:flex;flex-direction:column;gap:2px;margin-top:10px;max-width:min(460px,100%);pointer-events:none}
+.msinfo{align-self:flex-start;display:flex;flex-direction:column;gap:2px;margin-top:10px;max-width:min(480px,100% - var(--zw) - 16px);pointer-events:none}
 .msinfo b{font-size:clamp(40px,8vh,76px);line-height:.9;letter-spacing:.03em;text-transform:uppercase;color:#fff;text-shadow:0 0 22px var(--mc,#5ff2ff),0 2px 4px #000}
-.msth{font-size:15px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--mc,#5ff2ff);text-shadow:0 0 10px var(--mc,#5ff2ff)}
+.msinfo .cap.stg{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.msst{display:block;font-size:14px;line-height:1.22;padding-left:4.9em;text-indent:-4.9em}
+.msst i{font-style:normal;font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:12px;color:var(--mc,#5ff2ff);display:inline-block;width:5.6em;text-indent:0}
+.msst em{font-style:normal;font-weight:700;color:#fff}.msst small{font-size:inherit;color:#c4c8e0}
+@media (max-height:420px){.msst small{display:none}}
 .msinfo .cap{font-size:15px;color:#d9dcf0;margin:2px 0 0;text-shadow:0 1px 3px #000}
-.msbar{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:8px;width:min(720px,100%);align-self:center}
+.msbar{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:8px;width:min(720px,100% - 2*var(--zw) - 24px);align-self:center}
+@media (max-width:560px) and (max-aspect-ratio:4/5){.msbar{width:100%;order:4;margin-top:8px}}
 .msrow{display:flex;align-items:center;gap:8px;width:100%}.msrow .maps{flex:1}
 .msar{font-size:28px;line-height:1;padding:6px 12px;min-width:44px;align-self:stretch}
 #msgo{width:min(420px,100%)}
@@ -774,6 +782,9 @@ body.touch #dock #dashpips i{width:22px;height:6px}
 #shopSlots .chip small{display:block!important;font-size:10px;-webkit-line-clamp:2;line-height:1.15}
 #shopSlots .chip:not(.lock):not(.on) small{display:none!important}
 #shopCv{flex:2 1 0;min-height:90px}
+.shopview .gtabs .btn>b{display:block;white-space:nowrap;overflow:hidden;overflow-wrap:normal;letter-spacing:.02em}
+#shopSlots .chip>b{display:block;overflow:hidden;overflow-wrap:normal;hyphens:manual}
+body:has(.overlay:not([hidden])) #fps{visibility:hidden}
 .shopview .gtabs small{display:none}.gtabs .glv{display:none}.shopview .gtabs .glv{display:block;font:600 10.5px var(--mono);font-style:normal;color:var(--accent);letter-spacing:.04em}.shopview .gtabs .btn.lock .glv{color:var(--muted)}.shopview .gtabs .btn{align-items:center;justify-content:center;text-align:center;line-height:1.05;padding:4px 6px;min-height:30px}
 @media (max-height:760px){#shopStats .fixed{display:none}#shopHint{display:none}.shopcard>.btns .cap{display:none}}
 @media (max-height:620px){.shopcard{padding:8px 12px;gap:6px}.shopcard .hd b{font-size:18px}#shopSlots{gap:3px}#shopSlots .slot h4{font-size:10.5px;margin:0 0 2px}
@@ -993,7 +1004,7 @@ body.touch #dock #dashpips i{width:22px;height:6px}
 <div id="mapscr" hidden role="dialog" aria-label="Choose a map">
   <div class="mshd"><button class="btn mshb" type="button" id="msback">&#8249; Back</button><div class="msti"><b>Choose a map</b><span id="msmode"></span></div><button class="btn mshb" type="button" id="mstod" aria-label="Preview time of day">Night</button></div>
   <div class="mszoom" role="group" aria-label="Zoom"><button class="btn" type="button" id="mszin" aria-label="Zoom in">+</button><button class="btn" type="button" id="mszout" aria-label="Zoom out">&minus;</button><button class="btn" type="button" id="mszfit" aria-label="Show the whole map">Fit</button></div>
-  <div class="msinfo" aria-live="polite"><span class="msth" id="msth"></span><b id="msname"></b><span class="cap" id="mscap"></span></div>
+  <div class="msinfo" aria-live="polite"><b id="msname"></b><span class="cap" id="mscap"></span></div>
   <div class="msbar">
     <div class="msrow"><button class="btn msar" type="button" id="msprev" aria-label="Previous map">&#8249;</button><div class="maps" id="maps" role="radiogroup" aria-label="Map"></div><button class="btn msar" type="button" id="msnext" aria-label="Next map">&#8250;</button></div>
     <button class="btn primary mgo" type="button" id="msgo">Start match</button>
@@ -13179,7 +13190,14 @@ function shopUI(){const k=SHOP.k,b=buildOf(k),mk=(t,c,x)=>{const n=document.crea
     c.addEventListener('pointerenter',()=>{SHOP.hov={sl:'glow',id:g.id};});c.addEventListener('pointerleave',()=>{SHOP.hov=null;});
     c.addEventListener('click',()=>{if(glowLock(g))return;b.g=g.id;progSave();shopUI();});gc.append(c);}
   gr.append(gc);sl.append(gr);
+  shopFit();
   $('shopAll').checked=PROG.all;{const tb=$('shopTest'),gl=gunLock(k);tb.disabled=!!gl;$('shopGo').disabled=!!gl;$('shopGo').title=gl?`${W[k].name} unlocks at ${gl}`:'';tb.title=gl?`${W[k].name} unlocks at ${gl}`:`Try the ${W[k].name} (${b.n}) at the shooting range, then come back here`;}shopStats();}
+/* names that don't fit their button shrink a step at a time instead of clipping (Joe's Fold scales text up): gun tabs stay one line,
+   part names wrap between words and shrink only when one word is wider than the chip. */
+function fitText(els){for(const e of els){e.style.fontSize='';if(!e.clientWidth)continue;let f=parseFloat(getComputedStyle(e).fontSize),n=0;
+  while(e.scrollWidth>e.clientWidth+0.5&&f>7&&n++<14){f*=0.93;e.style.fontSize=f.toFixed(2)+'px';}}}
+function shopFit(){if($('shop').hidden)return;fitText($('shopGuns').querySelectorAll('.btn>b'));fitText($('shopSlots').querySelectorAll('.chip>b'));}
+new ResizeObserver(()=>shopFit()).observe($('shop'));
 function shopStats(){const k=SHOP.k,cur=modW(k,effParts(k)),nx=modW(k,shopParts()),el=$('shopStats'),mk=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n;};
   el.replaceChildren();const w0=wOf(k);el.append(mk('div','fixed',w0.chg?`${dmgTxt(w0.tap)} tap · ${dmgTxt(w0.dmg)} charged · ${dmgTxt(w0.head)} charged headshot · full charge in ${w0.chg} s, pierces (parts never change these)`:
     `${w0.pel?w0.pel+' pellets × ':''}${dmgTxt(w0.dmg)} damage · ${dmgTxt(w0.head)} headshot · ${w0.burst?w0.burst+'-round bursts, '+Math.round(60/w0.cd)+' a minute':Math.round(60/w0.cd)+' rpm'}${w0.akimbo?' · hip fire only':''} (parts never change these)`));
@@ -13404,9 +13422,24 @@ const MAPEL=$('maps');
 const MS={open:false,go:'play'};
 function mapPick(id,quiet){if(!MAPS[id])id='yard';MATCH.map=id;try{localStorage.setItem('za-map',id);}catch(e){}
   MAPEL.querySelectorAll('.mapt').forEach(b=>{const on=b.dataset.m===id;b.setAttribute('aria-checked',on);b.tabIndex=on?0:-1;});
-  const M=MAPS[id],T=M.theme;$('msname').textContent=M.name;$('msth').textContent=T.title;$('mscap').textContent=M.cap+' '+T.tag+'.';$('mapscr').style.setProperty('--mc',hexCss(T.a));
+  const M=MAPS[id],T=M.theme;$('msname').textContent=M.name;msDesc(id);$('mapscr').style.setProperty('--mc',hexCss(T.a));
   if(!quiet)blip(980,0.022,0.012,false,'ui');
   if(!S&&!SB.on){if(setMap(id)&&MS.open){ISO.fade=1;isoScene(true);}/* zoom and pan carry over to the next map */SHOW.map=MAP_IDS.indexOf(id);SHOW.want=-1;}/* nothing running: show it behind the menu */}
+/* map screen description (Joe 2026-11-24): what the map does, no theme or colour text. Zombie Rumble lists its stages wave by wave (ZST),
+   other modes get the layout plus the map's own mechanic, since stage changes only run in Zombie Rumble. */
+const MAPDESC={yard:['Three lanes of crates.','A crane moves a container between lanes every 30 s.'],
+  foundry:['Steel walls split the middle into lanes.','The centre channel floods with molten metal every 40 s.'],
+  atrium:['Open floor, pillars, long sightlines.','Glass panes stop bullets, crack, shatter and rebuild.'],
+  warren:['Tight crates and corners. Close range.','Dark and flickering. Every muzzle flash gives you away.'],
+  fallout:['A cracked reactor in the middle.','Hot zones make your shots hit harder, then burn. Showers clean you off.'],
+  chrono:['Open midfield with drifting bubbles.','Slowed-time bubbles roam the floor. Anything inside moves at 40% speed.'],
+  orbit:['A station deck under an orbital sky.','Low gravity, with jump pads across the deck.'],
+  horizon:['A caged black hole in the middle.','The black hole pulls everything in. Cross the red ring and it tears you apart.']};
+function msDesc(id){const el=$('mscap'),D=MAPDESC[id]||[MAPS[id].cap,''],st=ZST[id];el.textContent='';
+  if($('modesel').value!=='zr'||!st){el.textContent=D[0]+' '+D[1];el.classList.remove('stg');return;}
+  el.classList.add('stg');const up=t=>t.charAt(0).toUpperCase()+t.slice(1)+(/[.!?]$/.test(t)?'':'.');
+  for(const [w,n,d] of [['Wave 1',D[1].replace(/\.$/,''),''],['Wave 2',st[0].n,up(st[0].d)],['Wave 3',st[1].n,up(st[1].d)],['Finale',st[0].n+' + '+st[1].n,'Both at once, through the boss fight.']]){
+    const r=document.createElement('span');r.className='msst';const l=document.createElement('i');l.textContent=w;const b=document.createElement('em');b.textContent=n+(d?'. ':'.');r.append(l,b);if(d){const x=document.createElement('small');x.textContent=d;r.append(x);}el.append(r);}}
 function mapStep(d){const n=MAP_IDS[(MAP_IDS.indexOf(MATCH.map)+d+MAP_IDS.length)%MAP_IDS.length];mapPick(n);}
 for(const id of MAP_IDS){const b=document.createElement('button');b.type='button';b.className='mapt';b.dataset.m=id;b.setAttribute('role','radio');
   const cv=document.createElement('canvas');cv.width=220;cv.height=88;b.append(cv);const sp=document.createElement('span');sp.textContent=MAPS[id].name;b.append(sp);MAPEL.append(b);mapThumb(cv,id);
