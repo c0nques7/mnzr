@@ -6520,7 +6520,7 @@ const ZHP=[100,80,60,45,30];
 const ZX=[-46,-20,0,20,46];
 const TEAMN=['Blue','Orange'];
 const BOTN=['Bot Ash','Bot Rook','Bot Vex','Bot Juno','Bot Kade','Bot Nyx','Bot Orin','Bot Sable'];
-const CFG={roundTime:75,buy:3,post:6,overT:10,multiT:5,fuse:25,arm:5,defuse:7,revive:2.5,bleed:8,respawn:4,tickets:4,downHP:30,winScore:4,killHeal:25,block:15,dmg:25,head:50,fireCd:0.12,mag:24,reload:1.8,buy1:8,speed:6,sprint:9.5,crawl:1.8,jump:5,grav:19,wallRun:1.3,wallGrav:0.22,wallKick:7,grab:2.3,dash:22,dashT:0.16,dashN:2,dashCd:3.5,regenMin:5,regenMax:10,spawnProt:3,dmTime:600,dmRespawn:3,dmKills1:15,dmKills2:30,dmKills4:50};
+const CFG={roundTime:75,buy:3,post:6,overT:10,multiT:5,fuse:25,arm:5,defuse:7,revive:2.5,bleed:8,respawn:4,tickets:4,downHP:30,winScore:4,killHeal:25,block:15,dmg:25,head:50,fireCd:0.12,mag:24,reload:1.8,buy1:8,speed:6,sprint:9.5,crawl:1.8,jump:5,grav:13.5,wallRun:1.5,wallGrav:0.22,wallKick:7,grab:2.3,dash:22,dashT:0.16,dashN:2,dashCd:3.5,regenMin:5,regenMax:10,spawnProt:3,dmTime:600,dmRespawn:3,dmKills1:15,dmKills2:30,dmKills4:50};
 /* Revenant stats (Zombie Rumble): health, walking speed (m/s) and damage per swing for each type, and how close they swing from */
 Object.assign(CFG,{zShHp:60,zShSpd:1.6,zShDmg:20,zSpHp:40,zSpSpd:6.2,zSpDmg:12,zReach:1.25,zCrHp:35,zCrSpd:1.5,zCrDmg:10,zBlHp:150,zBlSpd:1.25,zBlDmg:45,zBlR:3.6,zrBreak:10,zJgHp:2400,zJgSpd:1.5,zJgDmg:40,zJgChg:11,zJgChgDmg:50,zSpiHp:80,zSpiSpd:1.9,zSpiDmg:12,zSpiGlob:15,zSpiCd:3.4,zShieldHp:100,zMaHp:2600,zMaSpd:1.7,zMaDmg:30,zMaRegrow:12,zMaWallCd:9,zMaWallT:7,zMaWallDps:25,zMaWallHit:15,zSpiWind:0.75,zAcidDps:12,zAcidT:4,zAcidR:1.5,zrRevHP:50,zrBleed:15});
 Object.assign(CFG,{radIn:12,radOut:5,radDecon:45,radHurt:5,radBoost:1.25,radMut:8});
@@ -13274,6 +13274,9 @@ zcUI();modeCap();segSync();
    UPDATES below is the offline fallback and the minimum version; release notes are cached in localStorage and refreshed
    in the background, so the menu works offline and stays inside GitHub's API rate limit. Drafts and prereleases are skipped. */
 const UPDATES=[
+  {v:'0.11.4',d:'2026-11-24',t:'Lower gravity and longer wallruns',n:[
+    'Lowered default gravity from 19 to 13.5 for floatier jumps and air movement.',
+    'Increased default wallrun duration from 1.3 s to 1.5 s.']},
   {v:'0.11.3',d:'2026-11-24',t:'Hecklers alternating muzzle flash',n:[
     'Fixed the Hecklers muzzle flash so it alternates between both pistols instead of only flashing on the right one (in both first-person and third-person).']},
   {v:'0.11.2',d:'2026-11-24',t:'Cloud save fixes',n:[
