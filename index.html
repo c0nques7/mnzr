@@ -11400,6 +11400,7 @@ function dmgNum(x,y,z,dmg,head){_v.set(x,y+0.25,z).project(camera);
    the fuse run out for the full detonation (flash, fireball, blast sound). Nothing ends: the site is ready again right after. */
 const rgRole=()=>S&&S.armed?'def':'atk';
 function rgSiteTick(dt){for(const p of S.players){if(p.bot||p.st!=='alive')continue;
+    zrDashHit(p,dt);
     // after arming or defusing, F has to be let go before the next one starts
     if(p.rgRel){if(p.use){p.ak=null;p.ap=0;p.at=-1;continue;}p.rgRel=false;}const was=!!S.armed;actions(p,dt,rgRole());if(!!S.armed!==was)p.rgRel=true;}
   if(S.armed){S.armed.t-=dt;if(S.armed.t<=0){const k=S.armed.site;S.armed=null;feed(`Charge detonated at ${k}`);blastGo(k);}}}
@@ -11758,7 +11759,7 @@ function zWaypoint(z){let c=cellOf(z.x,z.z);if(blocked[c[0]*GD+c[1]])c=nearestFr
 function zSpawn(t,x,z,yaw,elite,mod,fid){if(mod)elite=true;if(ZB.list.length>=ZB.cap){const old=ZB.list.find(q=>q.st==='dead');if(!old)return null;zRemove(old);}
   if(!freeAt(x,z)){const c=nearestFree(...cellOf(x,z));x=c[0]-50+0.5;z=c[1]-20+0.5;}
   const T=ZTYPES[t],hp=Math.round(CFG[T.hp]*(elite?2.2:1)*(S&&S.mode==='zr'&&zrAny('rg')?1.25:1)),id=fid!=null?fid:++ZB.id,sd=zHash(id,13,29)*100;
-  const zo={id,t,x,z,y:0,vx:0,vz:0,yaw:yaw==null?Math.random()*Math.PI*2:yaw,hp,max:hp,st:'rise',riseT:0.7,wind:0,cd:0,slow:0,flinch:0,
+  const zo={id,t,x,z,y:0,vx:0,vz:0,kvx:0,kvz:0,yaw:yaw==null?Math.random()*Math.PI*2:yaw,hp,max:hp,st:'rise',riseT:0.7,wind:0,cd:0,slow:0,flinch:0,
     wp:null,wpT:Math.random()*0.15,ph:zHash(id,5,19)*6,seed:sd,prog:{x,z,t:0},esc:null,deadT:0,headOff:false,flash:0,groanT:1+Math.random()*4,spd:0,atkK:0,fall:1,elite:!!elite,mod:mod||null,shield:mod==='sh'?CFG.zShieldHp:0};
   zBody(zo);if(T.legless)for(const r of ['legL','legR']){zo.reg[r].gone=true;zo.reg[r].hp=0;for(const q of ZR.regParts[r]){zo.cnt[q]=0;zo.vox[q].fill(0);zo.vd[q]=1;}}
   ZB.list.push(zo);return zo;}
@@ -11789,6 +11790,9 @@ function zTick(dt){if(S&&S.phase==='over'&&ZB.list.length){zOverClear(dt);return
     z.cd=Math.max(0,z.cd-zdt);z.slow=Math.max(0,z.slow-zdt);z.flinch=Math.max(0,z.flinch-zdt*4);
     if(z.burnT>0){z.burnT=Math.max(0,z.burnT-zdt);const bdm=(z.burnDps||18)*zdt*(ZTYPES[z.t].boss?0.75:1);if(!zShieldAbsorb(z,bdm)){z.reg.torso.hp-=bdm;z.hp=Math.max(1,Math.round(z.reg.torso.hp));if(z.t==='matri'&&(z.gen|0)<2&&z.reg.torso.hp<=z.max*((z.gen|0)?0.5:0.66)){zKill(z,false,z.burnBy);continue;}if(z.reg.torso.hp<=0){zKill(z,false,z.burnBy);continue;}}}
     if((z.mk||0)>zClk())z.flash=Math.max(z.flash,0.22+0.18*Math.sin(S.clock*14));
+    if(z.kvx||z.kvz){const inP=pourCell(z.x,z.z),fr=(x,y)=>freeAt(x,y)||(inP&&pourCell(x,y)),sx=z.kvx*zdt,sz=z.kvz*zdt,ns=Math.max(1,Math.ceil(Math.hypot(sx,sz)/0.35));
+      for(let i=0;i<ns;i++){const knx=z.x+sx/ns,knz=z.z+sz/ns;if(fr(knx,knz)){z.x=knx;z.z=knz;}else if(fr(knx,z.z)){z.x=knx;z.kvz*=0.25;}else if(fr(z.x,knz)){z.z=knz;z.kvx*=0.25;}else{z.kvx=0;z.kvz=0;break;}}
+      z.x=clamp(z.x,-49,49);z.z=clamp(z.z,-19,19);const kd=Math.exp(-7*zdt);z.kvx*=kd;z.kvz*=kd;if(Math.hypot(z.kvx,z.kvz)<0.25){z.kvx=0;z.kvz=0;}}
     if(!ZTYPES[z.t].boss&&z.stun>0){z.stun=Math.max(0,z.stun-zdt);z.wind=0;z.sw=0;z.spd=0;z.vx=z.vz=0;z.atkK=Math.max(0,z.atkK-zdt*3);continue;}
     // nearest target
     let tg=null,td=1e9;for(const p of T){const d=hyp(p.x,p.z,z.x,z.z);if(d<td){td=d;tg=p;}}
@@ -11820,10 +11824,11 @@ function zTick(dt){if(S&&S.phase==='over'&&ZB.list.length){zOverClear(dt);return
     const acc=(z.y||0)>0.25&&z.t==='sprint'?1.5:z.t==='sprint'&&lb.legs===2?18:8;z.vx+=clamp(dvx-z.vx,-acc*zdt,acc*zdt);z.vz+=clamp(dvz-z.vz,-acc*zdt,acc*zdt);
     // keep apart from each other
     for(const o of L){if(o===z||o.st==='dead')continue;const dx=z.x-o.x,dz=z.z-o.z,d=dx*dx+dz*dz;if(d<0.49&&d>1e-6){const k=(0.7-Math.sqrt(d))*4;z.vx+=dx*k*zdt*6;z.vz+=dz*k*zdt*6;}}
-    // and out of the players they are clawing at
-    if(tg&&td<0.75&&td>1e-3){z.vx+=(z.x-tg.x)/td*2;z.vz+=(z.z-tg.z)/td*2;}
+    // and out of the players they are clawing at (stop inward motion and gently ease overlap without adding knockback velocity)
+    if(tg&&td<0.75&&td>1e-3){const ux=(z.x-tg.x)/td,uz=(z.z-tg.z)/td,vn=z.vx*ux+z.vz*uz;if(vn<0){z.vx-=ux*vn;z.vz-=uz*vn;}}
     const nx=z.x+z.vx*zdt,nz=z.z+z.vz*zdt,inP=pourCell(z.x,z.z),fr=(x,y)=>freeAt(x,y)||(inP&&pourCell(x,y));/* caught on the channel floor when it closes: still free to walk out */
     if(fr(nx,nz)){z.x=nx;z.z=nz;}else if(fr(nx,z.z)){z.x=nx;z.vz*=0.5;}else if(fr(z.x,nz)){z.z=nz;z.vx*=0.5;}else{z.vx*=0.2;z.vz*=0.2;}
+    if(tg){const dx=z.x-tg.x,dz=z.z-tg.z,d=Math.hypot(dx,dz);if(d<0.55&&d>1e-3){const push=Math.min(0.55-d,2*zdt),px=z.x+dx/d*push,pz=z.z+dz/d*push;if(fr(px,pz)){z.x=px;z.z=pz;}}}
     z.x=clamp(z.x,-49,49);z.z=clamp(z.z,-19,19);z.spd=Math.hypot(z.vx,z.vz);
     // face where it walks, or the target when close
     let fyaw=z.yaw;if(tg&&(td<3||z.hold===1))fyaw=Math.atan2(-(tg.x-z.x),-(tg.z-z.z));else if(z.spd>0.3)fyaw=Math.atan2(-z.vx,-z.vz);
@@ -12449,7 +12454,7 @@ const ZCARDS={
   ad:{h:'kin',n:'Adrenaline',r:1,d:'Dash recharges # faster',v:[0.4,0.55,0.7],t:['40%','55%','70%']},
   fl:{h:'kin',n:'Fleet Foot',r:1,d:'Move # faster',v:[0.1,0.15,0.2],t:['10%','15%','20%']},
   lw:{h:'kin',n:'Long Wall',r:1,d:'Wallruns last # longer',v:[0.5,0.8,1.1],t:['50%','80%','110%']},
-  ds:{h:'kin',n:'Battering Dash',r:3,d:'Dashing into a Revenant knocks it flat (60 damage)'},
+  ds:{h:'kin',n:'Battering Dash',r:3,d:'Dashing into a Revenant slams it for 60 damage and knocks it further back'},
   kh:{h:'med',n:'Bloodletting',r:1,d:'Heal # HP for every Revenant you drop',v:[6,10,14],t:['6','10','14']},
   fm:{h:'med',n:'Field Medic',r:1,d:'Revive your partner in #',v:[0.6,0.44,0.32],t:['1.5 s','1.1 s','0.8 s']},
   ts:{h:'med',n:'Thick Skin',r:2,d:'Take # less damage from Revenants',v:[0.2,0.28,0.35],t:['20%','28%','35%']},
@@ -12757,12 +12762,41 @@ function zAoe(x,zz,r,dmg,by){for(const o of ZB.list){if(o.st==='dead')continue;c
 /* Hazard Shunt (IRONLEAF) multiplier for Revenant damage from arena hazards, and Sealant Boots / Containment Suit multiplier for acid */
 function zrHazM(){if(!S||S.mode!=='zr')return 1;let m=1;for(const p of S.players)m=Math.max(m,zrV(p,'hs')||1);return m;}
 function zrAcidM(p,pool){if(!S||S.mode!=='zr'||!p)return 1;return(pool?1-zrV(p,'sl'):1)*(1-0.15*zlv(p,'h'));}
-/* Battering Dash & Splash Step: a dash (seen as the player's dash counter moving) knocks flat Revenants and/or clears acid pools */
-function zrDashHit(p,dt){const dsOn=zrHas(p,'ds'),wsOn=zrHas(p,'ws');if(!dsOn&&!wsOn)return;const ds=p.bot?p.ds|0:p.s===mySlot()?(me.dashSeq|0)%1000:((net.mode==='online'&&presenceOf(p.peer))||{}).ds|0;
-  if(p.dsSeen==null)p.dsSeen=ds;if(ds!==p.dsSeen){p.dsSeen=ds;p.dsT=0.35;p.dsId=(p.dsId|0)+1;}if(!(p.dsT>0))return;p.dsT-=dt;
-  if(dsOn)for(const o of ZB.list){if(o.st!=='walk'||o.dsHit===p.s*1e4+p.dsId||hyp(o.x,o.z,p.x,p.z)>1.2)continue;o.dsHit=p.s*1e4+p.dsId;
-    if(zShieldAbsorb(o,60))continue;
-    o.reg.torso.hp-=ZTYPES[o.t].boss?20:60;o.flash=1;o.flinch=1;o.slow=1.2;if(o.reg.torso.hp<=0)zKill(o,false,p);}
+/* Dash pushback, Battering Dash & Splash Step: dashing into Revenants shoves them back without damage until Battering Dash is taken (60 damage + stronger knockback); Splash Step clears acid pools */
+function zrDashHit(p,dt){const dsOn=zrHas(p,'ds'),wsOn=zrHas(p,'ws'),isMe=!p.bot&&p.s===mySlot();
+  let ds;
+  if(p.bot)ds=p.ds|0;
+  else if(isMe)ds=(me.dashSeq|0)%1000;
+  else{const pr=net.mode==='online'?presenceOf(p.peer):null;ds=pr&&pr.ds!=null?pr.ds|0:(p.dsSeen!=null?p.dsSeen:0);}
+  const px0=p.dsPx!=null?p.dsPx:p.x,pz0=p.dsPz!=null?p.dsPz:p.z;p.dsPx=p.x;p.dsPz=p.z;
+  if(p.dsSeen==null)p.dsSeen=ds;
+  if(ds!==p.dsSeen){p.dsSeen=ds;p.dsT=isMe||p.bot?CFG.dashT+0.04:CFG.dashT+0.12;p.dsId=(p.dsId|0)+1;
+    if(isMe){p.dsDx=me.dashX||0;p.dsDz=me.dashZ||0;}
+    else if(p.bot&&botMem[p.s]){p.dsDx=botMem[p.s].dx||0;p.dsDz=botMem[p.s].dz||0;}
+    else{p.dsDx=0;p.dsDz=0;}}
+  if(isMe&&!me.dashAct&&!(me.dashT>0))p.dsT=0;
+  else if(p.bot&&botMem[p.s]&&!(botMem[p.s].dashT>0)&&p.dsT<CFG.dashT)p.dsT=0;
+  if(!(p.dsT>0))return;p.dsT-=dt;
+  const sx=p.x-px0,sz=p.z-pz0,sl2=sx*sx+sz*sz,segOK=sl2>1e-4&&sl2<25,bx=segOK?px0:p.x,bz=segOK?pz0:p.z;
+  let ddx=p.dsDx||0,ddz=p.dsDz||0,dl=Math.hypot(ddx,ddz);
+  if(dl<0.1&&segOK){const sL=Math.sqrt(sl2);ddx=sx/sL;ddz=sz/sL;dl=1;p.dsDx=ddx;p.dsDz=ddz;}
+  if(ZB.list.length){let hit=0;
+    for(const o of ZB.list){if(o.st!=='walk'||o.dsHit===p.s*1e4+p.dsId||Math.abs((p.y||0)-(o.y||0))>2.2)continue;
+      let cx=p.x,cz=p.z;if(segOK){const t=clamp(((o.x-px0)*sx+(o.z-pz0)*sz)/sl2,0,1);cx=px0+sx*t;cz=pz0+sz*t;}
+      if(hyp(o.x,o.z,cx,cz)>1.25)continue;
+      const rx=o.x-bx,rz=o.z-bz;if(dl>=0.1&&rx*ddx+rz*ddz<-0.2)continue;
+      o.dsHit=p.s*1e4+p.dsId;hit++;
+      const boss=!!ZTYPES[o.t].boss,al=Math.hypot(rx,rz);
+      let ux=al>1e-3?rx/al:0,uz=al>1e-3?rz/al:0;
+      if(dl>=0.1){ux=ddx*0.65+ux*0.35;uz=ddz*0.65+uz*0.35;const ul=Math.hypot(ux,uz)||1;ux/=ul;uz/=ul;}
+      else if(al<=1e-3){ux=-Math.sin(p.yaw||0);uz=-Math.cos(p.yaw||0);}
+      if(!(o.chg>0)){const v=(dsOn?22:16)*(boss?0.35:1);o.kvx=(o.kvx||0)+ux*v;o.kvz=(o.kvz||0)+uz*v;if(!boss){o.vx*=0.2;o.vz*=0.2;}}
+      o.flReg='torso';o.flinch=1;if(!boss)o.slow=Math.max(o.slow,dsOn?1.2:0.45);
+      for(let j=0;j<(dsOn?8:4);j++)zPix(o.x,0.8+Math.random()*0.6,o.z,ux*(3+Math.random()*3)+(Math.random()-.5)*2,0.8+Math.random()*1.8,uz*(3+Math.random()*3)+(Math.random()-.5)*2,dsOn?0.055:0.04,dsOn?0.35:0.78,dsOn?0.95:0.84,dsOn?1:0.9,dsOn,0.3+Math.random()*0.25);
+      if(dsOn){const dm=boss?20:60;if(p.s===mySlot())dmgNum(o.x,(o.y||0)+1.1,o.z,dm,false);if(zShieldAbsorb(o,dm))continue;
+        o.reg.torso.hp-=dm;o.flash=1;if(o.t==='matri'&&(o.gen|0)<2&&o.reg.torso.hp<=o.max*((o.gen|0)?0.5:0.66)){zKill(o,false,p);continue;}
+        if(o.reg.torso.hp<=0)zKill(o,false,p);else o.hp=Math.max(1,Math.round(o.reg.torso.hp));}}
+    if(hit&&p._dsSnd!==p.dsId){p._dsSnd=p.dsId;const sp=spat(p.x,p.z),v=clamp(1-sp.d/30,0.15,1);snd({f:dsOn?170:135,f1:dsOn?45:55,dur:dsOn?0.16:0.11,vol:(dsOn?0.18:0.12)*v,bus:'fx',pan:sp.pan,tk:'zomb'});}}
   if(wsOn&&ZB.pools.length)for(let i=ZB.pools.length-1;i>=0;i--){const q=ZB.pools[i];if(hyp(q.x,q.z,p.x,p.z)>q.r+0.9)continue;ZB.pools.splice(i,1);
     for(let j=0;j<10;j++)zPix(q.x+(Math.random()-.5)*q.r,0.12,q.z+(Math.random()-.5)*q.r,(Math.random()-.5)*4,1.2+Math.random()*2.5,(Math.random()-.5)*4,0.055,0.4,1,0.75,true,0.55);}}
 /* Tripwire: rebuilt cover leaves a mine in front of it (a drop of type 'm', set off in zrDropTick) */
@@ -13308,6 +13342,10 @@ zcUI();modeCap();segSync();
    UPDATES below is the offline fallback and the minimum version; release notes are cached in localStorage and refreshed
    in the background, so the menu works offline and stays inside GitHub's API rate limit. Drafts and prereleases are skipped. */
 const UPDATES=[
+  {v:'0.12.1',d:'2026-11-24',t:'Dash knockback on Revenants',n:[
+    'Dashing into Revenants now shoves them back without dealing damage by default (in both Zombie Rumble and Sandbox Range).',
+    'Picking the Battering Dash Favor card adds 60 damage (20 to headliners) and heavier knockback to your dashes.',
+    'Fixed close-range Revenant separation so walking into Revenants without dashing no longer flings them backward.']},
   {v:'0.12.0',d:'2026-11-24',t:'Ember incendiary SMG and Week 2 online co-op packet fixes',n:[
     'New Zombie Rumble Legendary gun: Ember, an incendiary SMG (36 rounds, 800 rpm) with a ventilated glowing thermal shroud whose rounds ignite Revenants for burning damage over time and rising fire embers.',
     'Ember drops as a Legendary in Week 2+ (and after clearing Week 2) alongside Encore, and can be equipped immediately in the Sandbox Weapons tab.',
@@ -14345,8 +14383,9 @@ function localTick(dt){
   const maxSpd=downed?CFG.crawl:(sprinting?CFG.sprint:me.crouch?3.2:adsWant&&!myW(me.w).akimbo?4.2:CFG.speed)*myW(me.w).move*(me.chgT>0?myW(me.w).cmove:1);
   const cdt=dt*chronoAt(me.x,me.z);
   if(!alive||frozen)me.mantle=null;
+  me.dashAct=false;
   if(!canMove||me.mantle){me.vx=0;me.vz=0;me.dashT=0;}
-  else if(me.dashT>0){me.dashT-=cdt;me.vx=me.dashX*CFG.dash;me.vz=me.dashZ*CFG.dash;
+  else if(me.dashT>0){me.dashAct=true;me.dashT-=cdt;me.vx=me.dashX*CFG.dash;me.vz=me.dashZ*CFG.dash;
     if(me.dashT<=0){const e=Math.max(maxSpd,CFG.sprint*myW(me.w).move);me.vx=me.dashX*e;me.vz=me.dashZ*e;}}/* come out of it at sprint speed */
   else if(me.slideT>0&&me.ground){const f=Math.max(0,1-1.5*cdt);me.vx*=f;me.vz*=f;}
   else if(me.ground){[me.vx,me.vz]=approach(me.vx,me.vz,wx*maxSpd,wz*maxSpd,(L>0?62:48)*cdt);}
