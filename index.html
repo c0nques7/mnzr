@@ -12652,7 +12652,8 @@ function zrStart(){S.center={own:-1,cap:-1,p:0};S.armed=null;S.tickets=[0,0];S.s
   const wk=MATCH.zrWeek||1,short=MATCH.zrLen==='short';
   S.timer=0;S.phase='buy';S.t=wk===1?Math.max(CFG.buy,CFG.buy1,0.6+vxSeqLen(ZR_PA,ZR_PA_GAP)+3.4):wk===2&&net.mode==='online'?Math.max(CFG.buy,CFG.buy1,21):Math.max(CFG.buy,CFG.buy1);S.last=null;/* room for the tunnel PA or Week 2 online cold open before 3-2-1 */
   /* Week 2 (Containment Week) tours all four new stadiums: Full = Fallout -> Chronofield -> Low Orbit (away) -> Event Horizon; Short = Fallout -> Chronofield or Low Orbit -> Event Horizon */
-  const maps=wk===2?(short?['fallout',Math.random()<0.5?'chrono':'orbit','horizon']:['fallout','chrono','orbit','horizon']):null;
+  /* Week 1 (Draft Night) tours the first four stadiums the same way: Full = Yard -> Foundry -> Atrium (away) -> Warren; Short = Yard -> Foundry or Atrium -> Warren */
+  const maps=wk===2?(short?['fallout',Math.random()<0.5?'chrono':'orbit','horizon']:['fallout','chrono','orbit','horizon']):wk===1?(short?['yard',Math.random()<0.5?'foundry':'atrium','warren']:['yard','foundry','atrium','warren']):null;
   const home=maps?maps[0]:MAP.id,others=MAP_IDS.filter(m=>m!==home&&!((MAPS[m].week|0)>wk));/* a later week's maps never show up as an earlier week's away broadcast */
   const awaySeg=short?2:3,away=maps?maps[awaySeg-1]:others[(Math.random()*others.length)|0]||home;
   S.zr={c0:S.clock||0,len:short?'short':'full',week:wk,seg:0,segs:short?3:4,awaySeg,home,away,maps,
@@ -13342,6 +13343,9 @@ zcUI();modeCap();segSync();
    UPDATES below is the offline fallback and the minimum version; release notes are cached in localStorage and refreshed
    in the background, so the menu works offline and stays inside GitHub's API rate limit. Drafts and prereleases are skipped. */
 const UPDATES=[
+  {v:'0.12.2',d:'2026-11-24',t:'Week 1 tours the first four stadiums',n:[
+    'Zombie Rumble Week 1 now tours Yard, Foundry, Atrium (away broadcast) and Warren, one stadium per segment, like Week 2 does.',
+    'Short broadcasts play Yard, then Foundry or Atrium, then Warren.']},
   {v:'0.12.1',d:'2026-11-24',t:'Dash knockback on Revenants',n:[
     'Dashing into Revenants now shoves them back without dealing damage by default (in both Zombie Rumble and Sandbox Range).',
     'Picking the Battering Dash Favor card adds 60 damage (20 to headliners) and heavier knockback to your dashes.',
@@ -13534,9 +13538,9 @@ $('msprev').addEventListener('click',()=>mapStep(-1));$('msnext').addEventListen
 function msTodLabel(){$('mstod').textContent=(TOD.force||OPT.tod)==='day'?'Day':'Night';}
 $('mstod').addEventListener('click',()=>{TOD.force=(TOD.force||OPT.tod)==='day'?'night':'day';applyGfx();isoScene(true);msTodLabel();blip(980,0.022,0.012,false,'ui');});
 function msOpen(go){updOpen(false,true);dioHide();MS.go=go;MS.open=true;$('mapscr').hidden=false;$('menu').classList.add('mapon');
-  const mv=$('modesel'),w2t=mv.value==='zr'&&zcSel()===2;$('msmode').textContent=(go==='online'?'Online · ':'')+(w2t?'Week 2 tour: Fallout → Chronofield → Low Orbit → Event Horizon':mv.options[mv.selectedIndex].text.split(':')[0]);
+  const mv=$('modesel'),zw=mv.value==='zr'?zcSel():0,w2t=zw===2;$('msmode').textContent=(go==='online'?'Online · ':'')+(w2t?'Week 2 tour: Fallout → Chronofield → Low Orbit → Event Horizon':zw===1?'Week 1 tour: Yard → Foundry → Atrium → Warren':mv.options[mv.selectedIndex].text.split(':')[0]);
   $('msgo').textContent=go==='online'?'Join match':'Start match';msSync();
-  TOD.force=OPT.tod==='day'?'day':'night';applyGfx();isoScene(true);msTodLabel();ISO.t=0;isoReset();mapPick(w2t?'fallout':MATCH.map,true);blip(660,0.05,0.03,false,'ui');
+  TOD.force=OPT.tod==='day'?'day':'night';applyGfx();isoScene(true);msTodLabel();ISO.t=0;isoReset();mapPick(w2t?'fallout':zw===1?'yard':MATCH.map,true);blip(660,0.05,0.03,false,'ui');
   const on=MAPEL.querySelector('[aria-checked=true]');if(on)on.focus({preventScroll:true});}
 function msClose(){if(!MS.open)return;MS.open=false;$('mapscr').hidden=true;$('menu').classList.remove('mapon');isoScene(false);TOD.cur='';applyGfx();}
 function msSync(){const on=MS.go==='online';$('msgo').disabled=on&&$('joinbtn').disabled;$('msnote').textContent=on?$('netstatus').textContent:(matchMedia('(pointer:coarse)').matches?'Pinch to zoom, drag to look around':'Scroll or +/- to zoom, drag to look around');}
@@ -15112,7 +15116,7 @@ function introReelSet(ri){const el=INTRO.el,r=INTRO_W2_REEL[ri];if(!el||!r||INTR
   blip(220,0.08,0.05,false,'ui');}
 function introStart(then,wk,inMatch){wk=wk||1;if(INTRO.on||(S&&!inMatch))return;audioInit();sfxInit();introBuild();dioHide();
   if(!inMatch){if(MS.open){MS.open=false;isoScene(false);TOD.cur='';}$('mapscr').hidden=true;$('menu').classList.remove('mapon');$('menu').hidden=true;
-    const targetMap=wk===2?'fallout':MATCH.map;if(targetMap!==MAP.id&&setMap(targetMap))SHOW.map=MAP_IDS.indexOf(MAP.id);SHOW.want=-1;SHOW.fade=0;$('flyfade').style.opacity=0;}
+    const targetMap=wk===2?'fallout':wk===1?'yard':MATCH.map;if(targetMap!==MAP.id&&setMap(targetMap))SHOW.map=MAP_IDS.indexOf(MAP.id);SHOW.want=-1;SHOW.fade=0;$('flyfade').style.opacity=0;}
   else if(locked)try{document.exitPointerLock();}catch(e){}
   if(TOD.force!=='night'){TOD.force='night';applyGfx();}
   const w2=wk===2;
