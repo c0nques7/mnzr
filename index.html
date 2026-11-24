@@ -369,7 +369,8 @@ body.touch .stabhint{display:none}
 @media (max-width:720px){.setgrid section{columns:1}.stab{flex:1;padding:9px 6px 8px;letter-spacing:.06em}.stabhint{display:none}}
 .setgrid section>*{break-inside:avoid;margin-bottom:7px}
 #setA{columns:1}#setA .crow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}#setA .cstat{padding:9px 11px;border:1px solid var(--line);border-radius:6px;background:rgba(20,15,36,.85);font-size:14px;color:var(--fg)}
-#cloudAsk{z-index:60}#cloudAskB{font-size:14px;line-height:1.5}
+#cloudAsk{z-index:60}#cloudAsk .setcard{width:min(480px,100%);max-height:100%;overflow:auto}#cloudAskB{font-size:14px;line-height:1.5}#cloudAskB p{margin:0 0 8px}#cloudAskB p:last-child{margin:0}
+@media (max-width:520px),(max-height:420px){#cloudAsk .setcard .hd b{font-size:19px}#cloudAsk .btns .btn{flex:1 1 auto}}
 .setgrid .sgrp{display:flex;flex-direction:column;gap:7px}
 .setgrid h3{break-after:avoid;margin:6px 0 0;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600}
 .srow{display:grid;grid-template-columns:minmax(0,1fr) 58px;gap:1px 8px;align-items:center;font-size:14px;color:var(--muted)}
@@ -14106,7 +14107,7 @@ function padStick(x,y,dz){const m=Math.hypot(x,y);if(m<dz)return [0,0,0];const n
 /* which screen the pad is driving: an element to navigate, or null for play */
 function padScope(){
   if(INTRO.on)return 'intro';
-  for(const id of ['binds','settings','shop','zrlocker','updscr','lobby'])if(!$(id).hidden)return $(id);
+  for(const id of ['cloudAsk','binds','settings','shop','zrlocker','updscr','lobby'])if(!$(id).hidden)return $(id);
   if(!$('menu').hidden){if(MS.open)return $('mapscr');return !$('mpanel').hidden?$('mpanel'):$('menu');}
   for(const id of ['endscr','pause','sbpanel'])if(!$(id).hidden)return $(id);
   if(WH.open)return 'wheel';
@@ -15308,8 +15309,10 @@ warmUI(0,'Compiling shaders…');
   function status(txt){const e=$('cstat');if(e)e.textContent=txt;}
   function paint(){const b=$('cSign'),u=$('cUpload');if(b)b.textContent=me?'Sign out':'Sign in with Google';if(u)u.disabled=!me;
     if(me)status('Signed in as '+me.name+(me.email?' · '+me.email:'')+' · cloud save ready');}
+  /* body: plain text, or an array of plain-text paragraphs */
   function ask(title,sub,body,buttons){
-    const ov=$('cloudAsk');$('cloudAskT').textContent=title;$('cloudAskS').textContent=sub||'';$('cloudAskB').textContent=body;
+    const ov=$('cloudAsk'),bd=$('cloudAskB');$('cloudAskT').textContent=title;$('cloudAskS').textContent=sub||'';bd.textContent='';
+    for(const t of [].concat(body)){const p=document.createElement('p');p.textContent=t;bd.appendChild(p);}
     const box=$('cloudAskBtns');box.textContent='';
     return new Promise(res=>{
       const done=v=>{ov.hidden=true;ov._ask=null;res(v);};
@@ -15321,7 +15324,14 @@ warmUI(0,'Compiling shaders…');
   }
   const ov=$('cloudAsk');
   ov.addEventListener('click',e=>{if(e.target===ov&&ov._ask)ov._ask(null);});
-  document.addEventListener('keydown',e=>{if(ov.hidden)return;e.preventDefault();e.stopPropagation();if(e.code==='Escape'&&ov._ask)ov._ask(null);},true);
+  /* window capture so the menu's own arrow/Enter navigation underneath never sees keys meant for this dialog
+     (the gamepad sends its D-pad/A/B here as Arrow/Enter/Escape too) */
+  addEventListener('keydown',e=>{if(ov.hidden)return;e.preventDefault();e.stopImmediatePropagation();
+    const bs=[...$('cloudAskBtns').children],i=bs.indexOf(document.activeElement);
+    if(e.code==='Escape'||e.code==='Backspace'){if(ov._ask)ov._ask(null);}
+    else if(/^(Enter|NumpadEnter|Space)$/.test(e.code)){if(!e.repeat)(bs[i]||bs[0])?.click();}
+    else if(/^(Arrow(Left|Right|Up|Down)|Tab|Key[WASD])$/.test(e.code)&&bs.length){const d=/Left|Up|KeyW|KeyA/.test(e.code)||(e.code==='Tab'&&e.shiftKey)?-1:1;
+      bs[(i<0?0:i+d+bs.length)%bs.length].focus();}},true);
 
   /* base: the cloud `at` we expect to replace (defaults to the last one synced); pass the server's current `at` to overwrite on purpose */
   async function upload(base){
@@ -15433,6 +15443,27 @@ warmUI(0,'Compiling shaders…');
   /* a fresh Google redirect signs in; otherwise restore the saved sign-in so syncing keeps working after a reload */
   if(/^#auth=/.test(location.hash||''))readHash();else if(localStorage.getItem(TOKEN)){status('Signing in…');afterSignIn(true);}
   setInterval(()=>{if(me&&!busy&&!conflict&&serial()!==baseline)upload();},8000);
+  /* First visit: explain cloud saves once per browser (za-signask, set whichever way it's answered). Only on the bare main
+     menu once the arena warm-up is done: never in a match, the Sandbox, a submenu or behind the portrait warning, and never
+     for someone already signed in (or signing in). Waits for 1.5 s of the menu being idle before it appears. */
+  const ASK='za-signask';
+  let seen=false,calm=0;
+  try{seen=localStorage.getItem(ASK)==='1';}catch(e){}
+  const menuIdle=()=>{const rw=$('rotwarn');
+    return !$('menu').hidden&&!$('menu').classList.contains('sub')&&$('mpanel').hidden&&!$('menu').classList.contains('mapon')
+      &&$('settings').hidden&&ov.hidden&&!$('mapwarm')&&!(rw&&rw.style.display!=='none')&&!document.querySelector('.overlay:not([hidden]):not(#menu)')&&$('updscr').hidden
+      &&!INTRO.on;};
+  async function firstAsk(){
+    seen=true;try{localStorage.setItem(ASK,'1');}catch(e){}
+    const v=await ask('Save your progress','',
+      ['Sign in with Google to keep your Locker, weapon builds, level and campaign progress on every browser and device you play on.',
+       'If you skip this, your progress is saved only in this browser on this device. You can sign in any time from Cloud save in the main menu.'],
+      [{label:'Sign in with Google',v:'in',primary:true},{label:'Not now',v:null}]);
+    if(v==='in'&&!me)signIn();
+  }
+  if(!seen){const t=setInterval(()=>{
+    if(seen||me||localStorage.getItem(TOKEN)||/^#auth=/.test(location.hash||'')){clearInterval(t);return;}
+    calm=menuIdle()?calm+1:0;if(calm>=3){clearInterval(t);firstAsk();}},500);}
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&me&&!busy&&!conflict&&serial()!==baseline)upload();});
 })();
 window.__za={localTick:dt=>localTick(dt),showWeapon:k=>showWeapon(k),trigger:v=>{mouseDown=!!v;dragMode=true;},wheelKeys:()=>wheelKeys(),GLS,avatars,frame:t=>frameBody(t),BEAMP,intro:INTRO,ml:ML,sites:siteGrp,mf:{MF,MFV,MFA,ZS,ZSV,ZST,RG,EHH,ehPull:(x,z,m)=>ehPull(x,z,m),pulseAt:t=>pulseAt(t),orbAt:t=>orbAt(t),radAt:(x,z)=>radAt(x,z),coreAt:t=>coreAt(t),rainAt:t=>rainAt(t),zMutate:o=>zMutate(o),shotDmg:(k,h,d)=>shotDmg(k,h,d,wOf(k)),zsWant:Z=>zsWant(Z),zsOn:k=>zsOn(k),dropAt,magAt,ventAt,doorAt,ptlAt,scanAt,shutAt,zsT:()=>zsT(),zsLinks:()=>zsLinks(),rebuildGrid:()=>rebuildGrid(),craneAt:t=>craneAt(t),pourAt:t=>pourAt(t),mfT:()=>mfT(),damagePane:(i,d)=>damagePane(i,d),setMap:id=>setMap(id),tick:dt=>mfTick(dt)},dio:DIO,lx:LX,opt:OPT,zr:{ZB,ZR,ZCARDS,ZCAMP,zrEnd:(w,y)=>zrEnd(w,y),zcCarryCode:()=>zcCarryCode(),zrCardSend:c=>zrCardSend(c),zrCardAct:(p,c)=>zrCardAct(p,c),zrSeg:n=>zrSeg(n),zrInter:()=>zrInter(),zAoe:(...a)=>zAoe(...a),zSpawn:(t,x,z,y,e)=>zSpawn(t,x,z,y,e),zTick:dt=>zTick(dt),zRender:dt=>zRender(dt),zClear:()=>zClear(),zRay:(...a)=>zRay(...a),zHorde:()=>zHorde(),rgOn:()=>rgOn(),zBurst:(z,b)=>zBurst(z,b),zPack:()=>zPack(),zApplyT:(z,e,b)=>zApply(z,e,b),zSync:(a,b)=>zSync(a,b),zrWave:n=>zrWave(n),zKill:(z,h,b)=>zKill(z,h,b),zHitAt:(...a)=>zHitAt(...a),zDeliver:()=>zDeliver(),ZD,zWallRay:(...a)=>zWallRay(...a),losPts:(...a)=>losPts(...a)},sim:{hostTick:dt=>hostTick(dt),coverTick:dt=>coverTick(dt),newMatch:()=>newMatch(),MATCH,dmSpawnSpot:p=>dmSpawnSpot(p),findPath:(a,b,c,d)=>findPath(a,b,c,d),freeAt:(x,z)=>freeAt(x,z),losPts:(...a)=>losPts(...a),DM_PTS,BOXES},BL,fire:()=>{const s=mySlot();if(s>=0)fire(s);},damage:(t,d,a,h)=>damage(t,d,a,h),prog:{PROG,PARTS,myW,modW,progSave,progLoad,rebuildVW,lvlOf,XPR},LX,MU,MM,WM,VB,OPT,AU,dev:{DEV,TUNE,GUN,W,COVER0,TWIN,STEP_MODE,devCollect,devApply},damageCover,COVER,coverVis,WH,openWheel:m=>openWheel(m),closeWheel:c=>closeWheel(c),wheelMove:(x,y)=>wheelMove(x,y),gfx:{renderer,scene,camera,applyGfx,DR,render:()=>renderScene(),FREF,BEAMS,MB,me,get gtao(){return gtaoPass;}},openPause:()=>openPause(),closePause:()=>closePause(),leaveMatch:()=>leaveMatch(),get S(){return S;},me,net,DMGDIR,rg:{RG,rgAdd,rgRemove,rgClear,BOXES},maps:{MAPS,MAP,MATCH,setMap,SITES,DM_PTS,findPath,freeAt,simTick:dt=>netTick(dt),SHOW,showCut:i=>showCut(i),TOD,ISO},botMem,CFG,SB,OPT,AU,get actx(){return actx;},mySlot:()=>mySlot(),sfx:{hitCue,HITX,footstep,slideSound,dashRcSound,get dashRcBuf(){return dashRcBuf;},shotSound,stepSound,voicePlay,vxStretch,VQ,announce,vxGraph,vxOpt,VOICE_G,get VB(){return VB;},voiceInit,get stepBufs(){return stepBufs;},get slideBuf(){return slideBuf;},get gunBufs(){return gunBufs;}}};
