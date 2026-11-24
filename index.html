@@ -6809,9 +6809,13 @@ function regenTick(dt){const rg=S.regen;if(!rg)return;for(let i=0;i<rg.length;i+
 /* ---------- map features, host side: the Foundry pour burns whoever stands on the channel floor, glass panes rebuild ---------- */
 function envHurt(p,d,why){if(!S||S.phase!=='live'||!p)return;if(SB.on&&SB.god&&!p.bot)return;
   if(S.mode==='zr'&&d<500)d*=1-0.15*zlv(p,'h');
-  if(p.st==='alive'){if(p.prot>0)return;p.hp-=d;p.ak=null;p.ap=0;p.burnT=S.clock;if(p.hp>0)return;p.hp=0;
+  if(p.st==='alive'){if(p.prot>0)return;p.hp-=d;p.ak=null;p.ap=0;p.burnT=S.clock;
+    if(S.mode==='zr'&&d<500&&p.hp>0&&p.hp<30&&!p.edUsed&&zrV(p,'ed')){p.edUsed=1;p.hp=Math.min(zrMaxHp(p),p.hp+zrV(p,'ed'));feed(`An ORBIT drone patches ${p.name} up`);}
+    if(S.mode==='zr'&&d<500&&p.hp<=0){const q=S.players.find(o=>o!==p&&o.st==='alive'&&zrHas(o,'lf')&&!o.lfUsed&&hyp(o.x,o.z,p.x,p.z)<6);if(q){q.lfUsed=1;p.hp=1;feed(`${q.name}'s Lifeline keeps ${p.name} up`);}}
+    if(S.mode==='zr'&&d<500&&p.hp<=0&&zrHas(p,'rc')&&!p.rcUsed){p.rcUsed=1;p.rcN=(p.rcN|0)+1;p.hp=zrMaxHp(p);feed(`${p.name} is reprinted on the spot (Reprint Clause)`);}
+    if(p.hp>0)return;p.hp=0;
     if(S.mode==='dm'){p.st='dead';p.deadT=CFG.dmRespawn;p.d=(p.d|0)+1;feed(`${p.name} ${why}`);}
-    else if(S.mode==='zr'){p.st='down';p.dhp=CFG.downHP;p.downT=CFG.zrBleed;p.d=(p.d|0)+1;feed(`${p.name} is down, ${why}`);}
+    else if(S.mode==='zr'){p.st='down';p.dhp=CFG.downHP;p.downT=CFG.zrBleed+(zrSet(p,'med')>1?10:0)+4*zlv(p,'b');p.d=(p.d|0)+1;feed(`${p.name} is down, ${why}`);}
     else{p.st='down';p.dhp=CFG.downHP;p.downT=CFG.bleed;feed(`${p.name} went down, ${why}`);}}
   else if(p.st==='down'&&S.mode==='zone'){p.dhp-=d;if(p.dhp<=0)die(p,null,why);}}
 function damagePane(i,d){if(!S||S.phase!=='live'||!S.pane||!(S.pane[i]>0)||(MF.panes[i]&&MF.panes[i].ptl))return;S.pane[i]=Math.max(0,S.pane[i]-d);
@@ -7501,8 +7505,9 @@ function onRemoteHit(msg){
   const a=S.players.find(p=>p.peer===msg.peer);const t=S.players[d.t|0];
   if(a&&d.again){if(S.phase==='over'){S.again=S.again||[];if(!S.again.includes(a.s))S.again.push(a.s);}return;}
   if(a&&d.zc&&typeof d.zc==='object'){if(S.mode==='zr'&&['pick','buy','reroll','ready','gun','dir'].includes(d.zc.a)&&(d.zc.id==null||ZCARDS[d.zc.id]))zrCardAct(a,{a:d.zc.a,id:d.zc.id,to:d.zc.to?1:0});return;}
-  if(!a||a.st!=='alive')return;
-  if(Array.isArray(d.zr)){if(S.mode==='zr')zRemoteHit(a,d.zr);return;}
+  if(!a)return;
+  if(Array.isArray(d.zr)){if(S.mode==='zr'&&(a.st==='alive'||(a.st==='down'&&zrV(a,'lb')>0)))zRemoteHit(a,d.zr);return;}
+  if(a.st!=='alive')return;
   const aw=wOf(a.w);const dmg=clamp(Math.round(+d.d||0),1,aw.head*(aw.pel||1));
   const now=performance.now();const log=net.hitLog[msg.peer]||(net.hitLog[msg.peer]=[]);while(log.length&&now-log[0]>1000)log.shift();if(log.length>=22)return;log.push(now);
   if(Number.isInteger(d.b)){damageCover(d.b,aw.dmg);return;}
@@ -11739,6 +11744,8 @@ function zTick(dt){if(S&&S.phase==='over'&&ZB.list.length){zOverClear(dt);return
     const zdt=dt*chronoAt(z.x,z.z);
     if(z.zg){z.groanT-=dt;if(z.groanT<=0){z.groanT=3+Math.random()*6;zGroan(z);}continue;}
     z.cd=Math.max(0,z.cd-zdt);z.slow=Math.max(0,z.slow-zdt);z.flinch=Math.max(0,z.flinch-zdt*4);
+    if((z.mk||0)>zClk())z.flash=Math.max(z.flash,0.22+0.18*Math.sin(S.clock*14));
+    if(!ZTYPES[z.t].boss&&z.stun>0){z.stun=Math.max(0,z.stun-zdt);z.wind=0;z.sw=0;z.spd=0;z.vx=z.vz=0;z.atkK=Math.max(0,z.atkK-zdt*3);continue;}
     // nearest target
     let tg=null,td=1e9;for(const p of T){const d=hyp(p.x,p.z,z.x,z.z);if(d<td){td=d;tg=p;}}
     if(z.t==='jugg'&&zBossTick(z,tg,td,zdt))continue;
@@ -12053,7 +12060,7 @@ function zKill(z,head,by,remote){z.hp=0;z.st='dead';z.deadT=0;z.wind=0;z.fallDir
 /* one shooter's hits on one Revenant this shot (by: the player who fired; numbers and the kill call only show for your own) */
 function zApply(z,e,by,pred){if(z.st==='dead')return false;const boss=!!ZTYPES[z.t].boss,l=Math.hypot(e.dx,e.dz)||1,ux=e.dx/l,uz=e.dz/l;
     // run cards (Heavy Rounds, Hollow Points) and the Juggernaut's plating: 30% from the front, 160% in the back
-    if(S&&S.mode==='zr'){const hv=(by&&by.st==='down'?zrV(by,'lb')||1:1)*(1+zrV(by,'hv'))*[1,1.05,1.15][zrSet(by,'arm')]*zrSwDmg(by)*(zrHas(by,'ex')?1.4:1)*(z.elite?1+zrV(by,'os'):1)*(z.reg.torso.hp<z.reg.torso.max?1+zrV(by,'wp'):1)*((z.mk|0)>zClk()?1.4:1),hp=1+zrV(by,'hp');let pl=1;
+    if(S&&S.mode==='zr'){const hv=(by&&by.st==='down'?zrV(by,'lb')||1:1)*(1+zrV(by,'hv'))*[1,1.05,1.15][zrSet(by,'arm')]*zrSwDmg(by)*(zrHas(by,'ex')?1.4:1)*(z.elite?1+zrV(by,'os'):1)*(z.reg.torso.hp<z.reg.torso.max?1+zrV(by,'wp'):1)*((z.mk||0)>zClk()?1.4:1),hp=1+zrV(by,'hp');let pl=1;
       // Overwatch: every 8 s your next hit marks the Revenant (host side)
       if(!pred&&!zGuest()&&zrHas(by,'ow')&&zClk()-(by.owT||-99)>=8){by.owT=zClk();z.mk=zClk()+5;}
       if(boss){const f=ux*-Math.sin(z.yaw)+uz*-Math.cos(z.yaw);pl=z.t==='matri'?(f>0.35?1.6:1):f<-0.2?0.3:f>0.35?1.6:0.7;e.plate=pl;}
@@ -12425,8 +12432,8 @@ const ZCARDS={
   ow:{h:'arm',b:'NOVA//OPTICS',n:'Overwatch',r:3,d:'Every 8 s your next hit marks its Revenant: it takes 40% more damage from you both for 5 s'},
   // KRAKKA: cola cans that kills drop (Medica)
   ic:{h:'med',b:'KRAKKA',n:'Ice Cold',r:1,d:'# of your kills drop a KRAKKA can. Either of you can grab it for 15 HP',v:[0.15,0.22,0.3],t:['15%','22%','30%']},
-  sh:{h:'med',b:'KRAKKA',n:'Sugar High',r:2,d:'Your cans also give # move speed for 4 s',v:[0.15,0.22,0.3],t:['+15%','+22%','+30%']},
-  ss:{h:'med',b:'KRAKKA',n:'Shake and Spray',r:3,d:'Your cans burst when grabbed, staggering and hurting Revenants within 4 m (30 damage)'},
+  sh:{h:'med',b:'KRAKKA',n:'Sugar High',r:2,req:'ic',d:'Your cans also give # move speed for 4 s',v:[0.15,0.22,0.3],t:['+15%','+22%','+30%']},
+  ss:{h:'med',b:'KRAKKA',n:'Shake and Spray',r:3,req:'ic',d:'Your cans burst when grabbed, staggering and hurting Revenants within 4 m (30 damage)'},
   // VOLTEX, the official drink of Season 100 (Kinetics)
   vt:{h:'kin',b:'VOLTEX',n:'Official Drink',r:2,d:'# of your headshot kills drop a VOLTEX can. Whoever grabs it gets their dash back and fires 25% faster for 5 s',v:[0.3,0.45,0.6],t:['30%','45%','60%']},
   // ORBIT: logistics (Arena Works)
@@ -12635,7 +12642,7 @@ function zrTick(dt){const Z=S.zr;if(!Z)return;S.timer+=dt;zrDropTick();const sho
       if(zrHas(p,'sw')&&!p.swUsed){p.swT=(p.swT||0)+dt;if(p.swT>=3){p.swUsed=1;p.swT=0;p.st='alive';p.hp=40;feed(`${p.name} gets up on their own (Second Wind)`);continue;}}
       if(p.downT<=0)die(p,null,'bled out');else if(p.give){p.giveT=(p.giveT||0)+dt;if(p.giveT>=1.2)die(p,null,'gave up');}else p.giveT=0;/* giving up takes a 1.2 s hold, so a tap of Use while down can't do it */}
     else if(p.st==='alive'){p.swT=0;actions(p,dt,'zr');zrDashHit(p,dt);zrTackle(p);}}
-  if(Z.ph!=='inter'&&!S.players.some(p=>p.st==='alive')){zrEnd(false,S.players.length>1?'Nobody left standing':'You went down');return;}
+  if(Z.ph!=='inter'&&!S.players.some(p=>p.st==='alive'||(p.st==='down'&&zrHas(p,'sw')&&!p.swUsed))){zrEnd(false,S.players.length>1?'Nobody left standing':'You went down');return;}
   // card effects that belong to the stadium
   {const cap=zrAny('rb')?Math.min(...S.players.filter(p=>zrHas(p,'rb')).map(p=>zrV(p,'rb'))):S.players.some(p=>zrSet(p,'ark')>1)?4:0;if(cap&&S.regen)for(let i=0;i<S.regen.length;i++)if(S.regen[i]>cap)S.regen[i]=cap;}
   if(zrAny('mn'))for(const k of ['A','B']){Z.mine[k]=Math.max(0,(Z.mine[k]||0)-dt);if(Z.mine[k]>0)continue;const s=SITES[k];
@@ -12668,16 +12675,16 @@ function zrInter(){const Z=S.zr;Z.ph='inter';Z.t=30;zClear();zrRegroup();Z.rrN={
 /* levels: a Standard or Rare card you hold can come back until it is level III; Signature and Benefactor cards are one per run */
 function zCap(id){return ZCARDS[id].r>=3?1:3;}
 function zrRoll(p,n){const own=new Set((S.zr.offers&&S.zr.offers[p.s])||[]),wk=(S.zr&&S.zr.week)|0,pool=[];
-  for(const id in ZCARDS){if(own.has(id)||ZCARDS[id].r===4||(ZCARDS[id].w|0)>wk||zrLv(p,id)>=zCap(id))continue;const r=ZCARDS[id].r;for(let i=0;i<(r===1?6:r===2?3:1);i++)pool.push(id);}
+  for(const id in ZCARDS){const c=ZCARDS[id];if(own.has(id)||c.r===4||(c.w|0)>wk||(c.req&&!zrLv(p,c.req))||zrLv(p,id)>=zCap(id))continue;const r=c.r;for(let i=0;i<(r===1?6:r===2?3:1);i++)pool.push(id);}
   const out=[];while(out.length<n&&pool.length){const id=pool[(Math.random()*pool.length)|0];if(!out.includes(id))out.push(id);for(let i=pool.length-1;i>=0;i--)if(pool[i]===id)pool.splice(i,1);}
   // the Benefactors bid rarely: one in ten offers swaps its last card for one of theirs (never more than one)
   if(out.length&&Math.random()<0.1){const bs=Object.keys(ZCARDS).filter(id=>ZCARDS[id].r===4&&!zrLv(p,id));if(bs.length)out[out.length-1]=bs[(Math.random()*bs.length)|0];}
   return out;}
 /* a player's choice at the intermission (the host applies its own, its bots' and its guests') */
 function zrCardAct(p,c){const Z=S&&S.zr;if(!Z||Z.ph!=='inter'||!p||!c)return;const s=p.s,of=Z.offers[s]||[];p.cards=p.cards||[];
-  if(c.a==='pick'&&!Z.picked[s]&&of.includes(c.id)&&ZCARDS[c.id].r!==4&&zrLv(p,c.id)<zCap(c.id)){p.cards.push(c.id);Z.picked[s]=1;of.splice(of.indexOf(c.id),1);const lv=zrLv(p,c.id);feed(lv>1?`${p.name} levels ${ZCARDS[c.id].n} to ${ZROMAN[lv]}`:`${p.name} takes ${ZCARDS[c.id].n}`);}
+  if(c.a==='pick'&&!Z.picked[s]&&of.includes(c.id)&&ZCARDS[c.id].r!==4&&(!ZCARDS[c.id].req||zrLv(p,ZCARDS[c.id].req))&&zrLv(p,c.id)<zCap(c.id)){p.cards.push(c.id);Z.picked[s]=1;of.splice(of.indexOf(c.id),1);const lv=zrLv(p,c.id);feed(lv>1?`${p.name} levels ${ZCARDS[c.id].n} to ${ZROMAN[lv]}`:`${p.name} takes ${ZCARDS[c.id].n}`);}
   else if(c.a==='buy'&&Z.picked[s]&&of.includes(c.id)){const cost=ZCOST[ZCARDS[c.id].r];if((p.fv|0)<cost)return;
-    const to=c.to?S.players.find(q=>q!==p):p;if(!to||zrLv(to,c.id)>=zCap(c.id))return;to.cards=to.cards||[];
+    const to=c.to?S.players.find(q=>q!==p):p;if(!to||(ZCARDS[c.id].req&&!zrLv(to,ZCARDS[c.id].req))||zrLv(to,c.id)>=zCap(c.id))return;to.cards=to.cards||[];
     p.fv-=cost;to.cards.push(c.id);of.splice(of.indexOf(c.id),1);feed(to===p?`${p.name} buys ${ZCARDS[c.id].n}`:`${p.name} buys ${ZCARDS[c.id].n} for ${to.name}`);}
   else if(c.a==='dir'&&Z.dir){Z.dirOn=Z.dirOn?0:1;feed(Z.dirOn?`${p.name} takes the directive: ${ZDIR[Z.dir].n}`:`${p.name} turns the directive down`);}
   else if(c.a==='gun'&&Z.picked[s]&&Z.gun&&Z.gun[s]&&(p.fv|0)>=ZGUN){p.fv-=ZGUN;p.dropW=Z.gun[s];p.sw=null;Z.gun[s]=null;feed(`${p.name} takes the ${W[p.dropW].name} drop`);}
@@ -12706,12 +12713,12 @@ function zrDashHit(p,dt){const dsOn=zrHas(p,'ds'),wsOn=zrHas(p,'ws');if(!dsOn&&!
   if(wsOn&&ZB.pools.length)for(let i=ZB.pools.length-1;i>=0;i--){const q=ZB.pools[i];if(hyp(q.x,q.z,p.x,p.z)>q.r+0.9)continue;ZB.pools.splice(i,1);
     for(let j=0;j<10;j++)zPix(q.x+(Math.random()-.5)*q.r,0.12,q.z+(Math.random()-.5)*q.r,(Math.random()-.5)*4,1.2+Math.random()*2.5,(Math.random()-.5)*4,0.055,0.4,1,0.75,true,0.55);}}
 /* Tripwire: rebuilt cover leaves a mine in front of it (a drop of type 'm', set off in zrDropTick) */
-function zrTripwire(b){if(!S||S.mode!=='zr'||!S.zr||!S.zr.drops)return;const o=S.players.find(p=>zrV(p,'tw'));if(!o)return;const Z=S.zr,cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2;
+function zrTripwire(b){if(!S||S.mode!=='zr'||!S.zr||!S.zr.drops)return;const o=S.players.reduce((a,p)=>zrV(p,'tw')>zrV(a,'tw')?p:a,null);if(!o||!zrV(o,'tw'))return;const Z=S.zr,cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2;
   for(const [x,z] of [[cx,b.z1+0.9],[cx,b.z0-0.9],[b.x1+0.9,cz],[b.x0-0.9,cz]])if(freeAt(x,z)){Z.drops.push({t:'m',o:o.s,i:++Z.di,x:+x.toFixed(2),z:+z.toFixed(2),e:Math.round(S.timer+60)});break;}
   let c=Z.drops.filter(d=>d.t==='m');while(c.length>4){Z.drops.splice(Z.drops.indexOf(c[0]),1);c.shift();}}
 /* Slide Tackle: a sliding player trips the Revenants they slide into */
 function zrTackle(p){const v=zrV(p,'st');if(!v||p.bot)return;const sl=p.s===mySlot()?me.slideT>0:!!((net.mode==='online'&&presenceOf(p.peer))||{}).sl;if(!sl)return;
-  for(const o of ZB.list){if(o.st!=='walk'||ZTYPES[o.t].boss||hyp(o.x,o.z,p.x,p.z)>1.2||o.slow>=v-0.05)continue;o.slow=v;o.flinch=1;o.flash=0.6;}}
+  for(const o of ZB.list){if(o.st!=='walk'||ZTYPES[o.t].boss||hyp(o.x,o.z,p.x,p.z)>1.2||(o.stun||0)>=v-0.05)continue;o.stun=v;o.wind=0;o.sw=0;o.flinch=1;o.flash=0.6;}}
 /* kill bookkeeping for Favor: headshots, multi-kills (each within 1 s of the last), wallrun kills, Bloodletting, Crowd Roar */
 function zrOnKill(z,head,by){if(!by||!S||S.mode!=='zr')return;const c=S.clock;by.zmk=by.zmkT!=null&&c-by.zmkT<=1?(by.zmk|0)+1:1;by.zmkT=c;
   zrFavor(by,ZFV.kill+(head?ZFV.head*(zrV(by,'sb')||1):0)+(by.zmk>1?ZFV.multi+zrV(by,'hr'):0)+(by.wr?2:0));
@@ -12888,10 +12895,10 @@ function zrInterUI(P){const Z=S.zr,el=$('zrint'),on=S.phase==='live'&&Z.ph==='in
   $('zrintS').textContent=pk?`Favor ${fv}. Buy another card, reroll, or ready up for segment ${Z.seg+1}${nxt}`:`Segment ${Z.seg} survived. The patrons are bidding: take one card, free · Favor ${fv}`;
   const mk=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n;};
   const who=gift&&pk?mate:P,held=h=>([...new Set(who.cards||[])].filter(q=>ZCARDS[q]&&ZCARDS[q].h===h).length);
-  $('zrcards').replaceChildren(...of.map((id,i)=>{const c=ZCARDS[id],cost=ZCOST[c.r],lv=zrLv(who,id),mx=lv>=zCap(id),no=rd||mx||(pk?fv<cost:c.r===4),b=mk('button','zcard r'+c.r);b.type='button';
+  $('zrcards').replaceChildren(...of.map((id,i)=>{const c=ZCARDS[id],cost=ZCOST[c.r],lv=zrLv(who,id),mx=lv>=zCap(id),missReq=!!(c.req&&!zrLv(who,c.req)),no=rd||mx||missReq||(pk?fv<cost:c.r===4),b=mk('button','zcard r'+c.r);b.type='button';
     b.style.setProperty('--rc',ZRARC[c.r]);b.setAttribute('aria-disabled',no);const hn=held(c.h);
     const top=mk('span','ztop'),spn=mk('span','zsp');spn.append(mk('b','',zBrand(c)),mk('span','',c.h==='bnf'?'No house':'for '+ZHOUSE[c.h][0]));top.append(zGlyphEl(id),spn,mk('span','zk',TOUCH.on?'':String(i+1)));
-    const [sl,up]=mx?[`${who===P?'You':who.name} already ${lv>1?'have it at level '+ZROMAN[lv]:'hold'+(who===P?'':'s')+' this card'}`,0]:c.r===4?[`<em>Price:</em> ${c.x}`,1]:lv?[`Levels up to <em>${ZROMAN[lv+1]}</em> (now ${c.t[lv-1]}) · no extra ${ZHOUSE[c.h][0]} set count`,1]:zrStackLine(c,hn),st=mk('span','zst'+(up?' up':''));st.innerHTML=sl;
+    const [sl,up]=missReq?[`${who===P?'Requires':who.name+' needs'} ${ZCARDS[c.req].n}`,0]:mx?[`${who===P?'You':who.name} already ${lv>1?'have it at level '+ZROMAN[lv]:'hold'+(who===P?'':'s')+' this card'}`,0]:c.r===4?[`<em>Price:</em> ${c.x}`,1]:lv?[`Levels up to <em>${ZROMAN[lv+1]}</em> (now ${c.t[lv-1]}) · no extra ${ZHOUSE[c.h][0]} set count`,1]:zrStackLine(c,hn),st=mk('span','zst'+(up?' up':''));st.innerHTML=sl;
     b.append(top,mk('span','zr',`${ZRARP[c.r]} ${ZRAR[c.r]}`+(c.t&&lv&&!mx?` · Level ${ZROMAN[lv+1]}`:'')),mk('b','',c.n+(lv&&!mx?' '+ZROMAN[lv+1]:'')),mk('span','zd',zDesc(c,mx?lv:lv+1)),st,
       mk('span','zc',pk?`${cost} Favor${who!==P?' · for '+who.name:''}`:c.r===4?`${cost} Favor · after your free pick`:'Free pick'));
     b.addEventListener('click',()=>{if(b.getAttribute('aria-disabled')==='true')return;blip(980,0.022,0.012,false,'ui');zrCardSend(pk?{a:'buy',id,to:who!==P?1:0}:{a:'pick',id});});return b;}));
@@ -13241,6 +13248,13 @@ zcUI();modeCap();segSync();
    UPDATES below is the offline fallback and the minimum version; release notes are cached in localStorage and refreshed
    in the background, so the menu works offline and stays inside GitHub's API rate limit. Drafts and prereleases are skipped. */
 const UPDATES=[
+  {v:'0.11.1',d:'2026-11-24',t:'Favor card reliability and online co-op fixes',n:[
+    'Second Wind now prevents an instant wipe when the last player standing goes down with an unused self-revive.',
+    'Last Breath now works properly for online co-op guests and keeps your gun viewmodel, crosshair and reload ring visible while shooting from the floor.',
+    'Slide Tackle now actually stuns regular Revenants (halting movement and canceling attacks for 1.5–2.5 s) instead of only slowing them.',
+    'KRAKKA Sugar High and Shake and Spray now require Ice Cold before rolling (or being gifted), so you never pull a dead can-modifier card.',
+    'Express Drone, Lifeline, Reprint Clause, Medica set III bleed-out time and Iron Lungs now trigger properly on arena hazards (radiation, Fallout Rain, Foundry pour and Container Drop).',
+    'NOVA//OPTICS Overwatch mark now lasts the full 5 seconds with a subtle target pulse, and Tripwire uses the highest card level on the team.']},
   {v:'0.11.0',d:'2026-11-23',t:'Week 2 hazard Favor cards and Week 2 Locker shelf',n:[
     'Four new Week 2+ Favor cards offered from Week 2 onward: KRAKKA Sealant Boots (acid pools and walls hurt 60–90% less), HEXFORGE Throat Cutter (+2–4 Favor on Spitter throat shots and Matriarch back-sac hits), IRONLEAF Hazard Shunt (Revenants take 2×–3× damage from arena hazards and your rad meter fills half as fast), and VOLTEX Splash Step (dashing through an acid pool clears it).',
     'Week 2 clear reward: beating Containment Week unlocks the Week 2 Locker shelf with three new permanent Zombie Rumble upgrades — Vitality (+10 max HP per level, up to 130 HP), Extra thruster (+1 starting dash charge), and Containment suit (15% less acid/hazard damage and slower rad fill per level).',
@@ -14142,7 +14156,7 @@ function padTick(dt){
   if(hit(PB.rb)||hit(PB.rs))me.dashBuf=0.12;
   // X: tap reloads, hold uses (revive / arm / defuse / take a gun); LB always uses; when downed both hold "give up"
   if(hit(PB.x)){PAD.xT=performance.now();PAD.xUse=!$('prompt').hidden||!!document.querySelector('#zrwcard:not([hidden]) .zwp:not(.far)');}
-  if(up(PB.x)&&!PAD.xUse&&performance.now()-PAD.xT<350&&alive)startReload();
+  if(up(PB.x)&&!PAD.xUse&&performance.now()-PAD.xT<350&&(alive||(downed&&S.mode==='zr'&&zrMyV('lb')>0)))startReload();
   const useHeld=b[PB.lb]||(b[PB.x]&&(PAD.xUse||performance.now()-PAD.xT>=350));
   padOut('KeyF',useHeld&&!downed,v=>{keys.KeyF=v;});padOut('KeyG',useHeld&&downed,v=>{keys.KeyG=v;});
   // Y: hold for the weapon wheel where switching is allowed (round start freeze, sandbox)
@@ -14339,7 +14353,7 @@ function localTick(dt){
   const fovT=(sliding||me.wr?OPT.fov+10:OPT.fov+8*me.sprintK-24*me.ads*(OPT.fov/78)*myW(me.w).zoom)+9*me.dashK*RM;me.fov+=(fovT-me.fov)*Math.min(1,dt*12);
   if(Math.abs(camera.fov-me.fov)>0.05){camera.fov=me.fov;camera.updateProjectionMatrix();}
   // viewmodel
-  vm.visible=alive;
+  vm.visible=alive||(downed&&S.mode==='zr'&&zrMyV('lb')>0);
   const a=me.ads,sk=me.sprintK*(1-a),ak=myW(me.w).akimbo?1:0,skR=sk*(1-ak),mh=me.mantle?Math.sin(Math.PI*me.mantle.t):0,h=1-a,hs=1-0.7*a;
   const bx=Math.cos(me.bob)*(0.012+0.014*sk)*me.bobAmp*(1-0.85*a)*RM,by=Math.abs(Math.sin(me.bob))*(0.012+0.01*sk)*me.bobAmp*(1-0.85*a)*RM;
   /* reload in beats: roll the gun over, tug the mag out (support hand leaves), seat the new one, roll back, and slam the bolt if it ran dry */
@@ -14441,11 +14455,11 @@ function zHitDirect(z,dmg,ox,oz){const a=ZB.acc;if(!a||z.st==='dead'||!z.posed)r
 const chEl=['chT','chB','chL','chR'].map($);
 function feelHud(dt){
   {const sI=mySlot();if(sI>=0)vCuff.color.copy(lin(S.players[sI].team===0?0x2b4a7c:0x7c3f22));}
-  const s=mySlot(),P=s>=0?S.players[s]:null,alive=P&&P.st==='alive';
+  const s=mySlot(),P=s>=0?S.players[s]:null,alive=P&&P.st==='alive',canShoot=alive||(P&&P.st==='down'&&S.mode==='zr'&&zrMyV('lb')>0);
   const gap=3+me.spread*(innerHeight/2)/Math.tan(camera.fov*Math.PI/360);
   chEl[0].style.transform=`translateY(${-(gap+4.5)}px)`;chEl[1].style.transform=`translateY(${gap+4.5}px)`;chEl[2].style.transform=`translateX(${-(gap+4.5)}px)`;chEl[3].style.transform=`translateX(${gap+4.5}px)`;
-  {const rl=alive&&me.reloadT>0&&me.reloadMax>0;$('rlring').hidden=!rl;if(rl)$('rlfg').style.strokeDashoffset=(100*me.reloadT/me.reloadMax).toFixed(1);}/* reload progress ring around the crosshair */
-  $('cross').style.opacity=!alive?0:me.sprintK>0.5||me.reloadT>0?0.3:1;for(const e of chEl)e.style.opacity=1-me.ads;
+  {const rl=canShoot&&me.reloadT>0&&me.reloadMax>0;$('rlring').hidden=!rl;if(rl)$('rlfg').style.strokeDashoffset=(100*me.reloadT/me.reloadMax).toFixed(1);}/* reload progress ring around the crosshair */
+  $('cross').style.opacity=!canShoot?0:me.sprintK>0.5||me.reloadT>0?0.3:1;for(const e of chEl)e.style.opacity=1-me.ads;
   confirmT-=dt;$('confirm').style.opacity=confirmT>0?1:0;if(confirmT<=0)$('confirm').classList.remove('multi');
   const now=performance.now();
   for(let i=0;i<S.players.length;i++){const p=S.players[i],st=p.st;
