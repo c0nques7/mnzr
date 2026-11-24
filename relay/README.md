@@ -42,6 +42,9 @@ and Settings > Account can export/import a save file at any time.
   URL fragment, so it never reaches a server log. The game stores it in `localStorage` as `za-cloud-token`.
 - `GET /auth/me`, `POST /auth/logout`, `GET /api/save`, `PUT /api/save` — bearer token required, CORS limited
   to the same origin allowlist. `PUT` accepts `{v:1,save:{...}}` and caps the body at 512 KiB.
+- `/auth/me` also returns `dev: true` for developer accounts: a verified Google email whose SHA-256 is in
+  `DEV_HASHES` in worker.js, or listed in an optional `DEV_EMAILS` var (comma separated). On mnzr.lol the game
+  shows Sandbox and Unlock everything only for those accounts (client-side only, not a security boundary).
 - The game derives the auth base URL from `RELAY_URL` (`wss://` becomes `https://`), so a `?relay=` override also redirects sign-in to that host. Point it at this Worker, or leave the override off.
 - Saves are opaque to the worker: it stores and returns bytes, never interprets progression or enforces game
   rules. KV is eventually consistent, so a second device can briefly see the previous save.

@@ -23,6 +23,16 @@ const PEER = /^[a-z0-9]{4,24}$/;
 const SESSION_TTL = 30 * 86400;     /* 30 days, refreshed by signing in again */
 const OAUTH_TTL = 600;              /* state/challenge records expire in 10 minutes */
 const MAX_SAVE = 512 * 1024;        /* a progression snapshot should be a few KB */
+/* Accounts that see the developer tools (Sandbox, Unlock everything) on mnzr.lol: SHA-256 of the lowercased
+   Google email, so the address itself is not in the public repo. A DEV_EMAILS var/secret (comma separated) adds more. */
+const DEV_HASHES = ['f39a817aa29567b9439707ecfd40db8ad2555ff8faf1963876b0945e7e5fc0a0'];
+async function isDev(env, s) {
+  const email = String(s.email || '').trim().toLowerCase();
+  if (!email || s.ev === false) return false;
+  if (String(env.DEV_EMAILS || '').toLowerCase().split(',').map(x => x.trim()).includes(email)) return true;
+  const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email)))].map(b => b.toString(16).padStart(2, '0')).join('');
+  return DEV_HASHES.includes(h);
+}
 
 const b64u = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const token = n => b64u(crypto.getRandomValues(new Uint8Array(n)));
@@ -52,7 +62,7 @@ async function session(req, env) {
   try {
     const s = JSON.parse(raw);
     if (!(s.exp > Date.now())) { await env.SESSIONS.delete('s:' + m[1]); return null; }
-    return { bearer: m[1], sub: s.sub, email: s.email, name: s.name, pic: s.pic };
+    return { bearer: m[1], sub: s.sub, email: s.email, name: s.name, pic: s.pic, ev: s.ev };
   } catch (e) { return null; }
 }
 
@@ -113,7 +123,8 @@ async function accounts(req, env, url) {
       if (!info.sub) return fail(req, 'no Google account in token', 401);
       const bearer = token(32);
       const profile = {
-        sub: info.sub, email: info.email || '', name: info.name || info.email || 'Player',
+        sub: info.sub, email: info.email || '', ev: info.email_verified === true || info.email_verified === 'true',
+        name: info.name || info.email || 'Player',
         pic: info.picture || '', iat: Date.now(), exp: Date.now() + SESSION_TTL * 1000
       };
       await env.SESSIONS.put('s:' + bearer, JSON.stringify(profile), { expirationTtl: SESSION_TTL });
@@ -125,7 +136,7 @@ async function accounts(req, env, url) {
   if (!s) return fail(req, 'sign in required', 401);
 
   if (p === '/auth/me' && method === 'GET')
-    return json(req, { sub: s.sub, email: s.email, name: s.name, pic: s.pic });
+    return json(req, { sub: s.sub, email: s.email, name: s.name, pic: s.pic, dev: await isDev(env, s) });
   if (p === '/auth/logout' && method === 'POST') {
     await env.SESSIONS.delete('s:' + s.bearer);
     return json(req, { ok: true });

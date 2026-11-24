@@ -6492,9 +6492,13 @@ const $=id=>document.getElementById(id);
 /* dev tools (Sandbox, its T overlay, "Unlock everything", saved sandbox tuning) are off on the production site mnzr.lol and
    on everywhere else (claude.ai, Vercel previews, localhost). ?dev turns them on in this browser and remembers it
    (localStorage 'za-devmode'); ?dev=0 turns them off again. A convenience switch, not protection: it all runs in the browser. */
-const DEVMODE=(()=>{let on=null;try{const q=new URLSearchParams(location.search);if(q.has('dev')){on=!/^(0|off|false|no)$/i.test(q.get('dev')||'');localStorage.setItem('za-devmode',on?'1':'0');}
+/* Developer tools (Sandbox, Unlock everything, saved tuning). On mnzr.lol they only turn on when the cloud-save
+   sign-in is an account the relay marks dev (window.__zaDevAcct, below); ?dev does nothing there. Elsewhere
+   (localhost, Vercel previews, claude.ai) they are on, and ?dev / ?dev=0 switch them per browser. */
+const LIVE_HOST=/^(www\.)?mnzr\.lol$/i.test(location.hostname);
+let DEVMODE=LIVE_HOST?false:(()=>{let on=null;try{const q=new URLSearchParams(location.search);if(q.has('dev')){on=!/^(0|off|false|no)$/i.test(q.get('dev')||'');localStorage.setItem('za-devmode',on?'1':'0');}
   else{const v=localStorage.getItem('za-devmode');if(v==='1'||v==='0')on=v==='1';}}catch(e){}
-  return on!==null?on:!/^(www\.)?mnzr\.lol$/i.test(location.hostname);})();
+  return on!==null?on:true;})();
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const hyp=(ax,az,bx,bz)=>Math.hypot(ax-bx,az-bz);
 const dist=(a,b)=>hyp(a.x,a.z,b.x,b.z);
@@ -13479,7 +13483,10 @@ window.addEventListener('keydown',e=>{if($('lobby').hidden)return;if(e.code==='E
   else if(e.code==='Enter'||e.code==='NumpadEnter'){e.preventDefault();e.stopImmediatePropagation();$('lobStart').click();}},true);
 tuneApply();
 $('practice').addEventListener('click',()=>{tuneApply();SB.on=false;const wk=introDue();if(wk)introStart(startSolo,wk);else startSolo();});
-if(!DEVMODE)for(const el of [$('sandboxbtn'),$('shopAll').closest('label')]){el.hidden=true;el.style.display='none';}
+function devShow(){for(const el of [$('sandboxbtn'),$('shopAll').closest('label')]){el.hidden=!DEVMODE;el.style.display=DEVMODE?'':'none';}}
+devShow();
+/* called by the cloud-save code with /auth/me's dev flag (and false on sign-out); only matters on mnzr.lol */
+window.__zaDevAcct=on=>{if(!LIVE_HOST||!!on===DEVMODE)return;DEVMODE=!!on;devShow();if(!S)tuneApply();if(!$('shop').hidden)shopUI();};
 $('sandboxbtn').addEventListener('click',()=>{if(!DEVMODE)return;SB.on=true;SB.mode='range';SB.tab='range';sbLoad();devLoad();buildSB();startSolo();});
 $('joinbtn').addEventListener('click',async()=>{tuneApply();SB.on=false;readMenu();const code=($('code').value||'arena-1').toLowerCase().replace(/[^a-z0-9_.-]/g,'').slice(0,40)||'arena-1';$('code').value=code;$('joinbtn').disabled=true;
   if(await joinOnline(code))lobbyOpen();else $('joinbtn').disabled=false;});
@@ -15307,6 +15314,7 @@ warmUI(0,'Compiling shaders…');
   /* quiet: restoring a saved sign-in on page load (no 'Sign-in failed' on a network blip, only a 401 forgets the token) */
   async function afterSignIn(quiet){
     try{me=await api('/auth/me');}catch(e){me=null;if(!quiet||e.status===401){localStorage.removeItem(TOKEN);setAt(null);}paint();status(quiet&&e.status!==401?'Cloud save offline · progress stays in this browser':'Sign-in failed: '+e.message);return;}
+    if(window.__zaDevAcct)window.__zaDevAcct(!!me.dev);
     paint();status('Reading cloud save…');
     let cloud;
     try{cloud=await api('/api/save');}catch(e){status('Cloud save unavailable: '+e.message);return;}
@@ -15362,7 +15370,7 @@ warmUI(0,'Compiling shaders…');
       sessionStorage.setItem('za-oauth-s',st);location.href=API+'/auth/google?app='+encodeURIComponent(location.origin)+'&state='+st;}
     catch(e){status('Sign-in unavailable: '+e.message);}}
   async function signOut(){try{await api('/auth/logout',{method:'POST'});}catch(e){}
-    localStorage.removeItem(TOKEN);setAt(null);conflict=null;me=null;baseline=serial();paint();status('Signed out · progress stays in this browser');}
+    localStorage.removeItem(TOKEN);setAt(null);conflict=null;me=null;baseline=serial();if(window.__zaDevAcct)window.__zaDevAcct(false);paint();status('Signed out · progress stays in this browser');}
   async function readHash(){
     const h=location.hash||'';if(!/^#auth=/.test(h))return;
     const q=new URLSearchParams(h.slice(1)),t=q.get('auth'),st=q.get('state');
